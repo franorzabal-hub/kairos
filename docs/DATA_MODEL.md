@@ -2,7 +2,42 @@
 
 ## Visión General
 
-App de comunicación padres-colegio. Multi-tenant (cada colegio es un tenant independiente).
+App de comunicación padres-colegio. Multi-tenant con schema extensible (estilo Salesforce).
+
+### Arquitectura de Schema
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    SCHEMA BASE (Managed)                        │
+│         Controlado por Kairos, se replica a todos              │
+│                                                                 │
+│  organizations, users, students, announcements, events, etc.   │
+│  + campo `custom_fields JSONB` en tablas principales           │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+             ┌────────────────┼────────────────┐
+             ▼                ▼                ▼
+┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐
+│   Colegio A      │ │   Colegio B      │ │   Colegio C      │
+│                  │ │                  │ │                  │
+│ custom_fields:   │ │ custom_fields:   │ │ (sin customs)    │
+│ - blood_type     │ │ - bus_route      │ │                  │
+│ - allergies      │ │ - locker_number  │ │                  │
+│                  │ │                  │ │                  │
+│ Tablas custom:   │ │ Tablas custom:   │ │                  │
+│ - inventory      │ │ - transport      │ │                  │
+│ - uniforms       │ │                  │ │                  │
+└──────────────────┘ └──────────────────┘ └──────────────────┘
+```
+
+### Principios
+
+1. **Schema base inmutable por tenants** - Los colegios no pueden modificar tablas base
+2. **Extensiones via JSONB** - Campo `custom_fields` para datos custom
+3. **Tablas custom aisladas** - Prefijo `tenant_{org_id}_` para tablas propias
+4. **Releases sin breaking changes** - Migraciones solo tocan schema base
+
+---
 
 ## Entidades Principales
 
@@ -26,13 +61,20 @@ App de comunicación padres-colegio. Multi-tenant (cada colegio es un tenant ind
 │  pickup_requests ── Cambios de salida                           │
 │  reports ────────── Boletines e informes                        │
 └─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│                     EXTENSIBILIDAD                              │
+├─────────────────────────────────────────────────────────────────┤
+│  custom_field_definitions ── Metadata de campos custom          │
+│  custom_tables ───────────── Registro de tablas custom          │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Collections
+## Collections Base
 
-### 1. organizations (Colegios)
+### 1. organizations (Colegios/Tenants)
 
 | Campo | Tipo | Descripción |
 |-------|------|-------------|
@@ -43,8 +85,9 @@ App de comunicación padres-colegio. Multi-tenant (cada colegio es un tenant ind
 | address | string | Dirección |
 | phone | string | Teléfono |
 | email | string | Email de contacto |
-| settings | json | Configuraciones (horarios, etc) |
-| status | enum | active, inactive |
+| settings | jsonb | Configuraciones (horarios, timezone, etc) |
+| plan | enum | free, basic, premium |
+| status | enum | active, inactive, suspended |
 | created_at | timestamp | |
 | updated_at | timestamp | |
 
@@ -62,6 +105,7 @@ App de comunicación padres-colegio. Multi-tenant (cada colegio es un tenant ind
 | email | string | Email (login) |
 | phone | string | Teléfono |
 | avatar | file | Foto de perfil |
+| custom_fields | jsonb | **Campos custom del tenant** |
 | status | enum | active, inactive |
 | created_at | timestamp | |
 
@@ -86,6 +130,7 @@ App de comunicación padres-colegio. Multi-tenant (cada colegio es un tenant ind
 | section_id | uuid | FK → sections (3ro A) |
 | photo | file | Foto |
 | medical_info | text | Info médica relevante |
+| custom_fields | jsonb | **Campos custom del tenant** |
 | status | enum | active, inactive, graduated |
 | created_at | timestamp | |
 
@@ -101,6 +146,7 @@ App de comunicación padres-colegio. Multi-tenant (cada colegio es un tenant ind
 | relationship | enum | mother, father, guardian, other |
 | is_primary | boolean | Contacto principal |
 | can_pickup | boolean | Autorizado a retirar |
+| custom_fields | jsonb | **Campos custom del tenant** |
 | created_at | timestamp | |
 
 ---
@@ -128,6 +174,7 @@ App de comunicación padres-colegio. Multi-tenant (cada colegio es un tenant ind
 | teacher_id | uuid | FK → users (maestro a cargo) |
 | school_year | integer | 2024, 2025... |
 | capacity | integer | Capacidad máxima |
+| custom_fields | jsonb | **Campos custom del tenant** |
 
 ---
 
@@ -140,6 +187,7 @@ App de comunicación padres-colegio. Multi-tenant (cada colegio es un tenant ind
 | name | string | "Aula 101", "Patio", "SUM" |
 | type | enum | classroom, gym, auditorium, outdoor, office |
 | capacity | integer | Capacidad |
+| custom_fields | jsonb | **Campos custom del tenant** |
 
 ---
 
@@ -158,6 +206,7 @@ App de comunicación padres-colegio. Multi-tenant (cada colegio es un tenant ind
 | publish_at | timestamp | Cuándo publicar |
 | expires_at | timestamp | Cuándo expira (nullable) |
 | attachments | files | Archivos adjuntos |
+| custom_fields | jsonb | **Campos custom del tenant** |
 | status | enum | draft, published, archived |
 | created_at | timestamp | |
 
@@ -181,6 +230,7 @@ App de comunicación padres-colegio. Multi-tenant (cada colegio es un tenant ind
 | confirmation_deadline | timestamp | Fecha límite confirmación |
 | target_type | enum | all, grade, section |
 | target_id | uuid | FK → grade o section |
+| custom_fields | jsonb | **Campos custom del tenant** |
 | status | enum | draft, published, cancelled |
 | created_at | timestamp | |
 
@@ -214,6 +264,7 @@ App de comunicación padres-colegio. Multi-tenant (cada colegio es un tenant ind
 | target_id | uuid | FK según target_type |
 | allow_replies | boolean | Permitir respuestas |
 | attachments | files | Archivos adjuntos |
+| custom_fields | jsonb | **Campos custom del tenant** |
 | status | enum | sent, read, archived |
 | created_at | timestamp | |
 
@@ -249,6 +300,7 @@ App de comunicación padres-colegio. Multi-tenant (cada colegio es un tenant ind
 | reviewed_by | uuid | FK → users (quien aprueba) |
 | reviewed_at | timestamp | |
 | notes | text | Notas del revisor |
+| custom_fields | jsonb | **Campos custom del tenant** |
 | created_at | timestamp | |
 
 ---
@@ -267,8 +319,76 @@ App de comunicación padres-colegio. Multi-tenant (cada colegio es un tenant ind
 | content | text | Contenido/observaciones |
 | file | file | PDF del boletín |
 | visible_to_parents | boolean | Visible para padres |
+| custom_fields | jsonb | **Campos custom del tenant** |
 | published_at | timestamp | |
 | created_at | timestamp | |
+
+---
+
+## Collections de Extensibilidad
+
+### 15. custom_field_definitions (Metadata de campos custom)
+
+Define qué campos custom tiene cada tenant en cada tabla.
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| id | uuid | PK |
+| organization_id | uuid | FK → organizations |
+| target_table | string | 'students', 'users', etc |
+| field_name | string | Nombre interno (snake_case) |
+| field_label | string | Label para UI |
+| field_type | enum | text, number, date, boolean, select, multiselect |
+| field_options | jsonb | Opciones para select, validaciones, default |
+| is_required | boolean | Campo obligatorio |
+| is_searchable | boolean | Incluir en búsquedas |
+| display_order | integer | Orden en formularios |
+| status | enum | active, inactive |
+| created_at | timestamp | |
+| updated_at | timestamp | |
+
+**Ejemplo de field_options:**
+```json
+{
+  "options": ["O+", "O-", "A+", "A-", "B+", "B-", "AB+", "AB-"],
+  "default": null,
+  "validation": {
+    "min_length": 2,
+    "max_length": 3
+  }
+}
+```
+
+---
+
+### 16. custom_tables (Registro de tablas custom)
+
+Registra las tablas custom creadas por cada tenant.
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| id | uuid | PK |
+| organization_id | uuid | FK → organizations |
+| table_name | string | Nombre interno (sin prefijo) |
+| table_label | string | Label para UI |
+| description | text | Descripción |
+| icon | string | Icono para UI |
+| schema_definition | jsonb | Definición de columnas |
+| created_at | timestamp | |
+| updated_at | timestamp | |
+
+**Nota:** Las tablas físicas se crean como `tenant_{org_id}_{table_name}`
+
+**Ejemplo de schema_definition:**
+```json
+{
+  "columns": [
+    {"name": "item_name", "type": "string", "required": true},
+    {"name": "quantity", "type": "integer", "default": 0},
+    {"name": "location_id", "type": "uuid", "references": "locations"}
+  ]
+}
+```
 
 ---
 
@@ -299,8 +419,51 @@ organizations (tenant)
     │
     ├── pickup_requests
     │
-    └── reports
+    ├── reports
+    │
+    ├── custom_field_definitions (metadata)
+    │
+    ├── custom_tables (metadata)
+    │
+    └── tenant_{id}_* (tablas custom físicas)
 ```
+
+---
+
+## Sistema de Releases
+
+### ¿Cómo funcionan las migraciones?
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         RELEASE v1.2                            │
+│                                                                 │
+│  Migración: Agregar campo "emergency_contact" a students       │
+│                                                                 │
+│  ALTER TABLE students ADD COLUMN emergency_contact TEXT;        │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  Se aplica a TODOS los tenants automáticamente                 │
+│                                                                 │
+│  ✓ Colegio A: Campo agregado + custom_fields intactos          │
+│  ✓ Colegio B: Campo agregado + custom_fields intactos          │
+│  ✓ Colegio C: Campo agregado                                   │
+│                                                                 │
+│  Las tablas tenant_* NO se tocan                               │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Reglas de migración
+
+1. **Nuevos campos** → Se agregan con DEFAULT o nullable
+2. **Cambios de tipo** → Migración con conversión segura
+3. **Campos removidos** → Se marcan deprecated, no se borran
+4. **Nuevas tablas** → Se crean vacías para todos
+5. **Custom fields** → NUNCA se modifican por migraciones
+6. **Tablas tenant_*** → NUNCA se tocan por migraciones
 
 ---
 
@@ -310,10 +473,26 @@ Todas las queries filtran por `organization_id`:
 
 | Rol | Permisos |
 |-----|----------|
+| Super Admin | CRUD en todo (solo equipo Kairos) |
 | Admin | CRUD en todo su colegio |
 | Teacher | Create en announcements, events, messages, reports. Read en students de sus secciones |
 | Parent | Read en contenido de sus hijos. Create en pickup_requests y respuestas |
 | Staff | Read en announcements, events. Create en pickup_requests |
+
+### Políticas de Directus
+
+```javascript
+// Ejemplo: Students solo visibles para su organización
+{
+  "students": {
+    "read": {
+      "_and": [
+        { "organization_id": { "_eq": "$CURRENT_USER.organization_id" } }
+      ]
+    }
+  }
+}
+```
 
 ---
 
@@ -329,4 +508,49 @@ CREATE INDEX idx_messages_org_parent ON messages(organization_id, parent_id);
 CREATE INDEX idx_pickup_org_date ON pickup_requests(organization_id, pickup_date);
 CREATE INDEX idx_guardians_student ON student_guardians(student_id);
 CREATE INDEX idx_guardians_user ON student_guardians(user_id);
+
+-- Custom fields (GIN para JSONB)
+CREATE INDEX idx_students_custom ON students USING GIN (custom_fields);
+CREATE INDEX idx_users_custom ON users USING GIN (custom_fields);
+
+-- Custom field definitions
+CREATE INDEX idx_cfd_org_table ON custom_field_definitions(organization_id, target_table);
+```
+
+---
+
+## Queries de Ejemplo
+
+### Buscar estudiantes con campo custom
+
+```sql
+SELECT * FROM students
+WHERE organization_id = 'xxx'
+AND custom_fields->>'blood_type' = 'O+';
+```
+
+### Obtener definiciones de campos custom
+
+```sql
+SELECT * FROM custom_field_definitions
+WHERE organization_id = 'xxx'
+AND target_table = 'students'
+AND status = 'active'
+ORDER BY display_order;
+```
+
+### Crear tabla custom para un tenant
+
+```sql
+-- Primero registrar en metadata
+INSERT INTO custom_tables (organization_id, table_name, table_label, schema_definition)
+VALUES ('xxx', 'inventory', 'Inventario', '{"columns": [...]}');
+
+-- Luego crear tabla física
+CREATE TABLE tenant_xxx_inventory (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID REFERENCES organizations(id),
+    -- columnas del schema_definition
+    created_at TIMESTAMP DEFAULT NOW()
+);
 ```
