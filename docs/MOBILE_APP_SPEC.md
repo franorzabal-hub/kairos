@@ -4,19 +4,34 @@ Based on reference screenshots from St. John's School app (K-01 to K-13).
 
 ## Navigation Structure
 
-### Main Drawer Menu
-1. **Inicio** (Home) - News feed with announcements
-2. **Novedades** - Announcements/News with unread count badge
-3. **Eventos** - Calendar view + event list
-4. **Mensajes** - Message inbox with unread count
-5. **Cambios en salida** - Pickup change requests
-6. **Boletines e informes** - Report cards and documents
+### Bottom Tab Bar (iOS Style) - 5 Tabs
+| Tab | Icon | Screen |
+|-----|------|--------|
+| Novedades | megaphone/bullhorn | Announcements feed |
+| Eventos | calendar | Events list + calendar |
+| Mensajes | chat-bubble | Message inbox |
+| Cambios | clock-arrow | Pickup change requests |
+| Boletines | document | Reports & documents |
 
-### Global Header
-- Hamburger menu (left)
-- Child selector dropdown (center): "Todos mis hijos" / individual child
+### Global Filter Bar (appears on ALL tabs)
+Every screen includes a filter section at the top:
+
+```
+┌─────────────────────────────────────────────┐
+│  [No Leído]  [Todos]  │  [▼ Filtro por hijo] │
+└─────────────────────────────────────────────┘
+```
+
+- **No Leído**: Shows only unread items (badge count)
+- **Todos**: Shows all items
+- **Filtro por hijo**: Dropdown to filter by child
+  - "Todos mis hijos"
+  - Individual children list
+
+### Header
+- App logo / School name (left)
 - Notifications bell with badge (right)
-- Calendar icon on Events section
+- User profile icon (right)
 
 ## Screen Specifications
 
