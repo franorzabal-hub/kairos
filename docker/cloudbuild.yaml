@@ -1,0 +1,55 @@
+steps:
+  # Build the container image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/kairos/directus:$COMMIT_SHA'
+      - '-t'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/kairos/directus:latest'
+      - '-f'
+      - 'docker/Dockerfile'
+      - '.'
+
+  # Push the container image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '--all-tags'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/kairos/directus'
+
+  # Deploy container image to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'kairos-directus'
+      - '--image'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/kairos/directus:$COMMIT_SHA'
+      - '--region'
+      - 'us-central1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--memory'
+      - '512Mi'
+      - '--cpu'
+      - '1'
+      - '--min-instances'
+      - '0'
+      - '--max-instances'
+      - '3'
+      - '--set-secrets'
+      - 'SECRET=directus-secret:latest,DB_PASSWORD=db-password:latest'
+      - '--set-env-vars'
+      - 'DB_CLIENT=pg,DB_HOST=/cloudsql/$PROJECT_ID:us-central1:kairos-db,DB_PORT=5432,DB_DATABASE=kairos,DB_USER=directus,PUBLIC_URL=https://kairos-directus-HASH-uc.a.run.app'
+      - '--add-cloudsql-instances'
+      - '$PROJECT_ID:us-central1:kairos-db'
+
+images:
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/kairos/directus:$COMMIT_SHA'
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/kairos/directus:latest'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
