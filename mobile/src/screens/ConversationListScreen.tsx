@@ -2,7 +2,6 @@ import React, { useMemo } from 'react';
 import {
   View,
   Text,
-  FlatList,
   StyleSheet,
   TouchableOpacity,
   RefreshControl,
@@ -10,16 +9,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useRouter } from 'expo-router';
+import { FlashList } from '@shopify/flash-list';
 import ScreenHeader from '../components/ScreenHeader';
 import FilterBar from '../components/FilterBar';
 import { useAuth, useFilters, useUnreadCounts } from '../context/AppContext';
 import { useConversations, ConversationWithMeta } from '../api/hooks';
-import { MensajesStackParamList } from '../navigation/types';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY, SHADOWS, UNREAD_STYLES } from '../theme';
-
-type NavigationProp = NativeStackNavigationProp<MensajesStackParamList, 'ConversationList'>;
 
 // Screen-specific colors for conversation list
 const LIST_COLORS = {
@@ -28,7 +24,7 @@ const LIST_COLORS = {
 };
 
 export default function ConversationListScreen() {
-  const navigation = useNavigation<NavigationProp>();
+  const router = useRouter();
   const { user } = useAuth();
   const { filterMode } = useFilters();
   const { unreadCounts } = useUnreadCounts();
@@ -86,18 +82,7 @@ export default function ConversationListScreen() {
   };
 
   const handleConversationPress = (conversation: ConversationWithMeta) => {
-    console.log('[ConversationListScreen] handleConversationPress - conversation:', {
-      id: conversation.id,
-      subject: conversation.subject,
-      canReply: conversation.canReply,
-      canReplyType: typeof conversation.canReply,
-    });
-    navigation.navigate('ConversationChat', {
-      conversationId: conversation.id,
-      participantId: conversation.participantId,
-      subject: conversation.subject,
-      canReply: conversation.canReply,
-    });
+    router.push({ pathname: '/mensajes/[id]', params: { id: conversation.id } });
   };
 
   const renderConversation = ({ item }: { item: ConversationWithMeta }) => {
@@ -190,7 +175,7 @@ export default function ConversationListScreen() {
           <ActivityIndicator size="large" color={COLORS.primary} />
         </View>
       ) : (
-        <FlatList
+        <FlashList
           data={filteredConversations}
           keyExtractor={(item) => item.id}
           refreshControl={

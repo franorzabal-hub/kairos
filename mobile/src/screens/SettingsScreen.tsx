@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { useAuth, useAppContext } from '../context/AppContext';
 import { clearAllReadStatus } from '../services/readStatusService';
@@ -92,7 +92,7 @@ const ToggleRow = ({ icon, label, description, value, onValueChange }: ToggleRow
 );
 
 export default function SettingsScreen() {
-  const navigation = useNavigation();
+  const router = useRouter();
   const { user, logout } = useAuth();
   const { children } = useAppContext();
 
@@ -153,7 +153,7 @@ export default function SettingsScreen() {
       const result = await LocalAuthentication.authenticateAsync({
         promptMessage: 'Confirma para activar autenticación biométrica',
         cancelLabel: 'Cancelar',
-        disableDeviceFallback: false,
+        disableDeviceFallback: true,
       });
 
       if (result.success) {
@@ -303,7 +303,7 @@ export default function SettingsScreen() {
         <View style={styles.headerSpacer} />
         <Text style={styles.headerTitle}>Configuración</Text>
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={() => router.back()}
           style={styles.closeButton}
           accessibilityLabel="Cerrar"
           accessibilityRole="button"

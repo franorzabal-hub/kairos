@@ -1,8 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../context/AppContext';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY } from '../theme';
 
@@ -13,13 +12,9 @@ interface ScreenHeaderProps {
   showAvatar?: boolean;
 }
 
-type RootStackParamList = {
-  Settings: undefined;
-};
-
 export default function ScreenHeader({ title, subtitle, showBackButton = false, showAvatar = true }: ScreenHeaderProps) {
   const { user } = useAuth();
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const router = useRouter();
 
   const getInitials = () => {
     const first = user?.first_name?.charAt(0) || '';
@@ -32,7 +27,7 @@ export default function ScreenHeader({ title, subtitle, showBackButton = false, 
     return (
       <View style={styles.detailHeader}>
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={() => router.back()}
           style={styles.backButton}
           accessibilityLabel="Volver"
           accessibilityRole="button"
@@ -54,7 +49,7 @@ export default function ScreenHeader({ title, subtitle, showBackButton = false, 
       </View>
       {showAvatar && (
         <TouchableOpacity
-          onPress={() => navigation.navigate('Settings')}
+          onPress={() => router.push('/settings')}
           style={styles.avatarButton}
           accessibilityLabel="Ir a configuración"
           accessibilityRole="button"

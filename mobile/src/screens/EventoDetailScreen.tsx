@@ -6,17 +6,24 @@ import {
   ScrollView,
   TouchableOpacity,
   useWindowDimensions,
+  Alert,
+  Linking,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
-import { RouteProp, useRoute } from '@react-navigation/native';
+import { useLocalSearchParams } from 'expo-router';
+import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
+import * as Calendar from 'expo-calendar';
 import ScreenHeader from '../components/ScreenHeader';
 import RenderHtml from 'react-native-render-html';
 import DirectusImage from '../components/DirectusImage';
 import Toast from '../components/Toast';
-import { Event } from '../api/directus';
+import { useEvent } from '../api/hooks';
+import { Location } from '../api/directus';
 import { useReadStatus } from '../hooks/useReadStatus';
 import { COLORS, SPACING, BORDERS } from '../theme';
+import { stripHtml } from '../utils';
 
 // Screen-specific color variants derived from theme
 const SCREEN_COLORS = {
@@ -36,25 +43,36 @@ const decodeHtmlEntities = (text: string) => {
     .replace(/&nbsp;/g, ' ');
 };
 
-type EventoDetailRouteParams = {
-  EventoDetail: {
-    event: Event;
-  };
+const getLocationCoordinates = (location?: Location | null) => {
+  if (!location?.custom_fields) return null;
+  const fields = location.custom_fields as Record<string, unknown>;
+  const latitude = Number(fields.lat ?? fields.latitude ?? fields.latitud);
+  const longitude = Number(fields.lng ?? fields.longitude ?? fields.lon ?? fields.longitud);
+
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+    return null;
+  }
+
+  return { latitude, longitude };
 };
 
 export default function EventoDetailScreen() {
-  const route = useRoute<RouteProp<EventoDetailRouteParams, 'EventoDetail'>>();
-  const { event } = route.params;
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  const eventId = typeof id === 'string' ? id : '';
+  const { data: event } = useEvent(eventId);
   const { width } = useWindowDimensions();
   const { markAsRead } = useReadStatus('events');
 
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [showToast, setShowToast] = useState(false);
+  const [isAddingToCalendar, setIsAddingToCalendar] = useState(false);
 
   // Mark as read when viewing
   useEffect(() => {
-    markAsRead(event.id);
-  }, [event.id, markAsRead]);
+    if (event) {
+      markAsRead(event.id);
+    }
+  }, [event?.id, markAsRead]);
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -74,6 +92,58 @@ export default function EventoDetailScreen() {
     });
   };
 
+  const location = event && typeof event.location_id === 'object' ? (event.location_id as Location) : null;
+  const locationName = location?.name || event?.location_external;
+  const locationCoordinates = getLocationCoordinates(location);
+
+  const handleOpenMap = async () => {
+    if (!locationName) return;
+    const encoded = encodeURIComponent(locationName);
+    const url = Platform.OS === 'ios'
+      ? `https://maps.apple.com/?q=${encoded}`
+      : `https://maps.google.com/?q=${encoded}`;
+    await Linking.openURL(url);
+  };
+
+  const handleAddToCalendar = async () => {
+    if (!event || isAddingToCalendar) return;
+    try {
+      setIsAddingToCalendar(true);
+      const { status } = await Calendar.requestCalendarPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permisos', 'Necesitamos permiso para guardar el evento en tu calendario.');
+        return;
+      }
+
+      const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
+      const targetCalendar = calendars.find((cal) => cal.allowsModifications) || calendars[0];
+
+      if (!targetCalendar) {
+        Alert.alert('Calendario', 'No se encontro un calendario disponible.');
+        return;
+      }
+
+      const startDate = new Date(event.start_date);
+      const endDate = event.end_date ? new Date(event.end_date) : startDate;
+      const allDayEnd = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59);
+
+      await Calendar.createEventAsync(targetCalendar.id, {
+        title: event.title,
+        startDate,
+        endDate: event.all_day ? allDayEnd : endDate,
+        allDay: event.all_day,
+        location: locationName || undefined,
+        notes: event.description ? stripHtml(event.description) : undefined,
+      });
+
+      Alert.alert('Listo', 'Evento guardado en tu calendario.');
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo guardar el evento en tu calendario.');
+    } finally {
+      setIsAddingToCalendar(false);
+    }
+  };
+
   const handleConfirm = () => {
     // Confirmar asistencia no es una acción destructiva,
     // no necesita confirmación previa - solo feedback inmediato
@@ -82,9 +152,20 @@ export default function EventoDetailScreen() {
     // TODO: Aquí iría la llamada a la API para registrar la confirmación
   };
 
-  const isDeadlinePassed = event.confirmation_deadline
+  const isDeadlinePassed = event?.confirmation_deadline
     ? new Date(event.confirmation_deadline) < new Date()
     : false;
+
+  if (!event) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <ScreenHeader title="Evento" showBackButton />
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyText}>No se encontró el evento</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -170,11 +251,11 @@ export default function EventoDetailScreen() {
               </View>
             )}
 
-            {event.target_type !== 'all' && (
-              <View style={styles.infoRow}>
-                <View style={styles.infoIconContainer}>
-                  <Ionicons name="people" size={20} color={COLORS.primary} />
-                </View>
+          {event.target_type !== 'all' && (
+            <View style={styles.infoRow}>
+              <View style={styles.infoIconContainer}>
+                <Ionicons name="people" size={20} color={COLORS.primary} />
+              </View>
                 <View style={styles.infoTextContainer}>
                   <Text style={styles.infoLabel}>Dirigido a</Text>
                   <Text style={styles.infoValue}>
@@ -184,6 +265,64 @@ export default function EventoDetailScreen() {
               </View>
             )}
           </View>
+
+          {locationName ? (
+            <View style={styles.locationCard}>
+              <View style={styles.locationHeader}>
+                <View style={styles.infoIconContainer}>
+                  <Ionicons name="location" size={20} color={COLORS.primary} />
+                </View>
+                <View style={styles.infoTextContainer}>
+                  <Text style={styles.infoLabel}>Ubicacion</Text>
+                  <Text style={styles.infoValue}>{locationName}</Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.mapLink}
+                  onPress={handleOpenMap}
+                  accessibilityRole="button"
+                  accessibilityLabel="Abrir ubicacion en mapas"
+                >
+                  <Ionicons name="navigate-outline" size={18} color={COLORS.primary} />
+                </TouchableOpacity>
+              </View>
+
+              {locationCoordinates ? (
+                <View style={styles.mapPreview}>
+                  <MapView
+                    style={styles.map}
+                    provider={Platform.OS === 'ios' ? PROVIDER_DEFAULT : undefined}
+                    scrollEnabled={false}
+                    zoomEnabled={false}
+                    pitchEnabled={false}
+                    rotateEnabled={false}
+                    region={{
+                      latitude: locationCoordinates.latitude,
+                      longitude: locationCoordinates.longitude,
+                      latitudeDelta: 0.01,
+                      longitudeDelta: 0.01,
+                    }}
+                  >
+                    <Marker coordinate={locationCoordinates} title={locationName} />
+                  </MapView>
+                </View>
+              ) : null}
+            </View>
+          ) : null}
+
+          {event.status !== 'cancelled' && (
+            <TouchableOpacity
+              style={[styles.calendarButton, isAddingToCalendar && styles.calendarButtonDisabled]}
+              onPress={handleAddToCalendar}
+              disabled={isAddingToCalendar}
+              accessibilityRole="button"
+              accessibilityLabel="Guardar en calendario"
+            >
+              <Ionicons name="calendar-outline" size={20} color={COLORS.white} />
+              <Text style={styles.calendarButtonText}>
+                {isAddingToCalendar ? 'Guardando...' : 'Guardar en calendario'}
+              </Text>
+            </TouchableOpacity>
+          )}
 
           {/* Confirmation Deadline */}
           {event.requires_confirmation && event.confirmation_deadline && (
@@ -307,6 +446,28 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 20,
   },
+  locationCard: {
+    backgroundColor: COLORS.lightGray,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+  },
+  locationHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  mapLink: {
+    padding: 6,
+  },
+  mapPreview: {
+    marginTop: 12,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  map: {
+    width: '100%',
+    height: 160,
+  },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -360,6 +521,24 @@ const styles = StyleSheet.create({
   deadlineExpiredText: {
     color: COLORS.error,
   },
+  calendarButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.primary,
+    paddingVertical: 14,
+    borderRadius: 30,
+    gap: 8,
+    marginBottom: 20,
+  },
+  calendarButtonDisabled: {
+    opacity: 0.7,
+  },
+  calendarButtonText: {
+    color: COLORS.white,
+    fontSize: 16,
+    fontWeight: '600',
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
@@ -408,5 +587,15 @@ const styles = StyleSheet.create({
     color: COLORS.success,
     fontSize: 16,
     fontWeight: '600',
+  },
+  emptyState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: SPACING.xxl,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: COLORS.gray,
   },
 });

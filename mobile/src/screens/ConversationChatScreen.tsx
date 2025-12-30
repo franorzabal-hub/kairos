@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
-  FlatList,
   StyleSheet,
   TouchableOpacity,
   TextInput,
@@ -14,11 +13,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { FlashList, FlashListRef } from '@shopify/flash-list';
 import { useAppContext } from '../context/AppContext';
 import {
   useConversationMessages,
+  useConversation,
   useSendMessage,
   useMarkConversationRead,
   useCloseConversation,
@@ -27,11 +27,7 @@ import {
   useToggleParticipantBlocked,
 } from '../api/hooks';
 import { ConversationMessage } from '../api/directus';
-import { MensajesStackParamList } from '../navigation/types';
 import { COLORS } from '../theme';
-
-type NavigationProp = NativeStackNavigationProp<MensajesStackParamList, 'ConversationChat'>;
-type ChatRouteProp = RouteProp<MensajesStackParamList, 'ConversationChat'>;
 
 // Screen-specific colors for chat bubbles and urgent indicators
 const CHAT_COLORS = {
@@ -42,17 +38,14 @@ const CHAT_COLORS = {
 };
 
 export default function ConversationChatScreen() {
-  const navigation = useNavigation<NavigationProp>();
-  const route = useRoute<ChatRouteProp>();
-  const { conversationId, participantId, subject, canReply } = route.params;
-
-  // Debug logging
-  console.log('[ConversationChatScreen] Route params:', JSON.stringify(route.params, null, 2));
-  console.log('[ConversationChatScreen] canReply value:', canReply, 'type:', typeof canReply);
+  const router = useRouter();
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  const conversationId = typeof id === 'string' ? id : '';
 
   const { user } = useAppContext();
   const directusUserId = user?.directus_user_id;
 
+  const { data: conversation } = useConversation(conversationId);
   const { data: messages = [], isLoading, refetch } = useConversationMessages(conversationId);
   const sendMessage = useSendMessage();
   const markAsRead = useMarkConversationRead();
@@ -64,10 +57,27 @@ export default function ConversationChatScreen() {
   const [inputText, setInputText] = useState('');
   const [isUrgent, setIsUrgent] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
-  const flatListRef = useRef<FlatList>(null);
+  const listRef = useRef<FlashListRef<ConversationMessage>>(null);
 
   // Check if user is teacher (can manage conversations)
   const isTeacher = user?.role === 'teacher' || user?.role === 'admin';
+
+  const currentParticipant = conversation?.participants?.find((participant) => {
+    const participantUserId = typeof participant.user_id === 'string'
+      ? participant.user_id
+      : participant.user_id?.id;
+    return participantUserId === directusUserId;
+  });
+
+  const participantId = currentParticipant?.id ?? '';
+  const canReply = currentParticipant?.can_reply ?? true;
+  const subject = conversation?.subject ?? 'Conversación';
+
+  useEffect(() => {
+    if (currentParticipant) {
+      setIsMuted(Boolean(currentParticipant.is_muted));
+    }
+  }, [currentParticipant?.is_muted]);
 
   // Mark conversation as read when entering
   useEffect(() => {
@@ -80,7 +90,7 @@ export default function ConversationChatScreen() {
   useEffect(() => {
     if (messages.length > 0) {
       setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
+        listRef.current?.scrollToEnd({ animated: true });
       }, 100);
     }
   }, [messages.length]);
@@ -167,7 +177,7 @@ export default function ConversationChatScreen() {
             try {
               await closeConversation.mutateAsync({ conversationId });
               Alert.alert('Éxito', 'La conversación ha sido cerrada');
-              navigation.goBack();
+              router.back();
             } catch (error) {
               console.error('Error closing conversation:', error);
               Alert.alert('Error', 'No se pudo cerrar la conversación');
@@ -190,7 +200,7 @@ export default function ConversationChatScreen() {
             try {
               await archiveConversation.mutateAsync(conversationId);
               Alert.alert('Éxito', 'La conversación ha sido archivada');
-              navigation.goBack();
+              router.back();
             } catch (error) {
               console.error('Error archiving conversation:', error);
               Alert.alert('Error', 'No se pudo archivar la conversación');
@@ -216,11 +226,11 @@ export default function ConversationChatScreen() {
               // This would need the other participant's ID - for now we use participantId
               // In a real implementation, we'd need to fetch the other participant's record
               await toggleBlocked.mutateAsync({
-                participantId: participantId,
+                participantId,
                 isBlocked: true,
               });
               Alert.alert('Éxito', 'El participante ha sido bloqueado');
-              navigation.goBack();
+              router.back();
             } catch (error) {
               console.error('Error blocking participant:', error);
               Alert.alert('Error', 'No se pudo bloquear al participante');
@@ -233,6 +243,7 @@ export default function ConversationChatScreen() {
 
   const handleToggleMute = async () => {
     try {
+      if (!participantId) return;
       await muteConversation.mutateAsync({
         participantId,
         isMuted: !isMuted,
@@ -316,6 +327,16 @@ export default function ConversationChatScreen() {
     );
   };
 
+  if (!conversationId) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyText}>Conversación inválida</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <KeyboardAvoidingView
@@ -325,7 +346,7 @@ export default function ConversationChatScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color={COLORS.primary} />
           </TouchableOpacity>
           <View style={styles.headerContent}>
@@ -358,8 +379,8 @@ export default function ConversationChatScreen() {
             <ActivityIndicator size="large" color={COLORS.primary} />
           </View>
         ) : (
-          <FlatList
-            ref={flatListRef}
+          <FlashList
+            ref={listRef}
             data={messages}
             keyExtractor={(item) => item.id}
             renderItem={renderMessage}

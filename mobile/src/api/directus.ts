@@ -54,6 +54,15 @@ export interface Announcement {
   publish_at?: string;
 }
 
+export interface Location {
+  id: string;
+  organization_id: string;
+  name: string;
+  type?: 'classroom' | 'gym' | 'auditorium' | 'outdoor' | 'office';
+  capacity?: number;
+  custom_fields?: Record<string, any>;
+}
+
 export interface Event {
   id: string;
   organization_id: string;
@@ -64,7 +73,8 @@ export interface Event {
   start_date: string;
   end_date?: string;
   all_day: boolean;
-  location_id?: string;
+  location_id?: string | Location;
+  location_external?: string;
   requires_confirmation: boolean;
   confirmation_deadline?: string;
   target_type: 'all' | 'grade' | 'section';
@@ -117,7 +127,7 @@ export interface Conversation {
 export interface ConversationParticipant {
   id: string;
   conversation_id: string | Conversation;
-  user_id: string;
+  user_id: string | DirectusUser;
   role: 'teacher' | 'parent' | 'admin';
   can_reply: boolean;
   is_blocked: boolean;

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import * as Notifications from 'expo-notifications';
-import { useNavigation } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
 import { useAuth } from '../context/AppContext';
 import {
   registerForPushNotifications,
@@ -15,7 +15,7 @@ export function useNotifications() {
   const [notification, setNotification] = useState<Notifications.Notification | null>(null);
   const notificationListener = useRef<Notifications.EventSubscription | null>(null);
   const responseListener = useRef<Notifications.EventSubscription | null>(null);
-  const navigation = useNavigation();
+  const router = useRouter();
 
   useEffect(() => {
     // Only register if authenticated
@@ -57,23 +57,23 @@ export function useNotifications() {
 
     switch (type) {
       case 'announcement':
-        navigation.navigate('Novedades' as never);
+        router.push(id ? `/novedades/${id}` : '/novedades');
         break;
       case 'event':
-        navigation.navigate('Eventos' as never);
+        router.push(id ? `/eventos/${id}` : '/eventos');
         break;
       case 'message':
-        navigation.navigate('Mensajes' as never);
+        router.push(id ? `/mensajes/${id}` : '/mensajes');
         break;
       case 'pickup_request':
-        navigation.navigate('Cambios' as never);
+        router.push('/cambios');
         break;
       case 'report':
-        navigation.navigate('Boletines' as never);
+        router.push('/boletines');
         break;
       default:
         // Default to home/novedades
-        navigation.navigate('Novedades' as never);
+        router.push('/novedades');
     }
   };
 

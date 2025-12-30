@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useUnreadCounts, useAuth } from '../context/AppContext';
-import { useAnnouncements, useEvents, useMessages, usePickupRequests, useReports, MessageWithReadStatus } from '../api/hooks';
+import { useAnnouncements, useEvents, useConversations, usePickupRequests, useReports } from '../api/hooks';
 import { getAllReadIds } from '../services/readStatusService';
 
 /**
@@ -15,7 +15,7 @@ export function useUnreadSync() {
   // Get data from all hooks
   const { data: announcements } = useAnnouncements();
   const { data: events } = useEvents();
-  const { data: messages } = useMessages();
+  const { data: conversations } = useConversations();
   const { data: cambios } = usePickupRequests();
   const { data: boletines } = useReports();
 
@@ -56,9 +56,9 @@ export function useUnreadSync() {
         ? events.filter(e => !allReadIds.events.has(e.id)).length
         : 0;
 
-      // Messages - use read_at field from API (not content_reads)
-      const mensajesCount = messages
-        ? (messages as MessageWithReadStatus[]).filter(m => !m.read_at).length
+      // Mensajes - sum unread counts across conversations
+      const mensajesCount = conversations
+        ? conversations.reduce((total, convo) => total + (convo.unreadCount || 0), 0)
         : 0;
 
       // Cambios (pickup requests) - show pending ones as "unread"
@@ -85,5 +85,5 @@ export function useUnreadSync() {
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [announcements, events, messages, cambios, boletines, setUnreadCounts, user?.id]);
+  }, [announcements, events, conversations, cambios, boletines, setUnreadCounts, user?.id]);
 }

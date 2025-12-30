@@ -1,25 +1,33 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, RefreshControl, ActivityIndicator, Linking } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, RefreshControl, ActivityIndicator, Linking, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { FlashList } from '@shopify/flash-list';
+import { useNetInfo } from '@react-native-community/netinfo';
 import ScreenHeader from '../components/ScreenHeader';
 import FilterBar from '../components/FilterBar';
-import { useFilters, useUnreadCounts, useAppContext } from '../context/AppContext';
+import { useFilters, useUnreadCounts } from '../context/AppContext';
 import { useReports, useChildren } from '../api/hooks';
 import { useReadStatus } from '../hooks';
 import { Report } from '../api/directus';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY, UNREAD_STYLES, BADGE_STYLES, SHADOWS } from '../theme';
 
+type ReportListItem =
+  | { type: 'header'; id: string; title: string }
+  | { type: 'report'; id: string; report: Report };
+
 export default function BoletinesScreen() {
-  const { selectedChildId, children, filterMode } = useFilters();
+  const { children, filterMode } = useFilters();
   const { unreadCounts } = useUnreadCounts();
   const { isRead, filterUnread, markAsRead } = useReadStatus('boletines');
+  const netInfo = useNetInfo();
+  const isOffline = netInfo.isConnected === false;
 
   // Fetch children on mount
   useChildren();
 
-  // Fetch reports
-  const { data: reports = [], isLoading, refetch, isRefetching } = useReports();
+  // Fetch reports (TanStack Query handles offline caching)
+  const { data: reports = [], isLoading, refetch, isRefetching, dataUpdatedAt } = useReports();
 
   // Apply filters
   const filteredReports = useMemo(() => {
@@ -34,101 +42,138 @@ export default function BoletinesScreen() {
   };
 
   const handleDownload = async (report: Report) => {
-    // Mark as read when downloading
+    if (isOffline) {
+      Alert.alert(
+        'Sin conexión',
+        'No podés descargar archivos mientras estés offline. Los datos de la lista se muestran desde la caché.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
     if (!isRead(report.id)) {
       markAsRead(report.id);
     }
 
     if (report.file) {
       try {
-        // Construct the file URL from Directus
         const fileUrl = `https://kairos-directus-684614817316.us-central1.run.app/assets/${report.file}`;
         await Linking.openURL(fileUrl);
       } catch (error) {
         console.error('Error opening file:', error);
+        Alert.alert('Error', 'No se pudo abrir el archivo');
       }
     }
   };
 
-  // Group filtered reports by student
-  const reportsByStudent = filteredReports.reduce((acc: Record<string, Report[]>, report) => {
-    const child = children.find(c => c.id === report.student_id);
-    const childName = child ? `${child.first_name} ${child.last_name}` : 'Estudiante';
+  const reportsByStudent = useMemo(() => {
+    return filteredReports.reduce((acc: Record<string, Report[]>, report) => {
+      const child = children.find(c => c.id === report.student_id);
+      const childName = child ? `${child.first_name} ${child.last_name}` : 'Estudiante';
 
-    if (!acc[childName]) {
-      acc[childName] = [];
-    }
-    acc[childName].push(report);
-    return acc;
-  }, {});
+      if (!acc[childName]) {
+        acc[childName] = [];
+      }
+      acc[childName].push(report);
+      return acc;
+    }, {});
+  }, [filteredReports, children]);
+
+  const listData = useMemo<ReportListItem[]>(() => {
+    const items: ReportListItem[] = [];
+    Object.entries(reportsByStudent).forEach(([childName, studentReports]) => {
+      items.push({ type: 'header', id: `header-${childName}`, title: childName });
+      studentReports.forEach((report) => {
+        items.push({ type: 'report', id: report.id, report });
+      });
+    });
+    return items;
+  }, [reportsByStudent]);
+
+  // Format last update time for offline indicator
+  const lastUpdateText = dataUpdatedAt
+    ? new Date(dataUpdatedAt).toLocaleString('es-AR', { hour: '2-digit', minute: '2-digit' })
+    : '';
 
   const ListHeader = () => (
     <View style={styles.listHeader}>
       <ScreenHeader title="Boletines" />
+      {isOffline && (
+        <View style={styles.offlineBanner}>
+          <Ionicons name="cloud-offline-outline" size={16} color={COLORS.white} />
+          <Text style={styles.offlineText}>
+            Sin conexión - Datos de {lastUpdateText}
+          </Text>
+        </View>
+      )}
       <FilterBar unreadCount={unreadCounts.boletines} />
     </View>
   );
 
+  const renderItem = ({ item }: { item: ReportListItem }) => {
+    if (item.type === 'header') {
+      return (
+        <View style={styles.childSection}>
+          <Text style={styles.childName}>{item.title}</Text>
+        </View>
+      );
+    }
+
+    const report = item.report;
+    const reportIsUnread = !isRead(report.id);
+
+    return (
+      <View style={styles.reportWrapper}>
+        <TouchableOpacity
+          style={[styles.reportRow, reportIsUnread && styles.reportRowUnread]}
+          onPress={() => handleDownload(report)}
+        >
+          <View style={styles.reportInfo}>
+            <View style={styles.reportHeader}>
+              <Text style={[styles.reportTitle, reportIsUnread && styles.reportTitleUnread]} numberOfLines={2}>
+                {report.title}
+              </Text>
+              {reportIsUnread && (
+                <View style={styles.newBadge}>
+                  <Text style={styles.newBadgeText}>NUEVO</Text>
+                </View>
+              )}
+            </View>
+            {report.type && (
+              <View style={styles.typeBadge}>
+                <Text style={styles.typeBadgeText}>{report.type}</Text>
+              </View>
+            )}
+          </View>
+          <View style={styles.downloadButton}>
+            <Ionicons name="download-outline" size={20} color={COLORS.white} />
+          </View>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {isLoading ? (
-        <ScrollView contentContainerStyle={styles.loadingContainer}>
+        <View style={styles.loadingContainer}>
           <ListHeader />
           <ActivityIndicator size="large" color={COLORS.primary} />
-        </ScrollView>
+        </View>
       ) : (
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          refreshControl={
-            <RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />
-          }
-        >
-          <ListHeader />
-          {Object.entries(reportsByStudent).map(([childName, studentReports]) => (
-            <View key={childName} style={styles.childSection}>
-              <Text style={styles.childName}>{childName}</Text>
-
-              {studentReports.map((report) => {
-                const reportIsUnread = !isRead(report.id);
-                return (
-                <TouchableOpacity
-                  key={report.id}
-                  style={[styles.reportRow, reportIsUnread && styles.reportRowUnread]}
-                  onPress={() => handleDownload(report)}
-                >
-                  <View style={styles.reportInfo}>
-                    <View style={styles.reportHeader}>
-                      <Text style={[styles.reportTitle, reportIsUnread && styles.reportTitleUnread]} numberOfLines={2}>
-                        {report.title}
-                      </Text>
-                      {reportIsUnread && (
-                        <View style={styles.newBadge}>
-                          <Text style={styles.newBadgeText}>NUEVO</Text>
-                        </View>
-                      )}
-                    </View>
-                    {report.type && (
-                      <View style={styles.typeBadge}>
-                        <Text style={styles.typeBadgeText}>{report.type}</Text>
-                      </View>
-                    )}
-                  </View>
-                  <View style={styles.downloadButton}>
-                    <Ionicons name="download-outline" size={20} color={COLORS.white} />
-                  </View>
-                </TouchableOpacity>
-              );
-              })}
-            </View>
-          ))}
-
-          {Object.keys(reportsByStudent).length === 0 && (
+        <FlashList
+          data={listData}
+          keyExtractor={(item) => item.id}
+          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />}
+          ListHeaderComponent={ListHeader}
+          contentContainerStyle={styles.listContent}
+          renderItem={renderItem}
+          ListEmptyComponent={
             <View style={styles.emptyState}>
               <Text style={styles.emptyText}>No hay boletines disponibles</Text>
             </View>
-          )}
-        </ScrollView>
+          }
+        />
       )}
     </SafeAreaView>
   );
@@ -143,10 +188,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     marginBottom: SPACING.sm,
   },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
+  listContent: {
     paddingBottom: SPACING.tabBarOffset,
   },
   childSection: {
@@ -156,6 +198,9 @@ const styles = StyleSheet.create({
   childName: {
     ...TYPOGRAPHY.sectionTitle,
     marginBottom: SPACING.md,
+  },
+  reportWrapper: {
+    paddingHorizontal: SPACING.screenPadding,
   },
   reportRow: {
     flexDirection: 'row',
@@ -225,5 +270,19 @@ const styles = StyleSheet.create({
   typeBadgeText: {
     color: COLORS.gray,
     ...TYPOGRAPHY.badge,
+  },
+  offlineBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.warning,
+    paddingVertical: SPACING.xs,
+    paddingHorizontal: SPACING.md,
+    gap: SPACING.xs,
+  },
+  offlineText: {
+    color: COLORS.white,
+    fontSize: 12,
+    fontWeight: '500',
   },
 });

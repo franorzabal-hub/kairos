@@ -9,13 +9,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import RenderHtml from 'react-native-render-html';
 import DirectusImage from '../components/DirectusImage';
 import ScreenHeader from '../components/ScreenHeader';
 import Toast from '../components/Toast';
-import { Announcement } from '../api/directus';
-import { useContentReadStatus } from '../api/hooks';
+import { useAnnouncement, useContentReadStatus } from '../api/hooks';
 import { COLORS, SPACING, BORDERS } from '../theme';
 
 // Decode HTML entities
@@ -30,16 +29,11 @@ const decodeHtmlEntities = (text: string) => {
     .replace(/&nbsp;/g, ' ');
 };
 
-type NovedadDetailRouteParams = {
-  NovedadDetail: {
-    announcement: Announcement;
-  };
-};
-
 export default function NovedadDetailScreen() {
-  const route = useRoute<RouteProp<NovedadDetailRouteParams, 'NovedadDetail'>>();
-  const navigation = useNavigation();
-  const { announcement } = route.params;
+  const router = useRouter();
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  const announcementId = typeof id === 'string' ? id : '';
+  const { data: announcement } = useAnnouncement(announcementId);
   const { width } = useWindowDimensions();
   const { markAsRead, markAsUnread, isRead } = useContentReadStatus('announcements');
 
@@ -52,21 +46,22 @@ export default function NovedadDetailScreen() {
 
   // Mark as read when viewing (only once per announcement)
   useEffect(() => {
-    if (hasMarkedReadRef.current !== announcement.id) {
+    if (announcement && hasMarkedReadRef.current !== announcement.id) {
       hasMarkedReadRef.current = announcement.id;
       markAsRead(announcement.id);
       setIsMarkedRead(true);
     }
-  }, [announcement.id, markAsRead]);
+  }, [announcement?.id, markAsRead]);
 
   const handleMarkAsUnread = async () => {
+    if (!announcement) return;
     await markAsUnread(announcement.id);
     setIsMarkedRead(false);
     setToastMessage('Marcado como no leído');
     setShowToast(true);
     // Navigate back after a short delay
     setTimeout(() => {
-      navigation.goBack();
+      router.back();
     }, 800);
   };
 
@@ -87,6 +82,17 @@ export default function NovedadDetailScreen() {
       minute: '2-digit',
     });
   };
+
+  if (!announcement) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <ScreenHeader title="Novedad" showBackButton />
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyText}>No se encontró la novedad</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -298,5 +304,15 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     fontSize: 16,
     fontWeight: '600',
+  },
+  emptyState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: SPACING.xxl,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: COLORS.gray,
   },
 });

@@ -4,6 +4,7 @@ import { BlurView } from 'expo-blur';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSegments } from 'expo-router';
 import { COLORS, SPACING, TYPOGRAPHY } from '../theme';
 
 interface BlurTabBarProps extends BottomTabBarProps {
@@ -17,23 +18,41 @@ interface BlurTabBarProps extends BottomTabBarProps {
 }
 
 const TAB_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
-  Novedades: 'megaphone-outline',
-  Eventos: 'calendar-outline',
-  Mensajes: 'chatbubbles-outline',
-  Cambios: 'time-outline',
-  Boletines: 'document-text-outline',
+  'novedades/index': 'megaphone-outline',
+  'eventos/index': 'calendar-outline',
+  'mensajes/index': 'chatbubbles-outline',
+  'cambios/index': 'time-outline',
+  'boletines/index': 'document-text-outline',
 };
 
 const TAB_BADGE_KEYS: Record<string, keyof BlurTabBarProps['unreadCounts']> = {
-  Novedades: 'novedades',
-  Eventos: 'eventos',
-  Mensajes: 'mensajes',
-  Cambios: 'cambios',
-  Boletines: 'boletines',
+  'novedades/index': 'novedades',
+  'eventos/index': 'eventos',
+  'mensajes/index': 'mensajes',
+  'cambios/index': 'cambios',
+  'boletines/index': 'boletines',
 };
 
 export default function BlurTabBar({ state, descriptors, navigation, unreadCounts }: BlurTabBarProps) {
   const insets = useSafeAreaInsets();
+  const segments = useSegments();
+  const isNestedRoute = segments[0] === '(tabs)' && segments.length > 2;
+
+  if (isNestedRoute) {
+    return null;
+  }
+
+  // Filter out hidden routes (href: null) and dynamic routes ([id])
+  const visibleRoutes = state.routes.filter((route) => {
+    const { options } = descriptors[route.key];
+    // Exclude routes with href explicitly set to null
+    if (options.href === null) return false;
+    // Exclude dynamic routes like [id]
+    if (route.name.includes('[')) return false;
+    // Exclude the index redirect
+    if (route.name === 'index') return false;
+    return true;
+  });
 
   return (
     <BlurView
@@ -43,8 +62,9 @@ export default function BlurTabBar({ state, descriptors, navigation, unreadCount
     >
       <View style={styles.borderTop} />
       <View style={styles.tabsContainer}>
-        {state.routes.map((route, index) => {
+        {visibleRoutes.map((route) => {
           const { options } = descriptors[route.key];
+          const index = state.routes.indexOf(route);
           const label = options.tabBarLabel !== undefined
             ? options.tabBarLabel
             : options.title !== undefined

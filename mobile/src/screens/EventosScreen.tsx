@@ -1,9 +1,10 @@
-import React, { useState, useMemo } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, RefreshControl, ScrollView } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useRouter } from 'expo-router';
+import { FlashList } from '@shopify/flash-list';
+import { CalendarProvider, ExpandableCalendar } from 'react-native-calendars';
 import ScreenHeader from '../components/ScreenHeader';
 import FilterBar from '../components/FilterBar';
 import DirectusImage from '../components/DirectusImage';
@@ -11,22 +12,72 @@ import { useFilters, useUnreadCounts } from '../context/AppContext';
 import { useEvents } from '../api/hooks';
 import { useReadStatus } from '../hooks';
 import { Event } from '../api/directus';
-import { EventosStackParamList } from '../navigation/EventosStack';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY, UNREAD_STYLES, SHADOWS, BADGE_STYLES } from '../theme';
 import { stripHtml } from '../utils';
 
-const WEEKDAYS = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa', 'Do'];
-const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-                'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+const formatDateKey = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
-type EventosNavigationProp = NativeStackNavigationProp<EventosStackParamList, 'EventosList'>;
+const normalizeDateKey = (dateValue: string) => {
+  const parsed = new Date(dateValue);
+  return formatDateKey(parsed);
+};
+
+const parseDateKey = (dateKey: string) => {
+  return new Date(`${dateKey}T00:00:00`);
+};
+
+const isEventOnDate = (event: Event, dateKey: string) => {
+  const targetDate = parseDateKey(dateKey);
+  const start = new Date(event.start_date);
+  const end = event.end_date ? new Date(event.end_date) : start;
+  const startDate = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+  const endDate = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+  return targetDate >= startDate && targetDate <= endDate;
+};
+
+const getMarkedDates = (events: Event[], selectedDate: string) => {
+  const marked: Record<string, { marked?: boolean; dotColor?: string; selected?: boolean; selectedColor?: string }> = {};
+
+  events.forEach((event) => {
+    const start = new Date(event.start_date);
+    const end = event.end_date ? new Date(event.end_date) : start;
+    const cursor = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+    const finalDate = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+
+    while (cursor <= finalDate) {
+      const key = formatDateKey(cursor);
+      marked[key] = {
+        ...marked[key],
+        marked: true,
+        dotColor: COLORS.primary,
+      };
+      cursor.setDate(cursor.getDate() + 1);
+    }
+  });
+
+  if (selectedDate) {
+    marked[selectedDate] = {
+      ...marked[selectedDate],
+      selected: true,
+      selectedColor: COLORS.primary,
+    };
+  }
+
+  return marked;
+};
 
 export default function EventosScreen() {
-  const navigation = useNavigation<EventosNavigationProp>();
+  const router = useRouter();
   const { filterMode } = useFilters();
   const { unreadCounts } = useUnreadCounts();
+  const todayKey = useMemo(() => formatDateKey(new Date()), []);
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<string>(todayKey);
 
   const { data: events = [], isLoading, refetch, isRefetching } = useEvents();
   const { isRead, filterUnread, markAsRead } = useReadStatus('events');
@@ -45,51 +96,70 @@ export default function EventosScreen() {
     return result;
   }, [events, filterMode, filterUnread]);
 
+  const markedDates = useMemo(() => getMarkedDates(filteredEvents, selectedDate), [filteredEvents, selectedDate]);
+
+  const eventsForSelectedDate = useMemo(() => {
+    if (!selectedDate) return [];
+    return filteredEvents.filter((event) => isEventOnDate(event, selectedDate));
+  }, [filteredEvents, selectedDate]);
+
   const onRefresh = async () => {
     await refetch();
   };
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
-    const day = date.getDate();
-    const month = MONTHS[date.getMonth()].substring(0, 3);
-    return `${day} ${month}`;
+    return date.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' });
   };
 
-  // Calendar helpers
-  const getDaysInMonth = (date: Date) => {
-    const year = date.getFullYear();
-    const month = date.getMonth();
-    return new Date(year, month + 1, 0).getDate();
-  };
+  const renderEventCard = ({ item }: { item: Event }) => {
+    const itemIsUnread = !isRead(item.id);
+    return (
+      <TouchableOpacity
+        style={[styles.card, itemIsUnread && styles.cardUnread]}
+        onPress={() => {
+          if (itemIsUnread) {
+            markAsRead(item.id);
+          }
+          router.push({ pathname: '/eventos/[id]', params: { id: item.id } });
+        }}
+      >
+        {item.requires_confirmation ? (
+          <View style={styles.confirmBadge}>
+            <Text style={styles.confirmBadgeText}>CONFIRMAR</Text>
+          </View>
+        ) : null}
 
-  const getFirstDayOfMonth = (date: Date) => {
-    const year = date.getFullYear();
-    const month = date.getMonth();
-    const firstDay = new Date(year, month, 1).getDay();
-    return firstDay === 0 ? 6 : firstDay - 1; // Monday = 0
-  };
+        {itemIsUnread && <View style={styles.unreadDot} />}
 
-  const renderCalendar = () => {
-    const daysInMonth = getDaysInMonth(currentDate);
-    const firstDay = getFirstDayOfMonth(currentDate);
-    const days = [];
+        <DirectusImage
+          fileId={item.image}
+          style={styles.cardImage}
+          resizeMode="cover"
+          fallback={
+            <View style={styles.cardImagePlaceholder}>
+              <MaterialCommunityIcons name="school-outline" size={48} color={COLORS.primary} />
+              <Text style={styles.schoolName}>Colegio</Text>
+            </View>
+          }
+        />
 
-    // Empty cells for days before first day of month
-    for (let i = 0; i < firstDay; i++) {
-      days.push(<View key={`empty-${i}`} style={styles.calendarDay} />);
-    }
+        <View style={styles.dateBadge}>
+          <Ionicons name="calendar-outline" size={12} color={COLORS.white} style={styles.dateIcon} />
+          <Text style={styles.dateText}>{formatDate(item.start_date)}</Text>
+        </View>
 
-    // Days of the month
-    for (let day = 1; day <= daysInMonth; day++) {
-      days.push(
-        <TouchableOpacity key={day} style={styles.calendarDay}>
-          <Text style={styles.calendarDayText}>{day}</Text>
-        </TouchableOpacity>
-      );
-    }
-
-    return days;
+        <View style={styles.cardContent}>
+          <Text style={styles.cardTitle}>{item.title}</Text>
+          {item.description ? (
+            <Text style={styles.cardDescription} numberOfLines={2}>
+              {stripHtml(item.description)}
+            </Text>
+          ) : null}
+          <Text style={styles.cardCta}>Ver Evento</Text>
+        </View>
+      </TouchableOpacity>
+    );
   };
 
   const ListHeader = () => (
@@ -122,112 +192,61 @@ export default function EventosScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {viewMode === 'calendar' ? (
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          refreshControl={
-            <RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />
-          }
-        >
+        <View style={styles.calendarWrapper}>
           <ListHeader />
-          <View style={styles.calendarContainer}>
-          {/* Month Navigation */}
-          <View style={styles.monthNav}>
-            <TouchableOpacity
-              onPress={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1))}
-              style={styles.monthNavButton}
-            >
-              <Ionicons name="chevron-back" size={20} color={COLORS.white} />
-            </TouchableOpacity>
-            <Text style={styles.monthTitle}>
-              {MONTHS[currentDate.getMonth()]} {currentDate.getFullYear()}
-            </Text>
-            <TouchableOpacity
-              onPress={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1))}
-              style={styles.monthNavButton}
-            >
-              <Ionicons name="chevron-forward" size={20} color={COLORS.white} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Weekday Headers */}
-          <View style={styles.weekdayRow}>
-            {WEEKDAYS.map(day => (
-              <Text key={day} style={styles.weekdayText}>{day}</Text>
-            ))}
-          </View>
-
-          {/* Calendar Grid */}
-          <View style={styles.calendarGrid}>
-            {renderCalendar()}
-          </View>
-
-            {events.length === 0 ? (
-              <View style={styles.noEventsBox}>
-                <Text style={styles.noEventsText}>
-                  No hay eventos agendados para este mes
-                </Text>
-              </View>
-            ) : null}
-          </View>
-        </ScrollView>
+          <CalendarProvider
+            date={selectedDate || todayKey}
+            onDateChanged={(date) => setSelectedDate(date)}
+            showTodayButton
+          >
+            <ExpandableCalendar
+              firstDay={1}
+              markedDates={markedDates}
+              initialPosition={ExpandableCalendar.positions.CLOSED}
+              theme={{
+                calendarBackground: COLORS.white,
+                todayTextColor: COLORS.primary,
+                selectedDayBackgroundColor: COLORS.primary,
+                selectedDayTextColor: COLORS.white,
+                dotColor: COLORS.primary,
+                dayTextColor: COLORS.darkGray,
+                monthTextColor: COLORS.darkGray,
+                arrowColor: COLORS.primary,
+              }}
+            />
+            <FlashList
+              data={eventsForSelectedDate}
+              keyExtractor={(item) => item.id}
+              refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />}
+              contentContainerStyle={styles.calendarListContent}
+              renderItem={renderEventCard}
+              ListEmptyComponent={
+                isLoading ? (
+                  <View style={styles.loadingState}>
+                    <ActivityIndicator size="large" color={COLORS.primary} />
+                  </View>
+                ) : (
+                  <View style={styles.emptyState}>
+                    <Text style={styles.emptyText}>No hay eventos para esta fecha</Text>
+                  </View>
+                )
+              }
+            />
+          </CalendarProvider>
+        </View>
+      ) : isLoading ? (
+        <View style={styles.loadingContainer}>
+          <ListHeader />
+          <ActivityIndicator size="large" color={COLORS.primary} />
+        </View>
       ) : (
-        <FlatList
+        <FlashList
           data={filteredEvents}
           keyExtractor={(item) => item.id}
-          refreshControl={
-            <RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />
-          }
+          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />}
           ListHeaderComponent={ListHeader}
           contentContainerStyle={styles.listContent}
-          renderItem={({ item }: { item: Event }) => {
-            const itemIsUnread = !isRead(item.id);
-            return (
-            <TouchableOpacity
-              style={[styles.card, itemIsUnread && styles.cardUnread]}
-              onPress={() => {
-                if (itemIsUnread) {
-                  markAsRead(item.id);
-                }
-                navigation.navigate('EventoDetail', { event: item });
-              }}
-            >
-              {item.requires_confirmation ? (
-                <View style={styles.confirmBadge}>
-                  <Text style={styles.confirmBadgeText}>CONFIRMAR</Text>
-                </View>
-              ) : null}
-
-              {itemIsUnread && (
-                <View style={styles.unreadDot} />
-              )}
-
-              <DirectusImage
-                fileId={item.image}
-                style={styles.cardImage}
-                resizeMode="cover"
-                fallback={
-                  <View style={styles.cardImagePlaceholder}>
-                    <MaterialCommunityIcons name="school-outline" size={48} color={COLORS.primary} />
-                    <Text style={styles.schoolName}>Colegio</Text>
-                  </View>
-                }
-              />
-
-              <View style={styles.dateBadge}>
-                <Ionicons name="calendar-outline" size={12} color={COLORS.white} style={styles.dateIcon} />
-                <Text style={styles.dateText}>{formatDate(item.start_date)}</Text>
-              </View>
-
-              <View style={styles.cardContent}>
-                <Text style={styles.cardTitle}>{item.title}</Text>
-                {item.description ? (
-                  <Text style={styles.cardDescription} numberOfLines={2}>{stripHtml(item.description)}</Text>
-                ) : null}
-                <Text style={styles.cardCta}>Ver Evento</Text>
-              </View>
-            </TouchableOpacity>
-          );
-          }}
+          renderItem={renderEventCard}
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <Text style={styles.emptyText}>No hay eventos</Text>
@@ -248,8 +267,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     marginBottom: SPACING.sm,
   },
-  scrollContent: {
-    paddingBottom: SPACING.tabBarOffset,
+  loadingContainer: {
+    flex: 1,
   },
   viewToggle: {
     flexDirection: 'row',
@@ -272,59 +291,16 @@ const styles = StyleSheet.create({
   toggleTextActive: {
     color: COLORS.white,
   },
-  calendarContainer: {
+  calendarWrapper: {
     flex: 1,
-    backgroundColor: COLORS.white,
-    padding: SPACING.screenPadding,
   },
-  monthNav: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: COLORS.primary,
-    padding: SPACING.md,
-    borderRadius: BORDERS.radius.md,
-    marginBottom: SPACING.lg,
+  calendarListContent: {
+    paddingBottom: SPACING.tabBarOffset,
   },
-  monthNavButton: {
-    padding: SPACING.sm,
-  },
-  monthTitle: {
-    color: COLORS.white,
-    ...TYPOGRAPHY.cardTitle,
-  },
-  weekdayRow: {
-    flexDirection: 'row',
-    marginBottom: SPACING.sm,
-  },
-  weekdayText: {
-    flex: 1,
-    textAlign: 'center',
-    fontWeight: '600',
-    color: COLORS.gray,
-  },
-  calendarGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  calendarDay: {
-    width: '14.28%',
-    aspectRatio: 1,
+  loadingState: {
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  calendarDayText: {
-    ...TYPOGRAPHY.listItemTitle,
-  },
-  noEventsBox: {
-    backgroundColor: COLORS.calendarHighlight,
-    padding: SPACING.lg,
-    borderRadius: BORDERS.radius.md,
-    marginTop: SPACING.lg,
-  },
-  noEventsText: {
-    color: COLORS.info,
-    textAlign: 'center',
+    paddingVertical: 24,
   },
   listContent: {
     paddingBottom: SPACING.tabBarOffset,
