@@ -9,29 +9,27 @@ import QuickAccess from '../components/QuickAccess';
 import SegmentedControl from '../components/SegmentedControl';
 import ChildSelector from '../components/ChildSelector';
 import SwipeableAnnouncementCard from '../components/SwipeableAnnouncementCard';
-import { useFilters, useUnreadCounts, useAppContext } from '../context/AppContext';
+import { useFilters, useUnreadCounts } from '../context/AppContext';
 import {
   useAnnouncements,
-  useChildren,
   useContentReadStatus,
   useAnnouncementStates,
   useAnnouncementPin,
   useAnnouncementArchive,
   useEvents
 } from '../api/hooks';
+import { useSession } from '../hooks';
 import { Announcement, Event } from '../api/directus';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY } from '../theme';
 import { stripHtml } from '../utils';
 
 export default function InicioScreen() {
   const router = useRouter();
-  const { filterMode, setFilterMode, selectedChildId, children } = useFilters();
+  // Centralized session state - user, children, permissions
+  const { user, children, selectedChildId, getChildById } = useSession();
+  const { filterMode, setFilterMode } = useFilters();
   const { unreadCounts } = useUnreadCounts();
-  const { user } = useAppContext();
   const { isRead, filterUnread, markAsRead } = useContentReadStatus('announcements');
-
-  // Fetch children on mount
-  useChildren();
 
   // Fetch announcements
   const { data: announcements = [], isLoading: announcementsLoading, refetch: refetchAnnouncements, isRefetching: isRefetchingAnnouncements } = useAnnouncements();
@@ -50,9 +48,7 @@ export default function InicioScreen() {
   const { toggleArchive } = useAnnouncementArchive();
 
   // Get selected child's section for filtering
-  const selectedChild = selectedChildId
-    ? children.find(c => c.id === selectedChildId)
-    : null;
+  const selectedChild = selectedChildId ? getChildById(selectedChildId) || null : null;
 
   // Calculate counts for filter badges
   const pinnedCount = pinnedIds.size;
