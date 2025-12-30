@@ -162,7 +162,7 @@ export default function ConversationListScreen() {
 
   const ListHeader = () => (
     <View style={styles.listHeader}>
-      <ScreenHeader title="Mensajes" />
+      <ScreenHeader />
       <FilterBar unreadCount={unreadCounts.mensajes} />
     </View>
   );

@@ -149,11 +149,7 @@ export default function InicioScreen() {
   const ListHeader = () => (
     <View style={styles.listHeader}>
       {/* Header with avatar */}
-      <ScreenHeader
-        title={`Hola, ${user?.first_name || 'Usuario'}`}
-        subtitle="Bienvenido a Kairos"
-        showAvatar={true}
-      />
+      <ScreenHeader />
 
       {/* Quick Access Buttons */}
       <QuickAccess

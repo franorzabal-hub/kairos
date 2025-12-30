@@ -164,7 +164,7 @@ export default function EventosScreen() {
 
   const ListHeader = () => (
     <View style={styles.listHeader}>
-      <ScreenHeader title="Eventos" />
+      <ScreenHeader />
       <FilterBar unreadCount={unreadCounts.eventos} />
 
       {/* View Toggle */}

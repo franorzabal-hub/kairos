@@ -96,7 +96,7 @@ export default function NovedadDetailScreen() {
   if (!announcement) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
-        <ScreenHeader title="Novedad" showBackButton />
+        <ScreenHeader showBackButton backTitle="Novedad" />
         <View style={styles.emptyState}>
           <Text style={styles.emptyText}>No se encontró la novedad</Text>
         </View>
@@ -106,7 +106,7 @@ export default function NovedadDetailScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <ScreenHeader title={announcement.title} showBackButton />
+      <ScreenHeader showBackButton backTitle={announcement.title} />
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Image or Placeholder */}

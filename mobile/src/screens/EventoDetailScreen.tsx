@@ -159,7 +159,7 @@ export default function EventoDetailScreen() {
   if (!event) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
-        <ScreenHeader title="Evento" showBackButton />
+        <ScreenHeader showBackButton backTitle="Evento" />
         <View style={styles.emptyState}>
           <Text style={styles.emptyText}>No se encontró el evento</Text>
         </View>
@@ -169,7 +169,7 @@ export default function EventoDetailScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <ScreenHeader title={event.title} showBackButton />
+      <ScreenHeader showBackButton backTitle={event.title} />
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Event Image */}
