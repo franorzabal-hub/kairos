@@ -15,11 +15,15 @@ export default function TabsLayout() {
       screenOptions={{ headerShown: false }}
       tabBar={(props) => <BlurTabBar {...props} unreadCounts={unreadCounts} />}
     >
-      <Tabs.Screen name="novedades" options={{ title: 'Novedades' }} />
-      <Tabs.Screen name="eventos" options={{ title: 'Eventos' }} />
-      <Tabs.Screen name="mensajes" options={{ title: 'Mensajes' }} />
-      <Tabs.Screen name="cambios" options={{ title: 'Cambios' }} />
-      <Tabs.Screen name="boletines" options={{ title: 'Boletines' }} />
+      <Tabs.Screen name="index" options={{ href: null }} />
+      <Tabs.Screen name="novedades/index" options={{ title: 'Novedades' }} />
+      <Tabs.Screen name="novedades/[id]" options={{ href: null }} />
+      <Tabs.Screen name="eventos/index" options={{ title: 'Eventos' }} />
+      <Tabs.Screen name="eventos/[id]" options={{ href: null }} />
+      <Tabs.Screen name="mensajes/index" options={{ title: 'Mensajes' }} />
+      <Tabs.Screen name="mensajes/[id]" options={{ href: null }} />
+      <Tabs.Screen name="cambios/index" options={{ title: 'Cambios' }} />
+      <Tabs.Screen name="boletines/index" options={{ title: 'Boletines' }} />
     </Tabs>
   );
 }

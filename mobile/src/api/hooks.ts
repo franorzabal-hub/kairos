@@ -834,7 +834,9 @@ export function useMarkAsUnread(type: ContentType) {
  * All functions are memoized with useCallback to prevent infinite loops in useEffect.
  */
 export function useContentReadStatus(type: ContentType) {
-  const { data: readIds = new Set<string>(), isLoading } = useReadIds(type);
+  const { data, isLoading } = useReadIds(type);
+  // Ensure readIds is always a Set, even during initial load
+  const readIds = data instanceof Set ? data : new Set<string>();
   const markAsReadMutation = useMarkAsRead(type);
   const markAsUnreadMutation = useMarkAsUnread(type);
 

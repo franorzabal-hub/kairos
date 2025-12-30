@@ -18,19 +18,19 @@ interface BlurTabBarProps extends BottomTabBarProps {
 }
 
 const TAB_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
-  novedades: 'megaphone-outline',
-  eventos: 'calendar-outline',
-  mensajes: 'chatbubbles-outline',
-  cambios: 'time-outline',
-  boletines: 'document-text-outline',
+  'novedades/index': 'megaphone-outline',
+  'eventos/index': 'calendar-outline',
+  'mensajes/index': 'chatbubbles-outline',
+  'cambios/index': 'time-outline',
+  'boletines/index': 'document-text-outline',
 };
 
 const TAB_BADGE_KEYS: Record<string, keyof BlurTabBarProps['unreadCounts']> = {
-  novedades: 'novedades',
-  eventos: 'eventos',
-  mensajes: 'mensajes',
-  cambios: 'cambios',
-  boletines: 'boletines',
+  'novedades/index': 'novedades',
+  'eventos/index': 'eventos',
+  'mensajes/index': 'mensajes',
+  'cambios/index': 'cambios',
+  'boletines/index': 'boletines',
 };
 
 export default function BlurTabBar({ state, descriptors, navigation, unreadCounts }: BlurTabBarProps) {
@@ -42,6 +42,18 @@ export default function BlurTabBar({ state, descriptors, navigation, unreadCount
     return null;
   }
 
+  // Filter out hidden routes (href: null) and dynamic routes ([id])
+  const visibleRoutes = state.routes.filter((route) => {
+    const { options } = descriptors[route.key];
+    // Exclude routes with href explicitly set to null
+    if (options.href === null) return false;
+    // Exclude dynamic routes like [id]
+    if (route.name.includes('[')) return false;
+    // Exclude the index redirect
+    if (route.name === 'index') return false;
+    return true;
+  });
+
   return (
     <BlurView
       tint="light"
@@ -50,8 +62,9 @@ export default function BlurTabBar({ state, descriptors, navigation, unreadCount
     >
       <View style={styles.borderTop} />
       <View style={styles.tabsContainer}>
-        {state.routes.map((route, index) => {
+        {visibleRoutes.map((route) => {
           const { options } = descriptors[route.key];
+          const index = state.routes.indexOf(route);
           const label = options.tabBarLabel !== undefined
             ? options.tabBarLabel
             : options.title !== undefined

@@ -1,8 +1,9 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, RefreshControl, ActivityIndicator, Linking } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, RefreshControl, ActivityIndicator, Linking, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { FlashList } from '@shopify/flash-list';
+import { useNetInfo } from '@react-native-community/netinfo';
 import ScreenHeader from '../components/ScreenHeader';
 import FilterBar from '../components/FilterBar';
 import { useFilters, useUnreadCounts } from '../context/AppContext';
@@ -19,12 +20,14 @@ export default function BoletinesScreen() {
   const { children, filterMode } = useFilters();
   const { unreadCounts } = useUnreadCounts();
   const { isRead, filterUnread, markAsRead } = useReadStatus('boletines');
+  const netInfo = useNetInfo();
+  const isOffline = netInfo.isConnected === false;
 
   // Fetch children on mount
   useChildren();
 
-  // Fetch reports
-  const { data: reports = [], isLoading, refetch, isRefetching } = useReports();
+  // Fetch reports (TanStack Query handles offline caching)
+  const { data: reports = [], isLoading, refetch, isRefetching, dataUpdatedAt } = useReports();
 
   // Apply filters
   const filteredReports = useMemo(() => {
@@ -39,6 +42,15 @@ export default function BoletinesScreen() {
   };
 
   const handleDownload = async (report: Report) => {
+    if (isOffline) {
+      Alert.alert(
+        'Sin conexión',
+        'No podés descargar archivos mientras estés offline. Los datos de la lista se muestran desde la caché.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
     if (!isRead(report.id)) {
       markAsRead(report.id);
     }
@@ -49,6 +61,7 @@ export default function BoletinesScreen() {
         await Linking.openURL(fileUrl);
       } catch (error) {
         console.error('Error opening file:', error);
+        Alert.alert('Error', 'No se pudo abrir el archivo');
       }
     }
   };
@@ -77,9 +90,22 @@ export default function BoletinesScreen() {
     return items;
   }, [reportsByStudent]);
 
+  // Format last update time for offline indicator
+  const lastUpdateText = dataUpdatedAt
+    ? new Date(dataUpdatedAt).toLocaleString('es-AR', { hour: '2-digit', minute: '2-digit' })
+    : '';
+
   const ListHeader = () => (
     <View style={styles.listHeader}>
       <ScreenHeader title="Boletines" />
+      {isOffline && (
+        <View style={styles.offlineBanner}>
+          <Ionicons name="cloud-offline-outline" size={16} color={COLORS.white} />
+          <Text style={styles.offlineText}>
+            Sin conexión - Datos de {lastUpdateText}
+          </Text>
+        </View>
+      )}
       <FilterBar unreadCount={unreadCounts.boletines} />
     </View>
   );
@@ -244,5 +270,19 @@ const styles = StyleSheet.create({
   typeBadgeText: {
     color: COLORS.gray,
     ...TYPOGRAPHY.badge,
+  },
+  offlineBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.warning,
+    paddingVertical: SPACING.xs,
+    paddingHorizontal: SPACING.md,
+    gap: SPACING.xs,
+  },
+  offlineText: {
+    color: COLORS.white,
+    fontSize: 12,
+    fontWeight: '500',
   },
 });
