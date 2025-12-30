@@ -3,11 +3,25 @@ import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import * as Notifications from 'expo-notifications';
 
-import { AppProvider, useAppContext } from './src/context/AppContext';
-import TabNavigator from './src/navigation/TabNavigator';
+import { AppProvider, useAuth } from './src/context/AppContext';
+import RootNavigator from './src/navigation/RootNavigator';
+import LoginScreen from './src/screens/LoginScreen';
+import { registerForPushNotifications, savePushToken } from './src/services/notifications';
 
-// Create a client for React Query
+// Configure how notifications are handled when app is in foreground
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
+});
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -17,58 +31,37 @@ const queryClient = new QueryClient({
   },
 });
 
-// Main app with navigation
-function MainApp() {
-  const { setChildren, setUnreadCounts } = useAppContext();
+function AppContent() {
+  const { isAuthenticated, isLoading, user } = useAuth();
 
+  // Register for push notifications when authenticated
   useEffect(() => {
-    // Load mock children data on mount
-    // TODO: Replace with API call to get user's children
-    setChildren([
-      {
-        id: '1',
-        organization_id: 'org-1',
-        first_name: 'Teodelina',
-        last_name: 'Orzabal',
-        birth_date: '2018-03-15',
-        section_id: 'sec-1',
-        status: 'active',
-      },
-      {
-        id: '2',
-        organization_id: 'org-1',
-        first_name: 'Pedro',
-        last_name: 'Orzabal',
-        birth_date: '2016-08-22',
-        section_id: 'sec-2',
-        status: 'active',
-      },
-      {
-        id: '3',
-        organization_id: 'org-1',
-        first_name: 'Joaquin',
-        last_name: 'Orzabal',
-        birth_date: '2014-11-05',
-        section_id: 'sec-3',
-        status: 'active',
-      },
-    ]);
+    if (isAuthenticated && user?.id) {
+      registerForPushNotifications().then(token => {
+        if (token) {
+          savePushToken(user.id, token);
+          console.log('Push token registered:', token);
+        }
+      });
+    }
+  }, [isAuthenticated, user?.id]);
 
-    // Set mock unread counts
-    // TODO: Replace with API call
-    setUnreadCounts({
-      novedades: 2,
-      eventos: 0,
-      mensajes: 11,
-      cambios: 0,
-      boletines: 2,
-    });
-  }, []);
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#8B1538" />
+      </View>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <LoginScreen />;
+  }
 
   return (
     <NavigationContainer>
       <StatusBar style="dark" />
-      <TabNavigator />
+      <RootNavigator />
     </NavigationContainer>
   );
 }
@@ -78,9 +71,18 @@ export default function App() {
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
         <AppProvider>
-          <MainApp />
+          <AppContent />
         </AppProvider>
       </QueryClientProvider>
     </SafeAreaProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+});

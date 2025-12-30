@@ -1,98 +1,153 @@
-import React from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, RefreshControl } from 'react-native';
+import React, { useMemo } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, RefreshControl, ActivityIndicator, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import ScreenHeader from '../components/ScreenHeader';
 import FilterBar from '../components/FilterBar';
+import DirectusImage from '../components/DirectusImage';
 import { useFilters, useUnreadCounts } from '../context/AppContext';
+import { useAnnouncements, useChildren } from '../api/hooks';
+import { useReadStatus } from '../hooks';
+import { Announcement } from '../api/directus';
+import { NovedadesStackParamList } from '../navigation/NovedadesStack';
+import { COLORS, SPACING, BORDERS, TYPOGRAPHY, UNREAD_STYLES, SHADOWS, BADGE_STYLES } from '../theme';
 
-// Mock data - will be replaced with API calls
-const mockAnnouncements = [
-  {
-    id: '1',
-    title: 'Ciclo Lectivo 2026',
-    subtitle: 'Comienzo de clases',
-    priority: 'important',
-    isRead: false,
-    createdAt: '2025-12-22',
-    category: 'Novedades',
-  },
-  {
-    id: '2',
-    title: 'Lista de materiales 1er Grado',
-    subtitle: 'Materiales necesarios para el año',
-    priority: 'normal',
-    isRead: true,
-    createdAt: '2025-12-20',
-    category: 'Novedades',
-  },
-];
-
-const COLORS = {
-  primary: '#8B1538',
-  primaryLight: '#F5E6EA',
-  white: '#FFFFFF',
-  gray: '#666666',
-  lightGray: '#F5F5F5',
-  red: '#E53935',
+// Strip HTML tags and decode entities for preview text
+const stripHtml = (html: string) => {
+  if (!html) return '';
+  return html
+    // Decode HTML entities first
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ')
+    // Then strip HTML tags
+    .replace(/<[^>]*>/g, '')
+    .trim();
 };
 
-export default function NovedadesScreen() {
-  const { filterMode, selectedChildId } = useFilters();
-  const { unreadCounts } = useUnreadCounts();
-  const [refreshing, setRefreshing] = React.useState(false);
+type NovedadesNavigationProp = NativeStackNavigationProp<NovedadesStackParamList, 'NovedadesList'>;
 
-  // Filter announcements based on current filters
-  const filteredAnnouncements = mockAnnouncements.filter(a => {
-    if (filterMode === 'unread' && a.isRead) return false;
-    // Child filter would be applied here with real data
-    return true;
-  });
+export default function NovedadesScreen() {
+  const navigation = useNavigation<NovedadesNavigationProp>();
+  const { filterMode } = useFilters();
+  const { unreadCounts } = useUnreadCounts();
+  const { isRead, filterUnread, markAsRead } = useReadStatus('announcements');
+
+  // Fetch children on mount
+  useChildren();
+
+  // Fetch announcements
+  const { data: announcements = [], isLoading, refetch, isRefetching } = useAnnouncements();
+
+  // Apply filters
+  const filteredAnnouncements = useMemo(() => {
+    let result = announcements;
+
+    // Filter by read status
+    if (filterMode === 'unread') {
+      result = filterUnread(result);
+    }
+
+    // TODO: Filter by selectedChildId when announcements have student/grade relations
+
+    return result;
+  }, [announcements, filterMode, filterUnread]);
 
   const onRefresh = async () => {
-    setRefreshing(true);
-    // TODO: Fetch from API
-    setTimeout(() => setRefreshing(false), 1000);
+    await refetch();
   };
+
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' });
+  };
+
+  const ListHeader = () => (
+    <View style={styles.listHeader}>
+      <ScreenHeader title="Novedades" />
+      <FilterBar unreadCount={unreadCounts.novedades} />
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <FilterBar unreadCount={unreadCounts.novedades} />
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <ListHeader />
+          <ActivityIndicator size="large" color={COLORS.primary} />
+        </View>
+      ) : (
+        <FlatList
+          data={filteredAnnouncements}
+          keyExtractor={(item) => item.id}
+          refreshControl={
+            <RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />
+          }
+          ListHeaderComponent={ListHeader}
+          contentContainerStyle={styles.listContent}
+          renderItem={({ item }: { item: Announcement }) => {
+            const itemIsUnread = !isRead(item.id);
+            return (
+            <TouchableOpacity
+              style={[styles.card, itemIsUnread && styles.cardUnread]}
+              onPress={() => {
+                if (itemIsUnread) {
+                  markAsRead(item.id);
+                }
+                navigation.navigate('NovedadDetail', { announcement: item });
+              }}
+            >
+              {item.priority === 'urgent' ? (
+                <View style={styles.priorityBadge}>
+                  <Text style={styles.priorityBadgeText}>URGENTE</Text>
+                </View>
+              ) : item.priority === 'important' ? (
+                <View style={[styles.priorityBadge, styles.importantBadge]}>
+                  <Text style={styles.priorityBadgeText}>IMPORTANTE</Text>
+                </View>
+              ) : null}
 
-      <FlatList
-        data={filteredAnnouncements}
-        keyExtractor={(item) => item.id}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-        contentContainerStyle={styles.listContent}
-        renderItem={({ item }) => (
-          <TouchableOpacity style={styles.card}>
-            {!item.isRead && (
-              <View style={styles.unreadBadge}>
-                <Text style={styles.unreadBadgeText}>SIN LEER</Text>
+              {itemIsUnread && (
+                <View style={styles.unreadDot} />
+              )}
+
+              <DirectusImage
+                fileId={item.image}
+                style={styles.cardImage}
+                resizeMode="cover"
+                fallback={
+                  <View style={styles.cardImagePlaceholder}>
+                    <MaterialCommunityIcons name="school-outline" size={48} color={COLORS.primary} />
+                    <Text style={styles.schoolName}>Colegio</Text>
+                  </View>
+                }
+              />
+
+              <View style={styles.categoryBadge}>
+                <Ionicons name="megaphone-outline" size={12} color={COLORS.white} style={styles.categoryIcon} />
+                <Text style={styles.categoryText}>{formatDate(item.published_at || item.created_at)}</Text>
               </View>
-            )}
 
-            <View style={styles.cardImagePlaceholder}>
-              <Text style={styles.schoolName}>🏫 Colegio</Text>
+              <View style={styles.cardContent}>
+                <Text style={styles.cardTitle}>{item.title}</Text>
+                <Text style={styles.cardSubtitle} numberOfLines={2}>{stripHtml(item.content)}</Text>
+                <Text style={styles.cardCta}>Ver Novedad</Text>
+              </View>
+            </TouchableOpacity>
+          );
+          }}
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyText}>No hay novedades</Text>
             </View>
-
-            <View style={styles.categoryBadge}>
-              <Text style={styles.categoryText}>📢 {item.category}</Text>
-            </View>
-
-            <View style={styles.cardContent}>
-              <Text style={styles.cardTitle}>{item.title}</Text>
-              <Text style={styles.cardSubtitle}>{item.subtitle}</Text>
-              <Text style={styles.cardCta}>Ver Novedad</Text>
-            </View>
-          </TouchableOpacity>
-        )}
-        ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>No hay novedades</Text>
-          </View>
-        }
-      />
+          }
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -102,38 +157,55 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.lightGray,
   },
+  listHeader: {
+    backgroundColor: COLORS.white,
+    marginBottom: SPACING.sm,
+  },
+  loadingContainer: {
+    flex: 1,
+  },
   listContent: {
-    padding: 16,
+    paddingBottom: SPACING.tabBarOffset,
   },
   card: {
     backgroundColor: COLORS.white,
-    borderRadius: 12,
-    marginBottom: 16,
+    borderRadius: BORDERS.radius.lg,
+    marginBottom: SPACING.lg,
+    marginHorizontal: SPACING.screenPadding,
     overflow: 'hidden',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    ...SHADOWS.card,
   },
-  unreadBadge: {
+  cardUnread: {
+    ...UNREAD_STYLES.borderLeft,
+  },
+  unreadDot: {
     position: 'absolute',
-    top: 12,
-    left: 12,
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 4,
+    top: SPACING.md,
+    right: SPACING.md,
+    ...UNREAD_STYLES.dot,
+    zIndex: 2,
+  },
+  priorityBadge: {
+    position: 'absolute',
+    top: SPACING.md,
+    left: SPACING.md,
+    ...BADGE_STYLES.new,
     zIndex: 1,
   },
-  unreadBadgeText: {
+  priorityBadgeText: {
     color: COLORS.white,
-    fontSize: 11,
-    fontWeight: '700',
+    ...TYPOGRAPHY.badgeSmall,
+  },
+  importantBadge: {
+    backgroundColor: COLORS.warning,
+  },
+  cardImage: {
+    height: 160,
+    width: '100%',
   },
   cardImagePlaceholder: {
     height: 160,
-    backgroundColor: '#E8D5D9',
+    backgroundColor: COLORS.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -144,31 +216,35 @@ const styles = StyleSheet.create({
   categoryBadge: {
     position: 'absolute',
     top: 130,
-    left: 12,
+    left: SPACING.md,
     backgroundColor: 'rgba(0,0,0,0.6)',
     paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 4,
+    paddingVertical: SPACING.xs,
+    borderRadius: BORDERS.radius.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  categoryIcon: {
+    marginRight: SPACING.xs,
   },
   categoryText: {
     color: COLORS.white,
-    fontSize: 12,
+    ...TYPOGRAPHY.caption,
   },
   cardContent: {
-    padding: 16,
+    padding: SPACING.cardPadding,
   },
   cardTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 4,
+    ...TYPOGRAPHY.cardTitle,
+    marginBottom: SPACING.xs,
   },
   cardSubtitle: {
-    fontSize: 14,
+    ...TYPOGRAPHY.body,
     color: COLORS.gray,
-    marginBottom: 8,
+    marginBottom: SPACING.sm,
   },
   cardCta: {
-    fontSize: 14,
+    ...TYPOGRAPHY.body,
     color: COLORS.primary,
     fontWeight: '600',
   },
@@ -176,9 +252,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 40,
+    marginHorizontal: SPACING.screenPadding,
   },
   emptyText: {
-    fontSize: 16,
+    ...TYPOGRAPHY.listItemTitle,
     color: COLORS.gray,
   },
 });

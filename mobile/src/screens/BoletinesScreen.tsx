@@ -1,97 +1,135 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, RefreshControl } from 'react-native';
+import React, { useMemo } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, RefreshControl, ActivityIndicator, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import ScreenHeader from '../components/ScreenHeader';
 import FilterBar from '../components/FilterBar';
 import { useFilters, useUnreadCounts, useAppContext } from '../context/AppContext';
-
-const COLORS = {
-  primary: '#8B1538',
-  white: '#FFFFFF',
-  gray: '#666666',
-  lightGray: '#F5F5F5',
-  border: '#E0E0E0',
-};
-
-// Mock data
-const mockReports = {
-  'Teodelina Orzabal': [
-    { id: '1', title: 'Boletín', type: 'boletin', isNew: false },
-    { id: '2', title: 'Inasistencias', type: 'inasistencias', isNew: false },
-    { id: '3', title: 'Boletín de convivencia', type: 'convivencia', isNew: true },
-    { id: '4', title: '1° Rúbrica primaria 2025 - 2do EP', type: 'rubrica', isNew: false },
-    { id: '5', title: '2° Rúbrica primaria 2025 - 2do EP', type: 'rubrica', isNew: false },
-    { id: '6', title: '3° Rúbrica primaria 2025 - 2do EP', type: 'rubrica', isNew: false },
-  ],
-  'Pedro Orzabal': [
-    { id: '7', title: 'Boletín', type: 'boletin', isNew: false },
-    { id: '8', title: 'Inasistencias', type: 'inasistencias', isNew: false },
-    { id: '9', title: 'Boletín de convivencia', type: 'convivencia', isNew: false },
-    { id: '10', title: 'Informe fin de año K4 2025', type: 'informe', isNew: true },
-  ],
-};
+import { useReports, useChildren } from '../api/hooks';
+import { useReadStatus } from '../hooks';
+import { Report } from '../api/directus';
+import { COLORS, SPACING, BORDERS, TYPOGRAPHY, UNREAD_STYLES, BADGE_STYLES, SHADOWS } from '../theme';
 
 export default function BoletinesScreen() {
-  const { selectedChildId, children } = useFilters();
+  const { selectedChildId, children, filterMode } = useFilters();
   const { unreadCounts } = useUnreadCounts();
-  const [refreshing, setRefreshing] = useState(false);
+  const { isRead, filterUnread, markAsRead } = useReadStatus('boletines');
+
+  // Fetch children on mount
+  useChildren();
+
+  // Fetch reports
+  const { data: reports = [], isLoading, refetch, isRefetching } = useReports();
+
+  // Apply filters
+  const filteredReports = useMemo(() => {
+    if (filterMode === 'unread') {
+      return filterUnread(reports);
+    }
+    return reports;
+  }, [reports, filterMode, filterUnread]);
 
   const onRefresh = async () => {
-    setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 1000);
+    await refetch();
   };
 
-  const handleDownload = (report: any) => {
-    // TODO: Download file from Directus
-    console.log('Downloading:', report.title);
+  const handleDownload = async (report: Report) => {
+    // Mark as read when downloading
+    if (!isRead(report.id)) {
+      markAsRead(report.id);
+    }
+
+    if (report.file) {
+      try {
+        // Construct the file URL from Directus
+        const fileUrl = `https://kairos-directus-684614817316.us-central1.run.app/assets/${report.file}`;
+        await Linking.openURL(fileUrl);
+      } catch (error) {
+        console.error('Error opening file:', error);
+      }
+    }
   };
 
-  // Filter reports based on selected child
-  const displayReports = selectedChildId
-    ? { [children.find(c => c.id === selectedChildId)?.first_name + ' ' + children.find(c => c.id === selectedChildId)?.last_name || '']: mockReports['Teodelina Orzabal'] }
-    : mockReports;
+  // Group filtered reports by student
+  const reportsByStudent = filteredReports.reduce((acc: Record<string, Report[]>, report) => {
+    const child = children.find(c => c.id === report.student_id);
+    const childName = child ? `${child.first_name} ${child.last_name}` : 'Estudiante';
+
+    if (!acc[childName]) {
+      acc[childName] = [];
+    }
+    acc[childName].push(report);
+    return acc;
+  }, {});
+
+  const ListHeader = () => (
+    <View style={styles.listHeader}>
+      <ScreenHeader title="Boletines" />
+      <FilterBar unreadCount={unreadCounts.boletines} />
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <FilterBar unreadCount={unreadCounts.boletines} />
+      {isLoading ? (
+        <ScrollView contentContainerStyle={styles.loadingContainer}>
+          <ListHeader />
+          <ActivityIndicator size="large" color={COLORS.primary} />
+        </ScrollView>
+      ) : (
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />
+          }
+        >
+          <ListHeader />
+          {Object.entries(reportsByStudent).map(([childName, studentReports]) => (
+            <View key={childName} style={styles.childSection}>
+              <Text style={styles.childName}>{childName}</Text>
 
-      <ScrollView
-        style={styles.scrollView}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-        {Object.entries(displayReports).map(([childName, reports]) => (
-          <View key={childName} style={styles.childSection}>
-            <Text style={styles.childName}>{childName}</Text>
-
-            {(reports as any[]).map(report => (
-              <TouchableOpacity
-                key={report.id}
-                style={styles.reportRow}
-                onPress={() => handleDownload(report)}
-              >
-                <View style={styles.reportInfo}>
-                  <Text style={styles.reportTitle}>{report.title}</Text>
-                  {report.isNew && (
-                    <View style={styles.newBadge}>
-                      <Text style={styles.newBadgeText}>NUEVO</Text>
+              {studentReports.map((report) => {
+                const reportIsUnread = !isRead(report.id);
+                return (
+                <TouchableOpacity
+                  key={report.id}
+                  style={[styles.reportRow, reportIsUnread && styles.reportRowUnread]}
+                  onPress={() => handleDownload(report)}
+                >
+                  <View style={styles.reportInfo}>
+                    <View style={styles.reportHeader}>
+                      <Text style={[styles.reportTitle, reportIsUnread && styles.reportTitleUnread]} numberOfLines={2}>
+                        {report.title}
+                      </Text>
+                      {reportIsUnread && (
+                        <View style={styles.newBadge}>
+                          <Text style={styles.newBadgeText}>NUEVO</Text>
+                        </View>
+                      )}
                     </View>
-                  )}
-                </View>
-                <View style={styles.downloadButton}>
-                  <Text style={styles.downloadIcon}>📥</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </View>
-        ))}
+                    {report.type && (
+                      <View style={styles.typeBadge}>
+                        <Text style={styles.typeBadgeText}>{report.type}</Text>
+                      </View>
+                    )}
+                  </View>
+                  <View style={styles.downloadButton}>
+                    <Ionicons name="download-outline" size={20} color={COLORS.white} />
+                  </View>
+                </TouchableOpacity>
+              );
+              })}
+            </View>
+          ))}
 
-        {Object.keys(displayReports).length === 0 && (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>No hay boletines disponibles</Text>
-          </View>
-        )}
-      </ScrollView>
+          {Object.keys(reportsByStudent).length === 0 && (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyText}>No hay boletines disponibles</Text>
+            </View>
+          )}
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 }
@@ -99,61 +137,74 @@ export default function BoletinesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: COLORS.lightGray,
+  },
+  listHeader: {
     backgroundColor: COLORS.white,
+    marginBottom: SPACING.sm,
   },
   scrollView: {
     flex: 1,
   },
+  scrollContent: {
+    paddingBottom: SPACING.tabBarOffset,
+  },
   childSection: {
-    paddingHorizontal: 16,
-    paddingTop: 20,
+    paddingHorizontal: SPACING.screenPadding,
+    paddingTop: SPACING.lg,
   },
   childName: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginBottom: 12,
+    ...TYPOGRAPHY.sectionTitle,
+    marginBottom: SPACING.md,
   },
   reportRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: COLORS.lightGray,
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    marginBottom: 8,
+    backgroundColor: COLORS.white,
+    padding: SPACING.cardPadding,
+    borderRadius: BORDERS.radius.lg,
+    marginBottom: SPACING.lg,
+    overflow: 'hidden',
+    ...SHADOWS.card,
+  },
+  reportRowUnread: {
+    ...UNREAD_STYLES.borderLeft,
   },
   reportInfo: {
     flex: 1,
+    marginRight: SPACING.md,
+  },
+  reportHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    marginBottom: SPACING.xs,
   },
   reportTitle: {
-    fontSize: 16,
-    color: '#333',
+    flex: 1,
+    ...TYPOGRAPHY.listItemTitle,
+    color: COLORS.darkGray,
+    lineHeight: 22,
+  },
+  reportTitleUnread: {
+    fontWeight: '600',
+    color: COLORS.black,
   },
   newBadge: {
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    marginLeft: 8,
+    ...BADGE_STYLES.new,
+    marginLeft: SPACING.sm,
   },
   newBadgeText: {
     color: COLORS.white,
-    fontSize: 10,
-    fontWeight: '700',
+    ...TYPOGRAPHY.badgeSmall,
   },
   downloadButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 8,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  downloadIcon: {
-    fontSize: 18,
   },
   emptyState: {
     alignItems: 'center',
@@ -161,7 +212,18 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
   },
   emptyText: {
-    fontSize: 16,
+    ...TYPOGRAPHY.listItemTitle,
     color: COLORS.gray,
+  },
+  loadingContainer: {
+    flex: 1,
+  },
+  typeBadge: {
+    alignSelf: 'flex-start',
+    ...BADGE_STYLES.type,
+  },
+  typeBadgeText: {
+    color: COLORS.gray,
+    ...TYPOGRAPHY.badge,
   },
 });

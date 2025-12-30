@@ -1,138 +1,67 @@
 import React from 'react';
-import { Text, View, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import { useUnreadCounts } from '../context/AppContext';
+import { useUnreadSync } from '../hooks/useUnreadSync';
+import BlurTabBar from '../components/BlurTabBar';
 
-import NovedadesScreen from '../screens/NovedadesScreen';
-import EventosScreen from '../screens/EventosScreen';
-import MensajesScreen from '../screens/MensajesScreen';
+import NovedadesStack from './NovedadesStack';
+import EventosStack from './EventosStack';
+import MensajesStack from './MensajesStack';
 import CambiosScreen from '../screens/CambiosScreen';
 import BoletinesScreen from '../screens/BoletinesScreen';
 
 const Tab = createBottomTabNavigator();
 
-const COLORS = {
-  primary: '#8B1538',
-  gray: '#9E9E9E',
-  white: '#FFFFFF',
+// Hide tab bar on specific screens within nested stacks
+const getTabBarStyle = (route: any) => {
+  const routeName = getFocusedRouteNameFromRoute(route);
+  // Hide tab bar on detail screens that need full-screen input (like chat)
+  const hideOnScreens = ['ConversationChat', 'MessageDetail', 'NovedadDetail', 'EventoDetail'];
+  if (hideOnScreens.includes(routeName ?? '')) {
+    return { display: 'none' as const };
+  }
+  return { position: 'absolute' as const };
 };
 
-// Simple icon component using emoji (can replace with react-native-vector-icons later)
-function TabIcon({ icon, focused, badge }: { icon: string; focused: boolean; badge?: number }) {
-  return (
-    <View style={styles.iconContainer}>
-      <Text style={[styles.icon, focused && styles.iconFocused]}>{icon}</Text>
-      {badge !== undefined && badge > 0 && (
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>{badge > 99 ? '99+' : badge}</Text>
-        </View>
-      )}
-    </View>
-  );
-}
+const COLORS = {
+  activeBlue: '#007AFF',
+  gray: '#8E8E93',
+};
 
 export default function TabNavigator() {
   const { unreadCounts } = useUnreadCounts();
+
+  // Sync unread counts when data changes
+  useUnreadSync();
 
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: COLORS.primary,
+        tabBarActiveTintColor: COLORS.activeBlue,
         tabBarInactiveTintColor: COLORS.gray,
-        tabBarStyle: styles.tabBar,
-        tabBarLabelStyle: styles.tabLabel,
+        tabBarStyle: { position: 'absolute' },
       }}
+      tabBar={(props) => <BlurTabBar {...props} unreadCounts={unreadCounts} />}
     >
       <Tab.Screen
         name="Novedades"
-        component={NovedadesScreen}
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <TabIcon icon="📢" focused={focused} badge={unreadCounts.novedades} />
-          ),
-        }}
+        component={NovedadesStack}
+        options={({ route }) => ({ tabBarStyle: getTabBarStyle(route) })}
       />
       <Tab.Screen
         name="Eventos"
-        component={EventosScreen}
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <TabIcon icon="📅" focused={focused} badge={unreadCounts.eventos} />
-          ),
-        }}
+        component={EventosStack}
+        options={({ route }) => ({ tabBarStyle: getTabBarStyle(route) })}
       />
       <Tab.Screen
         name="Mensajes"
-        component={MensajesScreen}
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <TabIcon icon="💬" focused={focused} badge={unreadCounts.mensajes} />
-          ),
-        }}
+        component={MensajesStack}
+        options={({ route }) => ({ tabBarStyle: getTabBarStyle(route) })}
       />
-      <Tab.Screen
-        name="Cambios"
-        component={CambiosScreen}
-        options={{
-          tabBarLabel: 'Cambios',
-          tabBarIcon: ({ focused }) => (
-            <TabIcon icon="🕐" focused={focused} badge={unreadCounts.cambios} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Boletines"
-        component={BoletinesScreen}
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <TabIcon icon="📄" focused={focused} badge={unreadCounts.boletines} />
-          ),
-        }}
-      />
+      <Tab.Screen name="Cambios" component={CambiosScreen} />
+      <Tab.Screen name="Boletines" component={BoletinesScreen} />
     </Tab.Navigator>
   );
 }
-
-const styles = StyleSheet.create({
-  tabBar: {
-    backgroundColor: COLORS.white,
-    borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
-    paddingTop: 8,
-    paddingBottom: 8,
-    height: 60,
-  },
-  tabLabel: {
-    fontSize: 11,
-    fontWeight: '500',
-  },
-  iconContainer: {
-    position: 'relative',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  icon: {
-    fontSize: 22,
-  },
-  iconFocused: {
-    transform: [{ scale: 1.1 }],
-  },
-  badge: {
-    position: 'absolute',
-    top: -4,
-    right: -10,
-    backgroundColor: '#E53935',
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 4,
-  },
-  badgeText: {
-    color: COLORS.white,
-    fontSize: 10,
-    fontWeight: '700',
-  },
-});

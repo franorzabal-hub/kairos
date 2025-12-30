@@ -250,38 +250,73 @@ App de comunicación padres-colegio. Multi-tenant con schema extensible (estilo 
 
 ---
 
-### 11. messages (Mensajes)
+### 11. conversations (Conversaciones)
+
+Sistema de mensajería estilo WhatsApp con controles para docentes.
 
 | Campo | Tipo | Descripción |
 |-------|------|-------------|
 | id | uuid | PK |
 | organization_id | uuid | FK → organizations |
-| parent_id | uuid | FK → messages (para threads) |
-| author_id | uuid | FK → users |
-| subject | string | Asunto (solo mensaje raíz) |
-| content | text | Contenido |
-| target_type | enum | all, grade, section, user |
-| target_id | uuid | FK según target_type |
-| allow_replies | boolean | Permitir respuestas |
-| attachments | files | Archivos adjuntos |
-| custom_fields | jsonb | **Campos custom del tenant** |
-| status | enum | sent, read, archived |
-| created_at | timestamp | |
+| type | enum | **private** (1:1) / **group** (múltiples) |
+| subject | string | Asunto de la conversación |
+| started_by | uuid | FK → directus_users (quien inicia) |
+| status | enum | **open** / **closed** / **archived** |
+| closed_by | uuid | FK → directus_users (quien cerró) |
+| closed_at | timestamp | Cuándo se cerró |
+| closed_reason | string | Motivo del cierre |
+| date_created | timestamp | |
+| date_updated | timestamp | |
+
+**Reglas de negocio:**
+- Solo Teachers/Admins pueden iniciar conversaciones
+- Solo Teachers/Admins pueden cerrar conversaciones
+- Conversaciones cerradas no aceptan nuevos mensajes
 
 ---
 
-### 12. message_reads (Lecturas de mensajes)
+### 12. conversation_participants (Participantes)
 
 | Campo | Tipo | Descripción |
 |-------|------|-------------|
 | id | uuid | PK |
-| message_id | uuid | FK → messages |
-| user_id | uuid | FK → users |
-| read_at | timestamp | |
+| conversation_id | uuid | FK → conversations |
+| user_id | uuid | FK → directus_users |
+| role | enum | **teacher** / **parent** / **admin** |
+| can_reply | boolean | Si puede enviar mensajes |
+| is_blocked | boolean | Usuario bloqueado |
+| is_muted | boolean | Notificaciones silenciadas |
+| last_read_at | timestamp | Último mensaje leído |
+| date_created | timestamp | |
+
+**Controles del docente:**
+- `can_reply=false` → Padre solo puede leer
+- `is_blocked=true` → Padre no puede leer ni escribir
 
 ---
 
-### 13. pickup_requests (Cambios de salida)
+### 13. conversation_messages (Mensajes)
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| id | uuid | PK |
+| conversation_id | uuid | FK → conversations |
+| sender_id | uuid | FK → directus_users |
+| content | text | Contenido del mensaje |
+| content_type | enum | **text** / **html** |
+| is_urgent | boolean | Mensaje urgente (notificación prioritaria) |
+| attachments | json | Archivos adjuntos `[{name, url, size}]` |
+| deleted_at | timestamp | Soft delete (FERPA compliance) |
+| date_created | timestamp | |
+
+**Compliance FERPA:**
+- Los mensajes NUNCA se eliminan físicamente
+- `deleted_at` permite "borrar" sin perder registro
+- Retención recomendada: 5-7 años
+
+---
+
+### 14. pickup_requests (Cambios de salida)
 
 | Campo | Tipo | Descripción |
 |-------|------|-------------|
@@ -305,7 +340,7 @@ App de comunicación padres-colegio. Multi-tenant con schema extensible (estilo 
 
 ---
 
-### 14. reports (Boletines e informes)
+### 15. reports (Boletines e informes)
 
 | Campo | Tipo | Descripción |
 |-------|------|-------------|
@@ -327,7 +362,7 @@ App de comunicación padres-colegio. Multi-tenant con schema extensible (estilo 
 
 ## Collections de Extensibilidad
 
-### 15. custom_field_definitions (Metadata de campos custom)
+### 16. custom_field_definitions (Metadata de campos custom)
 
 Define qué campos custom tiene cada tenant en cada tabla.
 
@@ -361,7 +396,7 @@ Define qué campos custom tiene cada tenant en cada tabla.
 
 ---
 
-### 16. custom_tables (Registro de tablas custom)
+### 17. custom_tables (Registro de tablas custom)
 
 Registra las tablas custom creadas por cada tenant.
 
@@ -414,8 +449,9 @@ organizations (tenant)
     ├── events
     │     └── event_responses
     │
-    ├── messages
-    │     └── message_reads
+    ├── conversations ──────────────────────────┐
+    │     ├── conversation_participants ────────┼── directus_users
+    │     └── conversation_messages ────────────┘
     │
     ├── pickup_requests
     │

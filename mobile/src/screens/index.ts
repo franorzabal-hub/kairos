@@ -1,5 +1,12 @@
 export { default as NovedadesScreen } from './NovedadesScreen';
+export { default as NovedadDetailScreen } from './NovedadDetailScreen';
 export { default as EventosScreen } from './EventosScreen';
+export { default as EventoDetailScreen } from './EventoDetailScreen';
 export { default as MensajesScreen } from './MensajesScreen';
+export { default as MessageDetailScreen } from './MessageDetailScreen';
+export { default as ConversationListScreen } from './ConversationListScreen';
+export { default as ConversationChatScreen } from './ConversationChatScreen';
 export { default as CambiosScreen } from './CambiosScreen';
 export { default as BoletinesScreen } from './BoletinesScreen';
+export { default as LoginScreen } from './LoginScreen';
+export { default as SettingsScreen } from './SettingsScreen';

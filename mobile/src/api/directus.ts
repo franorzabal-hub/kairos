@@ -15,6 +15,7 @@ export interface Organization {
 export interface AppUser {
   id: string;
   organization_id: string;
+  directus_user_id?: string;
   role: 'admin' | 'teacher' | 'parent' | 'staff';
   first_name: string;
   last_name: string;
@@ -56,6 +57,7 @@ export interface Event {
   author_id: string;
   title: string;
   description?: string;
+  image?: string;
   start_date: string;
   end_date?: string;
   all_day: boolean;
@@ -81,11 +83,65 @@ export interface Message {
   created_at: string;
 }
 
-export interface MessageRead {
+export interface MessageRecipient {
   id: string;
-  message_id: string;
+  message_id: string | Message;
   user_id: string;
-  read_at: string;
+  delivered_at?: string;
+  read_at?: string;
+  date_created: string;
+}
+
+// New conversation-based messaging system (WhatsApp-style)
+export interface Conversation {
+  id: string;
+  organization_id: string;
+  type: 'private' | 'group';
+  subject: string;
+  started_by: string;
+  status: 'open' | 'closed' | 'archived';
+  closed_by?: string;
+  closed_at?: string;
+  closed_reason?: string;
+  date_created: string;
+  date_updated: string;
+  // Populated relations
+  participants?: ConversationParticipant[];
+  messages?: ConversationMessage[];
+}
+
+export interface ConversationParticipant {
+  id: string;
+  conversation_id: string | Conversation;
+  user_id: string;
+  role: 'teacher' | 'parent' | 'admin';
+  can_reply: boolean;
+  is_blocked: boolean;
+  is_muted: boolean;
+  last_read_at?: string;
+  date_created: string;
+  // Populated user info
+  user?: DirectusUser;
+}
+
+export interface ConversationMessage {
+  id: string;
+  conversation_id: string | Conversation;
+  sender_id: string | DirectusUser; // Can be populated with DirectusUser object
+  content: string;
+  content_type: 'text' | 'html';
+  is_urgent: boolean;
+  attachments?: { name: string; url: string; size: number }[];
+  deleted_at?: string;
+  date_created: string;
+}
+
+export interface DirectusUser {
+  id: string;
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  avatar?: string;
 }
 
 export interface PickupRequest {
@@ -112,13 +168,13 @@ export interface Report {
   organization_id: string;
   student_id: string;
   author_id: string;
-  report_type: string;
+  type: string;  // report_card, progress, etc.
   title: string;
   content?: string;
   file?: string;
   period?: string;
   visible_to_parents: boolean;
-  status: 'draft' | 'published';
+  published_at?: string;
   created_at: string;
 }
 
@@ -131,6 +187,15 @@ export interface StudentGuardian {
   can_pickup: boolean;
 }
 
+export interface PushToken {
+  id: string;
+  user_id: string;
+  token: string;
+  platform: 'ios' | 'android';
+  created_at: string;
+  updated_at?: string;
+}
+
 // Schema definition for Directus SDK
 interface Schema {
   organizations: Organization[];
@@ -140,9 +205,14 @@ interface Schema {
   announcements: Announcement[];
   events: Event[];
   messages: Message[];
-  message_reads: MessageRead[];
+  message_recipients: MessageRecipient[];
+  conversations: Conversation[];
+  conversation_participants: ConversationParticipant[];
+  conversation_messages: ConversationMessage[];
   pickup_requests: PickupRequest[];
   reports: Report[];
+  push_tokens: PushToken[];
+  directus_users: DirectusUser[];
 }
 
 // Token storage helpers

@@ -43,7 +43,7 @@ steps:
       - '--set-secrets'
       - 'SECRET=directus-secret:latest,DB_PASSWORD=db-password:latest'
       - '--set-env-vars'
-      - 'DB_CLIENT=pg,DB_HOST=/cloudsql/$PROJECT_ID:us-central1:kairos-db,DB_PORT=5432,DB_DATABASE=kairos,DB_USER=directus,PUBLIC_URL=https://kairos-directus-HASH-uc.a.run.app'
+      - 'DB_CLIENT=pg,DB_HOST=/cloudsql/$PROJECT_ID:us-central1:kairos-db,DB_PORT=5432,DB_DATABASE=kairos,DB_USER=directus,PUBLIC_URL=https://kairos-directus-684614817316.us-central1.run.app,STORAGE_LOCATIONS=gcs,STORAGE_GCS_DRIVER=gcs,STORAGE_GCS_BUCKET=kairos-directus-assets'
       - '--add-cloudsql-instances'
       - '$PROJECT_ID:us-central1:kairos-db'
 

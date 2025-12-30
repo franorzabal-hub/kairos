@@ -1,0 +1,54 @@
+import { useState, useEffect } from 'react';
+import { getTokens } from '../api/directus';
+
+const DIRECTUS_URL = 'https://kairos-directus-684614817316.us-central1.run.app';
+
+/**
+ * Hook to get an authenticated Directus asset URL
+ * Directus assets require authentication, so we append the access_token as a query parameter
+ */
+export function useDirectusAsset(fileId: string | null | undefined): string | null {
+  const [assetUrl, setAssetUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!fileId) {
+      setAssetUrl(null);
+      return;
+    }
+
+    const buildUrl = async () => {
+      const { accessToken } = await getTokens();
+      if (accessToken) {
+        setAssetUrl(`${DIRECTUS_URL}/assets/${fileId}?access_token=${accessToken}`);
+      } else {
+        // Fallback without token (will likely 403)
+        setAssetUrl(`${DIRECTUS_URL}/assets/${fileId}`);
+      }
+    };
+
+    buildUrl();
+  }, [fileId]);
+
+  return assetUrl;
+}
+
+/**
+ * Helper function to build authenticated asset URL (for use outside of hooks)
+ */
+export async function getDirectusAssetUrl(fileId: string): Promise<string> {
+  const { accessToken } = await getTokens();
+  if (accessToken) {
+    return `${DIRECTUS_URL}/assets/${fileId}?access_token=${accessToken}`;
+  }
+  return `${DIRECTUS_URL}/assets/${fileId}`;
+}
+
+/**
+ * Synchronous version when token is already available
+ */
+export function buildDirectusAssetUrl(fileId: string, accessToken: string | null): string {
+  if (accessToken) {
+    return `${DIRECTUS_URL}/assets/${fileId}?access_token=${accessToken}`;
+  }
+  return `${DIRECTUS_URL}/assets/${fileId}`;
+}

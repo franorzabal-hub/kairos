@@ -7,17 +7,11 @@ import {
   Modal,
   FlatList,
   Pressable,
+  ScrollView,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useFilters } from '../context/AppContext';
-
-const COLORS = {
-  primary: '#8B1538',
-  primaryLight: '#F5E6EA',
-  white: '#FFFFFF',
-  gray: '#666666',
-  lightGray: '#F5F5F5',
-  border: '#E0E0E0',
-};
+import { COLORS, SPACING, BORDERS, TYPOGRAPHY } from '../theme';
 
 interface FilterBarProps {
   unreadCount?: number;
@@ -30,65 +24,89 @@ export default function FilterBar({ unreadCount = 0 }: FilterBarProps) {
   const selectedChild = children.find(c => c.id === selectedChildId);
   const childLabel = selectedChild
     ? `${selectedChild.first_name}`
-    : 'Todos mis hijos';
+    : 'Todos';
 
   return (
     <View style={styles.container}>
-      {/* Filter Mode Buttons */}
-      <View style={styles.modeButtons}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {/* Unread Filter Pill */}
         <TouchableOpacity
           style={[
-            styles.modeButton,
-            filterMode === 'unread' && styles.modeButtonActive,
+            styles.pill,
+            filterMode === 'unread' && styles.pillActive,
           ]}
           onPress={() => setFilterMode('unread')}
         >
           <Text
             style={[
-              styles.modeButtonText,
-              filterMode === 'unread' && styles.modeButtonTextActive,
+              styles.pillText,
+              filterMode === 'unread' && styles.pillTextActive,
             ]}
           >
-            No Leído
-            {unreadCount > 0 && (
-              <Text style={styles.badge}> ({unreadCount})</Text>
-            )}
+            No Leído{unreadCount > 0 ? ` (${unreadCount})` : ''}
           </Text>
         </TouchableOpacity>
 
+        {/* All Filter Pill */}
         <TouchableOpacity
           style={[
-            styles.modeButton,
-            filterMode === 'all' && styles.modeButtonActive,
+            styles.pill,
+            filterMode === 'all' && styles.pillActive,
           ]}
           onPress={() => setFilterMode('all')}
         >
           <Text
             style={[
-              styles.modeButtonText,
-              filterMode === 'all' && styles.modeButtonTextActive,
+              styles.pillText,
+              filterMode === 'all' && styles.pillTextActive,
             ]}
           >
             Todos
           </Text>
         </TouchableOpacity>
-      </View>
 
-      {/* Child Selector */}
-      <TouchableOpacity
-        style={styles.childSelector}
-        onPress={() => setShowChildPicker(true)}
-      >
-        <Text style={styles.childSelectorText} numberOfLines={1}>
-          {childLabel}
-        </Text>
-        <Text style={styles.chevron}>▼</Text>
-      </TouchableOpacity>
+        {/* Divider */}
+        <View style={styles.divider} />
+
+        {/* Child Selector Pill */}
+        <TouchableOpacity
+          style={[
+            styles.pill,
+            selectedChildId && styles.pillActive,
+          ]}
+          onPress={() => setShowChildPicker(true)}
+        >
+          <Ionicons
+            name="person-outline"
+            size={14}
+            color={selectedChildId ? COLORS.white : COLORS.gray}
+            style={styles.pillIcon}
+          />
+          <Text
+            style={[
+              styles.pillText,
+              selectedChildId && styles.pillTextActive,
+            ]}
+          >
+            {childLabel}
+          </Text>
+          <Ionicons
+            name="chevron-down"
+            size={14}
+            color={selectedChildId ? COLORS.white : COLORS.gray}
+            style={styles.pillChevron}
+          />
+        </TouchableOpacity>
+      </ScrollView>
 
       {/* Child Picker Modal */}
       <Modal
         visible={showChildPicker}
-        transparent
+        transparent={true}
         animationType="slide"
         onRequestClose={() => setShowChildPicker(false)}
       >
@@ -100,10 +118,7 @@ export default function FilterBar({ unreadCount = 0 }: FilterBarProps) {
             <Text style={styles.modalTitle}>¿Qué hijo querés ver?</Text>
 
             <TouchableOpacity
-              style={[
-                styles.childOption,
-                selectedChildId === null && styles.childOptionSelected,
-              ]}
+              style={selectedChildId === null ? [styles.childOption, styles.childOptionSelected] : styles.childOption}
               onPress={() => {
                 setSelectedChildId(null);
                 setShowChildPicker(false);
@@ -120,10 +135,7 @@ export default function FilterBar({ unreadCount = 0 }: FilterBarProps) {
               keyExtractor={(item) => item.id}
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  style={[
-                    styles.childOption,
-                    selectedChildId === item.id && styles.childOptionSelected,
-                  ]}
+                  style={selectedChildId === item.id ? [styles.childOption, styles.childOptionSelected] : styles.childOption}
                   onPress={() => {
                     setSelectedChildId(item.id);
                     setShowChildPicker(false);
@@ -151,58 +163,45 @@ export default function FilterBar({ unreadCount = 0 }: FilterBarProps) {
 
 const styles = StyleSheet.create({
   container: {
+    backgroundColor: COLORS.white,
+    paddingVertical: SPACING.sm,
+  },
+  scrollContent: {
+    paddingHorizontal: SPACING.screenPadding,
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
+  pill: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: COLORS.white,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    paddingHorizontal: SPACING.listItemPadding,
+    paddingVertical: SPACING.sm,
+    borderRadius: 18,
+    backgroundColor: COLORS.pillBackground,
   },
-  modeButtons: {
-    flexDirection: 'row',
-    flex: 1,
+  pillActive: {
+    backgroundColor: COLORS.pillActive,
   },
-  modeButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginRight: 8,
-    backgroundColor: COLORS.lightGray,
-  },
-  modeButtonActive: {
-    backgroundColor: COLORS.primaryLight,
-  },
-  modeButtonText: {
-    fontSize: 14,
+  pillText: {
+    fontSize: 15,
     color: COLORS.gray,
     fontWeight: '500',
   },
-  modeButtonTextActive: {
-    color: COLORS.primary,
+  pillTextActive: {
+    color: COLORS.white,
     fontWeight: '600',
   },
-  badge: {
-    color: COLORS.primary,
-    fontWeight: '700',
+  pillIcon: {
+    marginRight: SPACING.xs,
   },
-  childSelector: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: COLORS.lightGray,
-    maxWidth: 150,
+  pillChevron: {
+    marginLeft: 2,
   },
-  childSelectorText: {
-    fontSize: 14,
-    color: COLORS.gray,
-    marginRight: 4,
-  },
-  chevron: {
-    fontSize: 10,
-    color: COLORS.gray,
+  divider: {
+    width: 1,
+    height: SPACING.xl,
+    backgroundColor: COLORS.border,
+    marginHorizontal: SPACING.xs,
   },
   modalOverlay: {
     flex: 1,
@@ -211,24 +210,23 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: COLORS.white,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
+    borderTopLeftRadius: SPACING.xl,
+    borderTopRightRadius: SPACING.xl,
+    padding: SPACING.xl,
     maxHeight: '60%',
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 20,
+    ...TYPOGRAPHY.cardTitle,
+    marginBottom: SPACING.xl,
     textAlign: 'center',
   },
   childOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    marginBottom: 8,
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.screenPadding,
+    borderRadius: BORDERS.radius.lg,
+    marginBottom: SPACING.sm,
   },
   childOptionSelected: {
     backgroundColor: COLORS.primaryLight,
@@ -236,22 +234,20 @@ const styles = StyleSheet.create({
   childAvatar: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: BORDERS.radius.full,
     backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: SPACING.md,
   },
   avatarIcon: {
-    fontSize: 20,
+    fontSize: SPACING.xl,
   },
   avatarInitial: {
     color: COLORS.white,
-    fontSize: 18,
-    fontWeight: '600',
+    ...TYPOGRAPHY.cardTitle,
   },
   childName: {
-    fontSize: 16,
-    fontWeight: '500',
+    ...TYPOGRAPHY.listItemTitle,
   },
 });

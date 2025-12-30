@@ -1,121 +1,123 @@
-import React, { useState } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, RefreshControl } from 'react-native';
+import React, { useMemo } from 'react';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import ScreenHeader from '../components/ScreenHeader';
 import FilterBar from '../components/FilterBar';
 import { useFilters, useUnreadCounts } from '../context/AppContext';
+import { useMessages, useMarkMessageRead, MessageWithReadStatus } from '../api/hooks';
+import { MensajesStackParamList } from '../navigation/types';
+import { COLORS, SPACING, BORDERS, TYPOGRAPHY, UNREAD_STYLES, SHADOWS } from '../theme';
 
-const COLORS = {
-  primary: '#8B1538',
-  white: '#FFFFFF',
-  gray: '#666666',
-  lightGray: '#F5F5F5',
-  border: '#E0E0E0',
-};
-
-// Mock data
-const mockMessages = [
-  {
-    id: '1',
-    subject: 'Fecha de inicio ciclo lectivo 2026',
-    preview: 'Queridas familias: Aún no tenemos la fecha oficial...',
-    author: 'De Carolis, Amorina',
-    recipients: ['Francisco Orzabal', 'Magdalena Carlucci'],
-    date: '22/12/2025 12:34',
-    isRead: false,
-  },
-  {
-    id: '2',
-    subject: 'Proyecto solidario "Cajas navideñas"',
-    preview: 'Queridas Familias: Queremos contarles que esta...',
-    author: 'Magdalena Carlucci',
-    recipients: ['Francisco Orzabal'],
-    date: '22/12/2025 08:49',
-    isRead: false,
-  },
-  {
-    id: '3',
-    subject: 'Confirmación Campamento 5°EP',
-    preview: 'Estimadas familias: Con el fin de poder mantener l...',
-    author: 'Magdalena Carlucci',
-    recipients: ['Francisco Orzabal'],
-    date: '15/12/2025 11:02',
-    isRead: true,
-  },
-];
+type MensajesScreenNavigationProp = NativeStackNavigationProp<MensajesStackParamList, 'MensajesList'>;
 
 export default function MensajesScreen() {
+  const navigation = useNavigation<MensajesScreenNavigationProp>();
   const { filterMode } = useFilters();
   const { unreadCounts } = useUnreadCounts();
-  const [refreshing, setRefreshing] = useState(false);
 
-  const filteredMessages = mockMessages.filter(m => {
-    if (filterMode === 'unread' && m.isRead) return false;
-    return true;
-  });
+  const { data: messages = [], isLoading, refetch, isRefetching } = useMessages();
+  const markAsRead = useMarkMessageRead();
 
-  const unreadMessages = filteredMessages.filter(m => !m.isRead);
-  const readMessages = filteredMessages.filter(m => m.isRead);
+  // Apply filters - messages use server-side read_at tracking
+  const filteredMessages = useMemo(() => {
+    if (filterMode === 'unread') {
+      return messages.filter(msg => !msg.read_at);
+    }
+    return messages;
+  }, [messages, filterMode]);
 
   const onRefresh = async () => {
-    setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 1000);
+    await refetch();
   };
 
-  const renderMessage = (item: typeof mockMessages[0]) => (
-    <TouchableOpacity key={item.id} style={styles.messageCard}>
-      <View style={styles.messageHeader}>
-        <Text style={[styles.messageSubject, !item.isRead && styles.unreadText]} numberOfLines={1}>
-          {item.subject}
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('es-AR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const handleMessagePress = (item: MessageWithReadStatus) => {
+    if (!item.read_at && item.recipientId) {
+      markAsRead.mutate(item.recipientId);
+    }
+    navigation.navigate('MessageDetail', { message: item });
+  };
+
+  const renderMessage = (item: MessageWithReadStatus) => {
+    const isUnread = !item.read_at;
+
+    return (
+      <TouchableOpacity
+        key={item.id}
+        style={[styles.messageCard, isUnread && styles.messageCardUnread]}
+        onPress={() => handleMessagePress(item)}
+      >
+        <View style={styles.messageHeader}>
+          <View style={styles.subjectRow}>
+            {isUnread && <View style={styles.unreadDot} />}
+            <Text style={[styles.messageSubject, isUnread && styles.unreadText]} numberOfLines={1}>
+              {item.subject}
+            </Text>
+          </View>
+          <Ionicons
+            name={isUnread ? 'mail-unread-outline' : 'mail-outline'}
+            size={20}
+            color={isUnread ? COLORS.primary : COLORS.gray}
+          />
+        </View>
+        <Text style={styles.messageMeta}>
+          {formatDate(item.created_at)}
         </Text>
-        <Text style={styles.messageIcon}>{item.isRead ? '✉️' : '📩'}</Text>
-      </View>
-      <Text style={styles.messageMeta}>
-        {item.date} | {item.recipients.join(', ')}
-      </Text>
-      <Text style={styles.messagePreview} numberOfLines={1}>
-        {item.preview}
-      </Text>
-    </TouchableOpacity>
+        <Text style={styles.messagePreview} numberOfLines={1}>
+          {item.content}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
+
+  const ListHeader = () => (
+    <View style={styles.listHeader}>
+      <ScreenHeader title="Mensajes" />
+      <FilterBar unreadCount={unreadCounts.mensajes} />
+    </View>
   );
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <FilterBar unreadCount={unreadCounts.mensajes} />
-
-      <FlatList
-        data={[{ type: 'content' }]}
-        keyExtractor={() => 'content'}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-        renderItem={() => (
-          <View>
-            {unreadMessages.length > 0 && (
-              <>
-                <Text style={styles.sectionHeader}>Mensajes no leídos</Text>
-                {unreadMessages.map(renderMessage)}
-              </>
-            )}
-
-            {readMessages.length > 0 && filterMode === 'all' && (
-              <>
-                <Text style={styles.sectionHeader}>Mensajes leídos</Text>
-                {readMessages.map(renderMessage)}
-              </>
-            )}
-
-            {filteredMessages.length === 0 && (
-              <View style={styles.emptyState}>
-                <Text style={styles.emptyText}>No hay mensajes</Text>
-              </View>
-            )}
-          </View>
-        )}
-      />
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <ListHeader />
+          <ActivityIndicator size="large" color={COLORS.primary} />
+        </View>
+      ) : (
+        <FlatList
+          data={filteredMessages}
+          keyExtractor={(item) => item.id}
+          refreshControl={
+            <RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />
+          }
+          ListHeaderComponent={ListHeader}
+          contentContainerStyle={styles.listContent}
+          renderItem={({ item }) => renderMessage(item)}
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyText}>No hay mensajes</Text>
+            </View>
+          }
+        />
+      )}
 
       {/* Floating Action Button */}
       <TouchableOpacity style={styles.fab}>
-        <Text style={styles.fabIcon}>✏️</Text>
+        <Ionicons name="create-outline" size={24} color={COLORS.white} />
       </TouchableOpacity>
     </SafeAreaView>
   );
@@ -124,78 +126,83 @@ export default function MensajesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.white,
-  },
-  sectionHeader: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.gray,
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 8,
     backgroundColor: COLORS.lightGray,
   },
-  messageCard: {
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+  listHeader: {
     backgroundColor: COLORS.white,
+    marginBottom: SPACING.sm,
+  },
+  loadingContainer: {
+    flex: 1,
+  },
+  listContent: {
+    paddingBottom: SPACING.tabBarOffset,
+  },
+  messageCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: BORDERS.radius.lg,
+    marginBottom: SPACING.lg,
+    marginHorizontal: SPACING.screenPadding,
+    padding: SPACING.cardPadding,
+    overflow: 'hidden',
+    ...SHADOWS.card,
+  },
+  messageCardUnread: {
+    ...UNREAD_STYLES.borderLeft,
   },
   messageHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: SPACING.xs,
+  },
+  subjectRow: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: SPACING.sm,
+  },
+  unreadDot: {
+    ...UNREAD_STYLES.dotSmall,
+    marginRight: SPACING.sm,
   },
   messageSubject: {
     flex: 1,
-    fontSize: 16,
-    fontWeight: '500',
-    marginRight: 8,
+    ...TYPOGRAPHY.listItemTitle,
   },
   unreadText: {
-    fontWeight: '700',
-    color: '#000',
-  },
-  messageIcon: {
-    fontSize: 18,
+    ...TYPOGRAPHY.listItemTitleBold,
+    color: COLORS.black,
   },
   messageMeta: {
-    fontSize: 12,
+    ...TYPOGRAPHY.caption,
     color: COLORS.gray,
-    marginBottom: 4,
+    marginBottom: SPACING.xs,
   },
   messagePreview: {
-    fontSize: 14,
+    ...TYPOGRAPHY.body,
     color: COLORS.gray,
   },
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 40,
+    marginHorizontal: SPACING.screenPadding,
   },
   emptyText: {
-    fontSize: 16,
+    ...TYPOGRAPHY.listItemTitle,
     color: COLORS.gray,
   },
   fab: {
     position: 'absolute',
-    right: 20,
-    bottom: 20,
+    right: SPACING.xl,
+    bottom: SPACING.tabBarOffset,
     width: 56,
     height: 56,
     borderRadius: 28,
     backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-  },
-  fabIcon: {
-    fontSize: 24,
+    ...SHADOWS.fab,
   },
 });

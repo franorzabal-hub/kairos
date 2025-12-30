@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -7,40 +7,17 @@ import {
   ScrollView,
   TextInput,
   RefreshControl,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import ScreenHeader from '../components/ScreenHeader';
 import FilterBar from '../components/FilterBar';
 import { useFilters, useUnreadCounts, useAppContext } from '../context/AppContext';
-
-const COLORS = {
-  primary: '#8B1538',
-  white: '#FFFFFF',
-  gray: '#666666',
-  lightGray: '#F5F5F5',
-  border: '#E0E0E0',
-};
-
-// Mock history data
-const mockHistory = [
-  {
-    id: '1',
-    date: 'Jueves 27 de noviembre',
-    time: 'Al finalizar el día',
-    childName: 'Pedro Orzabal',
-    reason: 'Otro',
-    authorizedPerson: 'Natalia mamá de Aitor',
-    status: 'approved',
-  },
-  {
-    id: '2',
-    date: 'Jueves 27 de noviembre',
-    time: 'Al finalizar el día',
-    childName: 'Teodelina Orzabal',
-    reason: 'Otro',
-    authorizedPerson: 'Luli Dragan mamá de Justina Goldstein',
-    status: 'approved',
-  },
-];
+import { usePickupRequests, useCreatePickupRequest, useChildren } from '../api/hooks';
+import { PickupRequest } from '../api/directus';
+import { COLORS, SPACING, BORDERS, TYPOGRAPHY, BADGE_STYLES, SHADOWS } from '../theme';
 
 const MOTIVO_OPTIONS = [
   'Turno médico',
@@ -51,12 +28,26 @@ const MOTIVO_OPTIONS = [
 ];
 
 export default function CambiosScreen() {
-  const { children } = useAppContext();
+  const { children, user } = useAppContext();
   const { filterMode } = useFilters();
   const { unreadCounts } = useUnreadCounts();
 
+  // Fetch children on mount
+  useChildren();
+
+  // Fetch pickup requests history
+  const { data: pickupRequests = [], isLoading, refetch, isRefetching } = usePickupRequests();
+  const createPickupMutation = useCreatePickupRequest();
+
+  // Apply filters - treat "pending" status as unread
+  const filteredPickupRequests = useMemo(() => {
+    if (filterMode === 'unread') {
+      return pickupRequests.filter(req => req.status === 'pending');
+    }
+    return pickupRequests;
+  }, [pickupRequests, filterMode]);
+
   const [activeTab, setActiveTab] = useState<'nuevo' | 'historial'>('nuevo');
-  const [refreshing, setRefreshing] = useState(false);
 
   // Form state
   const [selectedChildren, setSelectedChildren] = useState<string[]>([]);
@@ -75,69 +66,115 @@ export default function CambiosScreen() {
   };
 
   const onRefresh = async () => {
-    setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 1000);
+    await refetch();
   };
 
-  const handleSubmit = () => {
-    // TODO: Submit to API
-    console.log({
-      selectedChildren,
-      selectedDate,
-      selectedTime,
-      motivo,
-      authorizedPerson,
-      comments,
+  const resetForm = () => {
+    setSelectedChildren([]);
+    setSelectedDate('');
+    setSelectedTime('Al finalizar el día');
+    setMotivo('');
+    setAuthorizedPerson('');
+    setComments('');
+  };
+
+  const handleSubmit = async () => {
+    if (!user?.id || selectedChildren.length === 0) {
+      Alert.alert('Error', 'Seleccione al menos un hijo');
+      return;
+    }
+
+    if (!authorizedPerson.trim()) {
+      Alert.alert('Error', 'Ingrese el nombre de la persona autorizada');
+      return;
+    }
+
+    try {
+      // Create a pickup request for each selected child
+      for (const childId of selectedChildren) {
+        await createPickupMutation.mutateAsync({
+          organization_id: '', // Will be set by backend/RLS
+          student_id: childId,
+          requested_by: user.id,
+          request_type: 'different_person' as const,
+          pickup_date: selectedDate || new Date().toISOString().split('T')[0],
+          pickup_time: selectedTime,
+          authorized_person: authorizedPerson,
+          reason: motivo || 'No especificado',
+          notes: comments,
+        });
+      }
+
+      Alert.alert('Éxito', 'Solicitud enviada correctamente');
+      resetForm();
+      setActiveTab('historial');
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'No se pudo enviar la solicitud');
+    }
+  };
+
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('es-AR', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
     });
   };
 
-  // Use mock children if none loaded
-  const displayChildren = children.length > 0 ? children : [
-    { id: '1', first_name: 'Teodelina', last_name: 'Orzabal' },
-    { id: '2', first_name: 'Pedro', last_name: 'Orzabal' },
-    { id: '3', first_name: 'Joaquin', last_name: 'Orzabal' },
-  ];
-
-  return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+  const ListHeader = () => (
+    <View style={styles.listHeader}>
+      <ScreenHeader title="Cambios" />
       <FilterBar unreadCount={unreadCounts.cambios} />
 
       {/* Tab Navigation */}
       <View style={styles.tabs}>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'nuevo' && styles.tabActive]}
+          style={activeTab === 'nuevo' ? [styles.tab, styles.tabActive] : styles.tab}
           onPress={() => setActiveTab('nuevo')}
         >
-          <Text style={[styles.tabText, activeTab === 'nuevo' && styles.tabTextActive]}>
+          <Text style={activeTab === 'nuevo' ? [styles.tabText, styles.tabTextActive] : styles.tabText}>
             Nuevo
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'historial' && styles.tabActive]}
+          style={activeTab === 'historial' ? [styles.tab, styles.tabActive] : styles.tab}
           onPress={() => setActiveTab('historial')}
         >
-          <Text style={[styles.tabText, activeTab === 'historial' && styles.tabTextActive]}>
+          <Text style={activeTab === 'historial' ? [styles.tabText, styles.tabTextActive] : styles.tabText}>
             Historial
           </Text>
         </TouchableOpacity>
       </View>
+    </View>
+  );
 
+  return (
+    <SafeAreaView style={styles.container} edges={['top']}>
       {activeTab === 'nuevo' ? (
         <ScrollView style={styles.formContainer} contentContainerStyle={styles.formContent}>
+          <ListHeader />
+          <View style={styles.formBody}>
           {/* Children Selection */}
           <Text style={styles.label}>Este cambio aplica a:</Text>
-          {displayChildren.map((child: any) => (
-            <TouchableOpacity
-              key={child.id}
-              style={styles.checkboxRow}
-              onPress={() => toggleChild(child.id)}
-            >
-              <View style={[styles.checkbox, selectedChildren.includes(child.id) && styles.checkboxChecked]}>
-                {selectedChildren.includes(child.id) && <Text style={styles.checkmark}>✓</Text>}
-              </View>
-              <Text style={styles.checkboxLabel}>{child.first_name} {child.last_name}</Text>
-            </TouchableOpacity>
-          ))}
+          {children.length === 0 ? (
+            <Text style={styles.noChildrenText}>No hay hijos registrados</Text>
+          ) : (
+            children.map((child) => (
+              <TouchableOpacity
+                key={child.id}
+                style={styles.checkboxRow}
+                onPress={() => toggleChild(child.id)}
+              >
+                <View style={selectedChildren.includes(child.id) ? [styles.checkbox, styles.checkboxChecked] : styles.checkbox}>
+                  {selectedChildren.includes(child.id) && (
+                    <Ionicons name="checkmark" size={16} color={COLORS.white} />
+                  )}
+                </View>
+                <Text style={styles.checkboxLabel}>{child.first_name} {child.last_name}</Text>
+              </TouchableOpacity>
+            ))
+          )}
 
           {/* Date & Time */}
           <View style={styles.row}>
@@ -187,25 +224,58 @@ export default function CambiosScreen() {
           <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
             <Text style={styles.submitButtonText}>Enviar autorización</Text>
           </TouchableOpacity>
+          </View>
+        </ScrollView>
+      ) : isLoading ? (
+        <ScrollView contentContainerStyle={styles.loadingContainer}>
+          <ListHeader />
+          <ActivityIndicator size="large" color={COLORS.primary} />
         </ScrollView>
       ) : (
         <ScrollView
           style={styles.historyContainer}
+          contentContainerStyle={styles.historyContent}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            <RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />
           }
         >
-          {mockHistory.map(item => (
-            <View key={item.id} style={styles.historyCard}>
-              <Text style={styles.historyDate}>{item.date} - {item.time}</Text>
-              <Text style={styles.historyChild}>{item.childName}</Text>
-              <Text style={styles.historyDetail}>Motivo: {item.reason}</Text>
-              <Text style={styles.historyDetail}>Se retira con: {item.authorizedPerson}</Text>
-              <TouchableOpacity>
-                <Text style={styles.viewLink}>Ver</Text>
-              </TouchableOpacity>
+          <ListHeader />
+          <View style={styles.historyBody}>
+          {filteredPickupRequests.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyText}>No hay solicitudes en el historial</Text>
             </View>
-          ))}
+          ) : (
+            filteredPickupRequests.map((item: PickupRequest) => {
+              const child = children.find(c => c.id === item.student_id);
+              const childName = child ? `${child.first_name} ${child.last_name}` : 'Estudiante';
+
+              return (
+                <View key={item.id} style={styles.historyCard}>
+                  <View style={styles.historyHeader}>
+                    <Text style={styles.historyDate}>
+                      {formatDate(item.pickup_date)} - {item.pickup_time}
+                    </Text>
+                    <View style={item.status === 'approved' ? styles.statusBadgeApproved :
+                                 item.status === 'rejected' ? styles.statusBadgeRejected :
+                                 styles.statusBadgePending}>
+                      <Text style={styles.statusText}>
+                        {item.status === 'approved' ? 'Aprobado' :
+                         item.status === 'rejected' ? 'Rechazado' : 'Pendiente'}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text style={styles.historyChild}>{childName}</Text>
+                  <Text style={styles.historyDetail}>Motivo: {item.reason}</Text>
+                  <Text style={styles.historyDetail}>Se retira con: {item.authorized_person}</Text>
+                  {item.notes ? (
+                    <Text style={styles.historyDetail}>Notas: {item.notes}</Text>
+                  ) : null}
+                </View>
+              );
+            })
+          )}
+          </View>
         </ScrollView>
       )}
     </SafeAreaView>
@@ -215,25 +285,29 @@ export default function CambiosScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: COLORS.lightGray,
+  },
+  listHeader: {
     backgroundColor: COLORS.white,
+    marginBottom: SPACING.sm,
   },
   tabs: {
     flexDirection: 'row',
-    borderBottomWidth: 2,
+    borderBottomWidth: BORDERS.width.medium,
     borderBottomColor: COLORS.border,
   },
   tab: {
     flex: 1,
-    paddingVertical: 14,
+    paddingVertical: SPACING.listItemPadding,
     alignItems: 'center',
   },
   tabActive: {
-    borderBottomWidth: 2,
+    borderBottomWidth: BORDERS.width.medium,
     borderBottomColor: COLORS.primary,
-    marginBottom: -2,
+    marginBottom: -BORDERS.width.medium,
   },
   tabText: {
-    fontSize: 16,
+    ...TYPOGRAPHY.listItemTitle,
     color: COLORS.gray,
   },
   tabTextActive: {
@@ -242,16 +316,19 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     flex: 1,
+    backgroundColor: COLORS.white,
   },
   formContent: {
-    padding: 16,
-    paddingBottom: 40,
+    paddingBottom: SPACING.tabBarOffset + 20,
+  },
+  formBody: {
+    paddingHorizontal: SPACING.screenPadding,
   },
   label: {
-    fontSize: 14,
+    ...TYPOGRAPHY.body,
     fontWeight: '600',
-    marginBottom: 8,
-    marginTop: 16,
+    marginBottom: SPACING.sm,
+    marginTop: SPACING.lg,
   },
   checkboxRow: {
     flexDirection: 'row',
@@ -261,10 +338,10 @@ const styles = StyleSheet.create({
   checkbox: {
     width: 24,
     height: 24,
-    borderWidth: 2,
+    borderWidth: BORDERS.width.medium,
     borderColor: COLORS.border,
-    borderRadius: 4,
-    marginRight: 12,
+    borderRadius: BORDERS.radius.sm,
+    marginRight: SPACING.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -272,80 +349,118 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     borderColor: COLORS.primary,
   },
-  checkmark: {
-    color: COLORS.white,
-    fontWeight: '700',
-  },
   checkboxLabel: {
-    fontSize: 16,
+    ...TYPOGRAPHY.listItemTitle,
   },
   row: {
     flexDirection: 'row',
-    gap: 16,
+    gap: SPACING.lg,
   },
   halfField: {
     flex: 1,
   },
   input: {
-    borderBottomWidth: 1,
+    borderBottomWidth: BORDERS.width.thin,
     borderBottomColor: COLORS.border,
-    paddingVertical: 12,
+    paddingVertical: SPACING.md,
   },
   inputText: {
-    fontSize: 16,
+    ...TYPOGRAPHY.listItemTitle,
     color: COLORS.gray,
   },
   textArea: {
     minHeight: 100,
     backgroundColor: COLORS.lightGray,
-    borderRadius: 8,
-    padding: 12,
+    borderRadius: BORDERS.radius.md,
+    padding: SPACING.md,
     borderBottomWidth: 0,
     textAlignVertical: 'top',
   },
   submitButton: {
     backgroundColor: COLORS.primary,
-    paddingVertical: 16,
-    borderRadius: 30,
+    paddingVertical: SPACING.lg,
+    borderRadius: BORDERS.radius.full,
     alignItems: 'center',
-    marginTop: 24,
+    marginTop: SPACING.xxl,
   },
   submitButtonText: {
     color: COLORS.white,
-    fontSize: 16,
+    ...TYPOGRAPHY.listItemTitle,
     fontWeight: '600',
   },
   historyContainer: {
     flex: 1,
-    padding: 16,
+  },
+  historyContent: {
+    paddingBottom: SPACING.tabBarOffset,
+  },
+  historyBody: {
+    paddingHorizontal: SPACING.screenPadding,
   },
   historyCard: {
     backgroundColor: COLORS.white,
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    padding: SPACING.cardPadding,
+    borderRadius: BORDERS.radius.lg,
+    marginBottom: SPACING.lg,
+    overflow: 'hidden',
+    ...SHADOWS.card,
   },
   historyDate: {
-    fontSize: 14,
+    ...TYPOGRAPHY.body,
     fontWeight: '600',
     color: COLORS.primary,
-    marginBottom: 4,
+    marginBottom: SPACING.xs,
   },
   historyChild: {
-    fontSize: 16,
-    fontWeight: '500',
-    marginBottom: 8,
+    ...TYPOGRAPHY.listItemTitle,
+    marginBottom: SPACING.sm,
   },
   historyDetail: {
-    fontSize: 14,
+    ...TYPOGRAPHY.body,
     color: COLORS.gray,
     marginBottom: 2,
   },
   viewLink: {
     color: COLORS.primary,
     fontWeight: '600',
-    marginTop: 8,
+    marginTop: SPACING.sm,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+  },
+  emptyText: {
+    ...TYPOGRAPHY.listItemTitle,
+    color: COLORS.gray,
+  },
+  noChildrenText: {
+    ...TYPOGRAPHY.body,
+    color: COLORS.gray,
+    paddingVertical: SPACING.md,
+  },
+  historyHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING.xs,
+  },
+  statusBadgeApproved: {
+    ...BADGE_STYLES.statusApproved,
+  },
+  statusBadgeRejected: {
+    ...BADGE_STYLES.statusRejected,
+  },
+  statusBadgePending: {
+    ...BADGE_STYLES.statusPending,
+  },
+  statusText: {
+    color: COLORS.white,
+    ...TYPOGRAPHY.badge,
   },
 });

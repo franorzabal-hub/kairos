@@ -1,56 +1,67 @@
-import React, { useState } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, RefreshControl } from 'react-native';
+import React, { useState, useMemo } from 'react';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, RefreshControl, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import ScreenHeader from '../components/ScreenHeader';
 import FilterBar from '../components/FilterBar';
+import DirectusImage from '../components/DirectusImage';
 import { useFilters, useUnreadCounts } from '../context/AppContext';
-
-const COLORS = {
-  primary: '#8B1538',
-  white: '#FFFFFF',
-  gray: '#666666',
-  lightGray: '#F5F5F5',
-  lightBlue: '#E3F2FD',
-};
-
-// Mock data
-const mockEvents = [
-  {
-    id: '1',
-    title: 'Acto de inicio de clases',
-    date: '2025-03-03',
-    time: '09:00',
-    isRead: false,
-    requiresConfirmation: true,
-  },
-  {
-    id: '2',
-    title: 'Reunión de padres 1er Grado A',
-    date: '2025-03-10',
-    time: '18:00',
-    isRead: true,
-    requiresConfirmation: true,
-  },
-];
+import { useEvents } from '../api/hooks';
+import { useReadStatus } from '../hooks';
+import { Event } from '../api/directus';
+import { EventosStackParamList } from '../navigation/EventosStack';
+import { COLORS, SPACING, BORDERS, TYPOGRAPHY, UNREAD_STYLES, SHADOWS, BADGE_STYLES } from '../theme';
 
 const WEEKDAYS = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa', 'Do'];
 const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
                 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
+// Strip HTML tags and decode entities for preview text
+const stripHtml = (html: string) => {
+  if (!html) return '';
+  return html
+    // Decode HTML entities first
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ')
+    // Then strip HTML tags
+    .replace(/<[^>]*>/g, '')
+    .trim();
+};
+
+type EventosNavigationProp = NativeStackNavigationProp<EventosStackParamList, 'EventosList'>;
+
 export default function EventosScreen() {
+  const navigation = useNavigation<EventosNavigationProp>();
   const { filterMode } = useFilters();
   const { unreadCounts } = useUnreadCounts();
-  const [refreshing, setRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
   const [currentDate, setCurrentDate] = useState(new Date());
 
-  const filteredEvents = mockEvents.filter(e => {
-    if (filterMode === 'unread' && e.isRead) return false;
-    return true;
-  });
+  const { data: events = [], isLoading, refetch, isRefetching } = useEvents();
+  const { isRead, filterUnread, markAsRead } = useReadStatus('events');
+
+  // Apply filters
+  const filteredEvents = useMemo(() => {
+    let result = events;
+
+    // Filter by read status
+    if (filterMode === 'unread') {
+      result = filterUnread(result);
+    }
+
+    // TODO: Filter by selectedChildId when events have student/grade relations
+
+    return result;
+  }, [events, filterMode, filterUnread]);
 
   const onRefresh = async () => {
-    setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 1000);
+    await refetch();
   };
 
   const formatDate = (dateStr: string) => {
@@ -96,46 +107,60 @@ export default function EventosScreen() {
     return days;
   };
 
-  return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+  const ListHeader = () => (
+    <View style={styles.listHeader}>
+      <ScreenHeader title="Eventos" />
       <FilterBar unreadCount={unreadCounts.eventos} />
 
       {/* View Toggle */}
       <View style={styles.viewToggle}>
         <TouchableOpacity
-          style={[styles.toggleButton, viewMode === 'list' && styles.toggleActive]}
+          style={viewMode === 'list' ? [styles.toggleButton, styles.toggleActive] : styles.toggleButton}
           onPress={() => setViewMode('list')}
         >
-          <Text style={[styles.toggleText, viewMode === 'list' && styles.toggleTextActive]}>
+          <Text style={viewMode === 'list' ? [styles.toggleText, styles.toggleTextActive] : styles.toggleText}>
             Lista
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.toggleButton, viewMode === 'calendar' && styles.toggleActive]}
+          style={viewMode === 'calendar' ? [styles.toggleButton, styles.toggleActive] : styles.toggleButton}
           onPress={() => setViewMode('calendar')}
         >
-          <Text style={[styles.toggleText, viewMode === 'calendar' && styles.toggleTextActive]}>
+          <Text style={viewMode === 'calendar' ? [styles.toggleText, styles.toggleTextActive] : styles.toggleText}>
             Calendario
           </Text>
         </TouchableOpacity>
       </View>
+    </View>
+  );
 
+  return (
+    <SafeAreaView style={styles.container} edges={['top']}>
       {viewMode === 'calendar' ? (
-        <View style={styles.calendarContainer}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />
+          }
+        >
+          <ListHeader />
+          <View style={styles.calendarContainer}>
           {/* Month Navigation */}
           <View style={styles.monthNav}>
             <TouchableOpacity
               onPress={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1))}
+              style={styles.monthNavButton}
             >
-              <Text style={styles.monthNavArrow}>◀</Text>
+              <Ionicons name="chevron-back" size={20} color={COLORS.white} />
             </TouchableOpacity>
             <Text style={styles.monthTitle}>
               {MONTHS[currentDate.getMonth()]} {currentDate.getFullYear()}
             </Text>
             <TouchableOpacity
               onPress={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1))}
+              style={styles.monthNavButton}
             >
-              <Text style={styles.monthNavArrow}>▶</Text>
+              <Ionicons name="chevron-forward" size={20} color={COLORS.white} />
             </TouchableOpacity>
           </View>
 
@@ -151,44 +176,73 @@ export default function EventosScreen() {
             {renderCalendar()}
           </View>
 
-          {filteredEvents.length === 0 && (
-            <View style={styles.noEventsBox}>
-              <Text style={styles.noEventsText}>
-                ℹ️ Aún no contamos con eventos agendados para este mes
-              </Text>
-            </View>
-          )}
-        </View>
+            {events.length === 0 ? (
+              <View style={styles.noEventsBox}>
+                <Text style={styles.noEventsText}>
+                  No hay eventos agendados para este mes
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        </ScrollView>
       ) : (
         <FlatList
           data={filteredEvents}
           keyExtractor={(item) => item.id}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            <RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />
           }
+          ListHeaderComponent={ListHeader}
           contentContainerStyle={styles.listContent}
-          renderItem={({ item }) => (
-            <TouchableOpacity style={styles.card}>
-              {!item.isRead && (
-                <View style={styles.unreadBadge}>
-                  <Text style={styles.unreadBadgeText}>SIN LEER</Text>
+          renderItem={({ item }: { item: Event }) => {
+            const itemIsUnread = !isRead(item.id);
+            return (
+            <TouchableOpacity
+              style={[styles.card, itemIsUnread && styles.cardUnread]}
+              onPress={() => {
+                if (itemIsUnread) {
+                  markAsRead(item.id);
+                }
+                navigation.navigate('EventoDetail', { event: item });
+              }}
+            >
+              {item.requires_confirmation ? (
+                <View style={styles.confirmBadge}>
+                  <Text style={styles.confirmBadgeText}>CONFIRMAR</Text>
                 </View>
+              ) : null}
+
+              {itemIsUnread && (
+                <View style={styles.unreadDot} />
               )}
 
-              <View style={styles.cardImagePlaceholder}>
-                <Text style={styles.schoolName}>🏫 Colegio</Text>
-              </View>
+              <DirectusImage
+                fileId={item.image}
+                style={styles.cardImage}
+                resizeMode="cover"
+                fallback={
+                  <View style={styles.cardImagePlaceholder}>
+                    <MaterialCommunityIcons name="school-outline" size={48} color={COLORS.primary} />
+                    <Text style={styles.schoolName}>Colegio</Text>
+                  </View>
+                }
+              />
 
               <View style={styles.dateBadge}>
-                <Text style={styles.dateText}>📅 {formatDate(item.date)}</Text>
+                <Ionicons name="calendar-outline" size={12} color={COLORS.white} style={styles.dateIcon} />
+                <Text style={styles.dateText}>{formatDate(item.start_date)}</Text>
               </View>
 
               <View style={styles.cardContent}>
                 <Text style={styles.cardTitle}>{item.title}</Text>
+                {item.description ? (
+                  <Text style={styles.cardDescription} numberOfLines={2}>{stripHtml(item.description)}</Text>
+                ) : null}
                 <Text style={styles.cardCta}>Ver Evento</Text>
               </View>
             </TouchableOpacity>
-          )}
+          );
+          }}
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <Text style={styles.emptyText}>No hay eventos</Text>
@@ -205,16 +259,23 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.lightGray,
   },
+  listHeader: {
+    backgroundColor: COLORS.white,
+    marginBottom: SPACING.sm,
+  },
+  scrollContent: {
+    paddingBottom: SPACING.tabBarOffset,
+  },
   viewToggle: {
     flexDirection: 'row',
-    padding: 8,
+    padding: SPACING.sm,
     backgroundColor: COLORS.white,
   },
   toggleButton: {
     flex: 1,
-    paddingVertical: 8,
+    paddingVertical: SPACING.sm,
     alignItems: 'center',
-    borderRadius: 8,
+    borderRadius: BORDERS.radius.md,
   },
   toggleActive: {
     backgroundColor: COLORS.primary,
@@ -229,30 +290,27 @@ const styles = StyleSheet.create({
   calendarContainer: {
     flex: 1,
     backgroundColor: COLORS.white,
-    padding: 16,
+    padding: SPACING.screenPadding,
   },
   monthNav: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: COLORS.primary,
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 16,
+    padding: SPACING.md,
+    borderRadius: BORDERS.radius.md,
+    marginBottom: SPACING.lg,
   },
-  monthNavArrow: {
-    color: COLORS.white,
-    fontSize: 16,
-    paddingHorizontal: 8,
+  monthNavButton: {
+    padding: SPACING.sm,
   },
   monthTitle: {
     color: COLORS.white,
-    fontSize: 18,
-    fontWeight: '600',
+    ...TYPOGRAPHY.cardTitle,
   },
   weekdayRow: {
     flexDirection: 'row',
-    marginBottom: 8,
+    marginBottom: SPACING.sm,
   },
   weekdayText: {
     flex: 1,
@@ -271,50 +329,57 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   calendarDayText: {
-    fontSize: 16,
+    ...TYPOGRAPHY.listItemTitle,
   },
   noEventsBox: {
-    backgroundColor: COLORS.lightBlue,
-    padding: 16,
-    borderRadius: 8,
-    marginTop: 16,
+    backgroundColor: COLORS.calendarHighlight,
+    padding: SPACING.lg,
+    borderRadius: BORDERS.radius.md,
+    marginTop: SPACING.lg,
   },
   noEventsText: {
-    color: '#1976D2',
+    color: COLORS.info,
     textAlign: 'center',
   },
   listContent: {
-    padding: 16,
+    paddingBottom: SPACING.tabBarOffset,
   },
   card: {
     backgroundColor: COLORS.white,
-    borderRadius: 12,
-    marginBottom: 16,
+    borderRadius: BORDERS.radius.lg,
+    marginBottom: SPACING.lg,
+    marginHorizontal: SPACING.screenPadding,
     overflow: 'hidden',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    ...SHADOWS.card,
   },
-  unreadBadge: {
+  cardUnread: {
+    ...UNREAD_STYLES.borderLeft,
+  },
+  unreadDot: {
     position: 'absolute',
-    top: 12,
-    left: 12,
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 4,
+    top: SPACING.md,
+    right: SPACING.md,
+    ...UNREAD_STYLES.dot,
+    zIndex: 2,
+  },
+  confirmBadge: {
+    position: 'absolute',
+    top: SPACING.md,
+    left: SPACING.md,
+    ...BADGE_STYLES.new,
     zIndex: 1,
   },
-  unreadBadgeText: {
+  confirmBadgeText: {
     color: COLORS.white,
-    fontSize: 11,
-    fontWeight: '700',
+    ...TYPOGRAPHY.badge,
+  },
+  cardImage: {
+    height: 160,
+    width: '100%',
   },
   cardImagePlaceholder: {
     height: 160,
-    backgroundColor: '#E8D5D9',
+    backgroundColor: COLORS.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -325,26 +390,35 @@ const styles = StyleSheet.create({
   dateBadge: {
     position: 'absolute',
     top: 130,
-    left: 12,
+    left: SPACING.md,
     backgroundColor: 'rgba(0,0,0,0.6)',
     paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 4,
+    paddingVertical: SPACING.xs,
+    borderRadius: BORDERS.radius.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  dateIcon: {
+    marginRight: SPACING.xs,
   },
   dateText: {
     color: COLORS.white,
-    fontSize: 12,
+    ...TYPOGRAPHY.caption,
   },
   cardContent: {
-    padding: 16,
+    padding: SPACING.cardPadding,
   },
   cardTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 8,
+    ...TYPOGRAPHY.cardTitle,
+    marginBottom: SPACING.xs,
+  },
+  cardDescription: {
+    ...TYPOGRAPHY.body,
+    color: COLORS.gray,
+    marginBottom: SPACING.sm,
   },
   cardCta: {
-    fontSize: 14,
+    ...TYPOGRAPHY.body,
     color: COLORS.primary,
     fontWeight: '600',
   },
@@ -352,9 +426,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 40,
+    marginHorizontal: SPACING.screenPadding,
   },
   emptyText: {
-    fontSize: 16,
+    ...TYPOGRAPHY.listItemTitle,
     color: COLORS.gray,
   },
 });
