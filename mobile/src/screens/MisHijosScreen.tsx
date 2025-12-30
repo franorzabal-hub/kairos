@@ -154,7 +154,7 @@ export default function MisHijosScreen() {
           <RefreshControl refreshing={isLoading} onRefresh={onRefresh} />
         }
       >
-        <ScreenHeader />
+        <ScreenHeader title="Mis Hijos" />
 
         {/* Child Selector */}
         <ChildSelector

@@ -100,7 +100,7 @@ export default function NovedadesScreen() {
 
   const ListHeader = () => (
     <View style={styles.listHeader}>
-      <ScreenHeader />
+      <ScreenHeader title="Novedades" />
       <FilterBar
         unreadCount={unreadCounts.novedades}
         pinnedCount={pinnedCount}

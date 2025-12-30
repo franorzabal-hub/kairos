@@ -203,7 +203,7 @@ export default function CambiosScreen() {
 
   const ListHeader = () => (
     <View style={styles.listHeader}>
-      <ScreenHeader />
+      <ScreenHeader title="Cambios" />
       <FilterBar showUnreadFilter={false} />
 
       {/* Tab Navigation */}

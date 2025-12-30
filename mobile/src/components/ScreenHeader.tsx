@@ -8,11 +8,12 @@ import { useOrganization } from '../api/hooks';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY } from '../theme';
 
 interface ScreenHeaderProps {
+  title?: string; // Tab/section title (e.g., "Mensajes", "Agenda") - shows org branding if not provided
   showBackButton?: boolean;
   backTitle?: string; // Title for detail screens with back button
 }
 
-export default function ScreenHeader({ showBackButton = false, backTitle }: ScreenHeaderProps) {
+export default function ScreenHeader({ title, showBackButton = false, backTitle }: ScreenHeaderProps) {
   const { user } = useAuth();
   const { data: organization } = useOrganization();
   const router = useRouter();
@@ -45,41 +46,47 @@ export default function ScreenHeader({ showBackButton = false, backTitle }: Scre
     );
   }
 
-  // Main header: Slack-style with org logo/name on left, avatar on right
+  // Main header: Slack-style
+  // - With title: shows section name (e.g., "Mensajes") on blue bg + avatar
+  // - Without title (home): shows org logo/name on white bg + avatar
   return (
-    <View style={styles.header}>
-      {/* Left side: Organization logo + name */}
-      <TouchableOpacity
-        style={styles.orgContainer}
-        onPress={() => {
-          // TODO: Open workspace settings/switcher
-        }}
-        accessibilityLabel="Configuración del colegio"
-        accessibilityRole="button"
-      >
-        <DirectusImage
-          fileId={organization?.logo}
-          style={styles.orgLogo}
-          resizeMode="cover"
-          fallback={
-            <View style={styles.orgLogoPlaceholder}>
-              <Text style={styles.orgLogoInitial}>{getOrgInitials()}</Text>
-            </View>
-          }
-        />
-        <Text style={styles.orgName} numberOfLines={1}>
-          {organization?.name || 'Kairos'}
-        </Text>
-      </TouchableOpacity>
+    <View style={[styles.header, title && styles.headerWithTitle]}>
+      {/* Left side: Title or Organization logo + name */}
+      {title ? (
+        <Text style={styles.sectionTitle}>{title}</Text>
+      ) : (
+        <TouchableOpacity
+          style={styles.orgContainer}
+          onPress={() => {
+            // TODO: Open workspace settings/switcher
+          }}
+          accessibilityLabel="Configuración del colegio"
+          accessibilityRole="button"
+        >
+          <DirectusImage
+            fileId={organization?.logo}
+            style={styles.orgLogo}
+            resizeMode="cover"
+            fallback={
+              <View style={styles.orgLogoPlaceholder}>
+                <Text style={styles.orgLogoInitial}>{getOrgInitials()}</Text>
+              </View>
+            }
+          />
+          <Text style={styles.orgName} numberOfLines={1}>
+            {organization?.name || 'Kairos'}
+          </Text>
+        </TouchableOpacity>
+      )}
 
       {/* Right side: User avatar */}
       <TouchableOpacity
         onPress={() => router.push('/settings')}
-        style={styles.avatarButton}
+        style={[styles.avatarButton, title && styles.avatarOnBlue]}
         accessibilityLabel="Ir a configuración"
         accessibilityRole="button"
       >
-        <Text style={styles.avatarText}>{getInitials()}</Text>
+        <Text style={[styles.avatarText, title && styles.avatarTextOnBlue]}>{getInitials()}</Text>
       </TouchableOpacity>
     </View>
   );
@@ -94,6 +101,11 @@ const styles = StyleSheet.create({
     paddingTop: SPACING.sm,
     paddingBottom: SPACING.md,
     backgroundColor: COLORS.white,
+  },
+  headerWithTitle: {
+    backgroundColor: COLORS.primary,
+    paddingTop: SPACING.md,
+    paddingBottom: SPACING.lg,
   },
   // Organization (left side)
   orgContainer: {
@@ -126,6 +138,11 @@ const styles = StyleSheet.create({
     marginLeft: SPACING.sm,
     flex: 1,
   },
+  sectionTitle: {
+    ...TYPOGRAPHY.screenTitle,
+    color: COLORS.white,
+    flex: 1,
+  },
   // Avatar (right side)
   avatarButton: {
     width: 36,
@@ -135,10 +152,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  avatarOnBlue: {
+    backgroundColor: COLORS.white,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
   avatarText: {
     fontSize: 14,
     fontWeight: '600',
     color: COLORS.white,
+  },
+  avatarTextOnBlue: {
+    color: COLORS.primary,
   },
   // Detail header styles
   detailHeader: {

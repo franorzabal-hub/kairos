@@ -97,7 +97,7 @@ export default function BoletinesScreen() {
 
   const ListHeader = () => (
     <View style={styles.listHeader}>
-      <ScreenHeader />
+      <ScreenHeader title="Boletines" />
       {isOffline && (
         <View style={styles.offlineBanner}>
           <Ionicons name="cloud-offline-outline" size={16} color={COLORS.white} />

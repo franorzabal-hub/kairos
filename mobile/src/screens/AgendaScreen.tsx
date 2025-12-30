@@ -158,7 +158,7 @@ export default function AgendaScreen() {
 
   const ListHeader = () => (
     <View style={styles.listHeader}>
-      <ScreenHeader />
+      <ScreenHeader title="Agenda" />
       <FilterBar unreadCount={unreadCounts.agenda} />
 
       {/* View Toggle */}
