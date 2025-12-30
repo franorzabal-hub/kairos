@@ -13,10 +13,27 @@ interface ScreenHeaderProps {
   backTitle?: string; // Title for detail screens with back button
 }
 
+// Helper to determine if a color is light or dark (for text contrast)
+function isLightColor(hexColor: string): boolean {
+  const hex = hexColor.replace('#', '');
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+  // Using relative luminance formula
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.5;
+}
+
 export default function ScreenHeader({ title, showBackButton = false, backTitle }: ScreenHeaderProps) {
   const { user } = useAuth();
   const { data: organization } = useOrganization();
   const router = useRouter();
+
+  // Get org color or fallback to primary
+  const headerColor = organization?.primary_color || COLORS.primary;
+  const isLight = isLightColor(headerColor);
+  const textColor = isLight ? COLORS.black : COLORS.white;
+  const avatarBgColor = isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.2)';
 
   const getInitials = () => {
     const first = user?.first_name?.charAt(0) || '';
@@ -46,14 +63,12 @@ export default function ScreenHeader({ title, showBackButton = false, backTitle 
     );
   }
 
-  // Main header: Slack-style
-  // - With title: shows section name (e.g., "Mensajes") on blue bg + avatar
-  // - Without title (home): shows org logo/name on white bg + avatar
+  // Main header with consistent org color background
   return (
-    <View style={[styles.header, title && styles.headerWithTitle]}>
-      {/* Left side: Title or Organization logo + name */}
+    <View style={[styles.header, { backgroundColor: headerColor }]}>
+      {/* Left side: Title OR Organization logo + name */}
       {title ? (
-        <Text style={styles.sectionTitle}>{title}</Text>
+        <Text style={[styles.sectionTitle, { color: textColor }]}>{title}</Text>
       ) : (
         <TouchableOpacity
           style={styles.orgContainer}
@@ -68,12 +83,12 @@ export default function ScreenHeader({ title, showBackButton = false, backTitle 
             style={styles.orgLogo}
             resizeMode="cover"
             fallback={
-              <View style={styles.orgLogoPlaceholder}>
-                <Text style={styles.orgLogoInitial}>{getOrgInitials()}</Text>
+              <View style={[styles.orgLogoPlaceholder, { backgroundColor: avatarBgColor }]}>
+                <Text style={[styles.orgLogoInitial, { color: textColor }]}>{getOrgInitials()}</Text>
               </View>
             }
           />
-          <Text style={styles.orgName} numberOfLines={1}>
+          <Text style={[styles.orgName, { color: textColor }]} numberOfLines={1}>
             {organization?.name || 'Kairos'}
           </Text>
         </TouchableOpacity>
@@ -82,11 +97,11 @@ export default function ScreenHeader({ title, showBackButton = false, backTitle 
       {/* Right side: User avatar */}
       <TouchableOpacity
         onPress={() => router.push('/settings')}
-        style={[styles.avatarButton, title && styles.avatarOnBlue]}
+        style={[styles.avatarButton, { backgroundColor: avatarBgColor }]}
         accessibilityLabel="Ir a configuración"
         accessibilityRole="button"
       >
-        <Text style={[styles.avatarText, title && styles.avatarTextOnBlue]}>{getInitials()}</Text>
+        <Text style={[styles.avatarText, { color: textColor }]}>{getInitials()}</Text>
       </TouchableOpacity>
     </View>
   );
@@ -98,16 +113,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: SPACING.screenPadding,
-    paddingTop: SPACING.sm,
-    paddingBottom: SPACING.md,
-    backgroundColor: COLORS.white,
-  },
-  headerWithTitle: {
-    backgroundColor: COLORS.primary,
     paddingTop: SPACING.md,
     paddingBottom: SPACING.lg,
   },
-  // Organization (left side)
+  // Organization (left side - for home tab)
   orgContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -123,24 +132,21 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: BORDERS.radius.md,
-    backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   orgLogoInitial: {
     fontSize: 18,
     fontWeight: '700',
-    color: COLORS.white,
   },
   orgName: {
     ...TYPOGRAPHY.screenTitle,
-    color: COLORS.black,
     marginLeft: SPACING.sm,
     flex: 1,
   },
+  // Section title (for other tabs)
   sectionTitle: {
     ...TYPOGRAPHY.screenTitle,
-    color: COLORS.white,
     flex: 1,
   },
   // Avatar (right side)
@@ -148,22 +154,12 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: BORDERS.radius.full,
-    backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  avatarOnBlue: {
-    backgroundColor: COLORS.white,
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.3)',
   },
   avatarText: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.white,
-  },
-  avatarTextOnBlue: {
-    color: COLORS.primary,
   },
   // Detail header styles
   detailHeader: {

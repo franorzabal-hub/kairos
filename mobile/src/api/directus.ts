@@ -10,6 +10,7 @@ export interface Organization {
   name: string;
   slug: string;
   logo?: string;
+  primary_color?: string; // Hex color for header/branding (e.g., "#1E40AF")
   settings?: Record<string, any>;
 }
 
