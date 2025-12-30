@@ -8,8 +8,7 @@ import ScreenHeader from '../components/ScreenHeader';
 import FilterBar from '../components/FilterBar';
 import DirectusImage from '../components/DirectusImage';
 import { useFilters, useUnreadCounts } from '../context/AppContext';
-import { useAnnouncements, useChildren } from '../api/hooks';
-import { useReadStatus } from '../hooks';
+import { useAnnouncements, useChildren, useContentReadStatus } from '../api/hooks';
 import { Announcement } from '../api/directus';
 import { NovedadesStackParamList } from '../navigation/NovedadesStack';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY, UNREAD_STYLES, SHADOWS, BADGE_STYLES } from '../theme';
@@ -36,7 +35,7 @@ export default function NovedadesScreen() {
   const navigation = useNavigation<NovedadesNavigationProp>();
   const { filterMode } = useFilters();
   const { unreadCounts } = useUnreadCounts();
-  const { isRead, filterUnread, markAsRead } = useReadStatus('announcements');
+  const { isRead, filterUnread, markAsRead } = useContentReadStatus('announcements');
 
   // Fetch children on mount
   useChildren();

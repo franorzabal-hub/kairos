@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useUnreadCounts } from '../context/AppContext';
+import { useUnreadCounts, useAuth } from '../context/AppContext';
 import { useAnnouncements, useEvents, useMessages, usePickupRequests, useReports, MessageWithReadStatus } from '../api/hooks';
 import { countUnread } from '../services/readStatusService';
 
@@ -9,6 +9,7 @@ import { countUnread } from '../services/readStatusService';
  */
 export function useUnreadSync() {
   const { setUnreadCounts } = useUnreadCounts();
+  const { user } = useAuth();
 
   // Get data from all hooks
   const { data: announcements } = useAnnouncements();
@@ -20,14 +21,26 @@ export function useUnreadSync() {
   // Update unread counts when data changes
   useEffect(() => {
     const updateCounts = async () => {
-      // Announcements - use AsyncStorage tracking
+      // Skip if no user (not logged in)
+      if (!user?.id) {
+        setUnreadCounts({
+          novedades: 0,
+          eventos: 0,
+          mensajes: 0,
+          cambios: 0,
+          boletines: 0,
+        });
+        return;
+      }
+
+      // Announcements - use database tracking
       const novedadesCount = announcements
-        ? await countUnread('announcements', announcements.map(a => a.id))
+        ? await countUnread('announcements', announcements.map(a => a.id), user.id)
         : 0;
 
-      // Events - use AsyncStorage tracking
+      // Events - use database tracking
       const eventosCount = events
-        ? await countUnread('events', events.map(e => e.id))
+        ? await countUnread('events', events.map(e => e.id), user.id)
         : 0;
 
       // Messages - use read_at field from API
@@ -40,9 +53,9 @@ export function useUnreadSync() {
         ? cambios.filter(c => c.status === 'pending').length
         : 0;
 
-      // Boletines - use AsyncStorage tracking
+      // Boletines - use database tracking
       const boletinesCount = boletines
-        ? await countUnread('boletines', boletines.map(b => b.id))
+        ? await countUnread('boletines', boletines.map(b => b.id), user.id)
         : 0;
 
       setUnreadCounts({
@@ -55,5 +68,5 @@ export function useUnreadSync() {
     };
 
     updateCounts();
-  }, [announcements, events, messages, cambios, boletines, setUnreadCounts]);
+  }, [announcements, events, messages, cambios, boletines, setUnreadCounts, user?.id]);
 }

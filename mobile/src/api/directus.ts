@@ -196,6 +196,14 @@ export interface PushToken {
   updated_at?: string;
 }
 
+export interface ContentRead {
+  id: string;
+  user_id: string;
+  content_type: 'announcement' | 'event' | 'report' | 'message';
+  content_id: string;
+  read_at: string;
+}
+
 // Schema definition for Directus SDK
 interface Schema {
   organizations: Organization[];
@@ -212,6 +220,7 @@ interface Schema {
   pickup_requests: PickupRequest[];
   reports: Report[];
   push_tokens: PushToken[];
+  content_reads: ContentRead[];
   directus_users: DirectusUser[];
 }
 

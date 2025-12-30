@@ -15,9 +15,10 @@ import { COLORS, SPACING, BORDERS, TYPOGRAPHY } from '../theme';
 
 interface FilterBarProps {
   unreadCount?: number;
+  showUnreadFilter?: boolean;
 }
 
-export default function FilterBar({ unreadCount = 0 }: FilterBarProps) {
+export default function FilterBar({ unreadCount = 0, showUnreadFilter = true }: FilterBarProps) {
   const { filterMode, setFilterMode, selectedChildId, setSelectedChildId, children } = useFilters();
   const [showChildPicker, setShowChildPicker] = useState(false);
 
@@ -33,44 +34,48 @@ export default function FilterBar({ unreadCount = 0 }: FilterBarProps) {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Unread Filter Pill */}
-        <TouchableOpacity
-          style={[
-            styles.pill,
-            filterMode === 'unread' && styles.pillActive,
-          ]}
-          onPress={() => setFilterMode('unread')}
-        >
-          <Text
-            style={[
-              styles.pillText,
-              filterMode === 'unread' && styles.pillTextActive,
-            ]}
-          >
-            No Leído{unreadCount > 0 ? ` (${unreadCount})` : ''}
-          </Text>
-        </TouchableOpacity>
+        {showUnreadFilter && (
+          <>
+            {/* Unread Filter Pill */}
+            <TouchableOpacity
+              style={[
+                styles.pill,
+                filterMode === 'unread' && styles.pillActive,
+              ]}
+              onPress={() => setFilterMode('unread')}
+            >
+              <Text
+                style={[
+                  styles.pillText,
+                  filterMode === 'unread' && styles.pillTextActive,
+                ]}
+              >
+                No Leído{unreadCount > 0 ? ` (${unreadCount})` : ''}
+              </Text>
+            </TouchableOpacity>
 
-        {/* All Filter Pill */}
-        <TouchableOpacity
-          style={[
-            styles.pill,
-            filterMode === 'all' && styles.pillActive,
-          ]}
-          onPress={() => setFilterMode('all')}
-        >
-          <Text
-            style={[
-              styles.pillText,
-              filterMode === 'all' && styles.pillTextActive,
-            ]}
-          >
-            Todos
-          </Text>
-        </TouchableOpacity>
+            {/* All Filter Pill */}
+            <TouchableOpacity
+              style={[
+                styles.pill,
+                filterMode === 'all' && styles.pillActive,
+              ]}
+              onPress={() => setFilterMode('all')}
+            >
+              <Text
+                style={[
+                  styles.pillText,
+                  filterMode === 'all' && styles.pillTextActive,
+                ]}
+              >
+                Todos
+              </Text>
+            </TouchableOpacity>
 
-        {/* Divider */}
-        <View style={styles.divider} />
+            {/* Divider */}
+            <View style={styles.divider} />
+          </>
+        )}
 
         {/* Child Selector Pill */}
         <TouchableOpacity

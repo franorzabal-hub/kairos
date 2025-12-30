@@ -14,8 +14,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import ScreenHeader from '../components/ScreenHeader';
 import FilterBar from '../components/FilterBar';
-import { useFilters, useUnreadCounts, useAppContext } from '../context/AppContext';
-import { usePickupRequests, useCreatePickupRequest, useChildren } from '../api/hooks';
+import { useFilters, useAppContext } from '../context/AppContext';
+import { usePickupRequests, useCreatePickupRequest, useUpdatePickupRequest, useChildren } from '../api/hooks';
 import { PickupRequest } from '../api/directus';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY, BADGE_STYLES, SHADOWS } from '../theme';
 
@@ -29,8 +29,7 @@ const MOTIVO_OPTIONS = [
 
 export default function CambiosScreen() {
   const { children, user } = useAppContext();
-  const { filterMode } = useFilters();
-  const { unreadCounts } = useUnreadCounts();
+  const { selectedChildId } = useFilters();
 
   // Fetch children on mount
   useChildren();
@@ -38,18 +37,20 @@ export default function CambiosScreen() {
   // Fetch pickup requests history
   const { data: pickupRequests = [], isLoading, refetch, isRefetching } = usePickupRequests();
   const createPickupMutation = useCreatePickupRequest();
+  const updatePickupMutation = useUpdatePickupRequest();
 
-  // Apply filters - treat "pending" status as unread
+  // Apply child filter only (no read/unread filter for cambios)
   const filteredPickupRequests = useMemo(() => {
-    if (filterMode === 'unread') {
-      return pickupRequests.filter(req => req.status === 'pending');
+    if (selectedChildId) {
+      return pickupRequests.filter(req => req.student_id === selectedChildId);
     }
     return pickupRequests;
-  }, [pickupRequests, filterMode]);
+  }, [pickupRequests, selectedChildId]);
 
   const [activeTab, setActiveTab] = useState<'nuevo' | 'historial'>('nuevo');
 
   // Form state
+  const [editingRequest, setEditingRequest] = useState<PickupRequest | null>(null);
   const [selectedChildren, setSelectedChildren] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('Al finalizar el día');
@@ -70,12 +71,34 @@ export default function CambiosScreen() {
   };
 
   const resetForm = () => {
+    setEditingRequest(null);
     setSelectedChildren([]);
     setSelectedDate('');
     setSelectedTime('Al finalizar el día');
     setMotivo('');
     setAuthorizedPerson('');
     setComments('');
+  };
+
+  // Check if a pickup request can be edited (pending status + future date)
+  const canEditRequest = (request: PickupRequest) => {
+    if (request.status !== 'pending') return false;
+    const pickupDate = new Date(request.pickup_date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return pickupDate >= today;
+  };
+
+  // Populate form with existing request data for editing
+  const startEditing = (request: PickupRequest) => {
+    setEditingRequest(request);
+    setSelectedChildren([request.student_id]);
+    setSelectedDate(request.pickup_date);
+    setSelectedTime(request.pickup_time || 'Al finalizar el día');
+    setMotivo(request.reason || '');
+    setAuthorizedPerson(request.authorized_person || '');
+    setComments(request.notes || '');
+    setActiveTab('nuevo');
   };
 
   const handleSubmit = async () => {
@@ -90,22 +113,37 @@ export default function CambiosScreen() {
     }
 
     try {
-      // Create a pickup request for each selected child
-      for (const childId of selectedChildren) {
-        await createPickupMutation.mutateAsync({
-          organization_id: '', // Will be set by backend/RLS
-          student_id: childId,
-          requested_by: user.id,
-          request_type: 'different_person' as const,
-          pickup_date: selectedDate || new Date().toISOString().split('T')[0],
-          pickup_time: selectedTime,
-          authorized_person: authorizedPerson,
-          reason: motivo || 'No especificado',
-          notes: comments,
+      if (editingRequest) {
+        // Update existing request
+        await updatePickupMutation.mutateAsync({
+          id: editingRequest.id,
+          data: {
+            pickup_date: selectedDate || editingRequest.pickup_date,
+            pickup_time: selectedTime,
+            authorized_person: authorizedPerson,
+            reason: motivo || 'No especificado',
+            notes: comments,
+          },
         });
+        Alert.alert('Éxito', 'Solicitud actualizada correctamente');
+      } else {
+        // Create a pickup request for each selected child
+        for (const childId of selectedChildren) {
+          await createPickupMutation.mutateAsync({
+            organization_id: '', // Will be set by backend/RLS
+            student_id: childId,
+            requested_by: user.id,
+            request_type: 'different_person' as const,
+            pickup_date: selectedDate || new Date().toISOString().split('T')[0],
+            pickup_time: selectedTime,
+            authorized_person: authorizedPerson,
+            reason: motivo || 'No especificado',
+            notes: comments,
+          });
+        }
+        Alert.alert('Éxito', 'Solicitud enviada correctamente');
       }
 
-      Alert.alert('Éxito', 'Solicitud enviada correctamente');
       resetForm();
       setActiveTab('historial');
     } catch (error: any) {
@@ -125,16 +163,19 @@ export default function CambiosScreen() {
   const ListHeader = () => (
     <View style={styles.listHeader}>
       <ScreenHeader title="Cambios" />
-      <FilterBar unreadCount={unreadCounts.cambios} />
+      <FilterBar showUnreadFilter={false} />
 
       {/* Tab Navigation */}
       <View style={styles.tabs}>
         <TouchableOpacity
           style={activeTab === 'nuevo' ? [styles.tab, styles.tabActive] : styles.tab}
-          onPress={() => setActiveTab('nuevo')}
+          onPress={() => {
+            resetForm();
+            setActiveTab('nuevo');
+          }}
         >
           <Text style={activeTab === 'nuevo' ? [styles.tabText, styles.tabTextActive] : styles.tabText}>
-            Nuevo
+            {editingRequest ? 'Editar' : 'Nuevo'}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -249,6 +290,7 @@ export default function CambiosScreen() {
             filteredPickupRequests.map((item: PickupRequest) => {
               const child = children.find(c => c.id === item.student_id);
               const childName = child ? `${child.first_name} ${child.last_name}` : 'Estudiante';
+              const isEditable = canEditRequest(item);
 
               return (
                 <View key={item.id} style={styles.historyCard}>
@@ -256,13 +298,23 @@ export default function CambiosScreen() {
                     <Text style={styles.historyDate}>
                       {formatDate(item.pickup_date)} - {item.pickup_time}
                     </Text>
-                    <View style={item.status === 'approved' ? styles.statusBadgeApproved :
-                                 item.status === 'rejected' ? styles.statusBadgeRejected :
-                                 styles.statusBadgePending}>
-                      <Text style={styles.statusText}>
-                        {item.status === 'approved' ? 'Aprobado' :
-                         item.status === 'rejected' ? 'Rechazado' : 'Pendiente'}
-                      </Text>
+                    <View style={styles.headerRight}>
+                      {isEditable && (
+                        <TouchableOpacity
+                          style={styles.editButton}
+                          onPress={() => startEditing(item)}
+                        >
+                          <Ionicons name="pencil" size={16} color={COLORS.primary} />
+                        </TouchableOpacity>
+                      )}
+                      <View style={item.status === 'approved' ? styles.statusBadgeApproved :
+                                   item.status === 'rejected' ? styles.statusBadgeRejected :
+                                   styles.statusBadgePending}>
+                        <Text style={styles.statusText}>
+                          {item.status === 'approved' ? 'Aprobado' :
+                           item.status === 'rejected' ? 'Rechazado' : 'Pendiente'}
+                        </Text>
+                      </View>
                     </View>
                   </View>
                   <Text style={styles.historyChild}>{childName}</Text>
@@ -449,6 +501,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: SPACING.xs,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
+  editButton: {
+    padding: SPACING.xs,
   },
   statusBadgeApproved: {
     ...BADGE_STYLES.statusApproved,

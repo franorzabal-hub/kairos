@@ -15,7 +15,7 @@ import RenderHtml from 'react-native-render-html';
 import DirectusImage from '../components/DirectusImage';
 import Toast from '../components/Toast';
 import { Event } from '../api/directus';
-import { markAsRead } from '../services/readStatusService';
+import { useReadStatus } from '../hooks/useReadStatus';
 import { COLORS, SPACING, BORDERS } from '../theme';
 
 // Screen-specific color variants derived from theme
@@ -46,14 +46,15 @@ export default function EventoDetailScreen() {
   const route = useRoute<RouteProp<EventoDetailRouteParams, 'EventoDetail'>>();
   const { event } = route.params;
   const { width } = useWindowDimensions();
+  const { markAsRead } = useReadStatus('events');
 
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [showToast, setShowToast] = useState(false);
 
   // Mark as read when viewing
   useEffect(() => {
-    markAsRead('events', event.id);
-  }, [event.id]);
+    markAsRead(event.id);
+  }, [event.id, markAsRead]);
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);

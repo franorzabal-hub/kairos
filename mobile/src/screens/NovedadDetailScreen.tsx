@@ -1,19 +1,21 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
+  TouchableOpacity,
   useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { RouteProp, useRoute } from '@react-navigation/native';
+import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
 import RenderHtml from 'react-native-render-html';
 import DirectusImage from '../components/DirectusImage';
 import ScreenHeader from '../components/ScreenHeader';
+import Toast from '../components/Toast';
 import { Announcement } from '../api/directus';
-import { markAsRead } from '../services/readStatusService';
+import { useContentReadStatus } from '../api/hooks';
 import { COLORS, SPACING, BORDERS } from '../theme';
 
 // Decode HTML entities
@@ -36,13 +38,37 @@ type NovedadDetailRouteParams = {
 
 export default function NovedadDetailScreen() {
   const route = useRoute<RouteProp<NovedadDetailRouteParams, 'NovedadDetail'>>();
+  const navigation = useNavigation();
   const { announcement } = route.params;
   const { width } = useWindowDimensions();
+  const { markAsRead, markAsUnread, isRead } = useContentReadStatus('announcements');
 
-  // Mark as read when viewing
+  const [isMarkedRead, setIsMarkedRead] = useState(true);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+
+  // Track if we've already marked this announcement as read to prevent loops
+  const hasMarkedReadRef = useRef<string | null>(null);
+
+  // Mark as read when viewing (only once per announcement)
   useEffect(() => {
-    markAsRead('announcements', announcement.id);
-  }, [announcement.id]);
+    if (hasMarkedReadRef.current !== announcement.id) {
+      hasMarkedReadRef.current = announcement.id;
+      markAsRead(announcement.id);
+      setIsMarkedRead(true);
+    }
+  }, [announcement.id, markAsRead]);
+
+  const handleMarkAsUnread = async () => {
+    await markAsUnread(announcement.id);
+    setIsMarkedRead(false);
+    setToastMessage('Marcado como no leído');
+    setShowToast(true);
+    // Navigate back after a short delay
+    setTimeout(() => {
+      navigation.goBack();
+    }, 800);
+  };
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -130,6 +156,23 @@ export default function NovedadDetailScreen() {
           />
         </View>
       </ScrollView>
+
+      {/* Footer with Mark as Unread button */}
+      {isMarkedRead && (
+        <View style={styles.bottomBar}>
+          <TouchableOpacity style={styles.unreadButton} onPress={handleMarkAsUnread}>
+            <Ionicons name="mail-unread-outline" size={20} color={COLORS.primary} />
+            <Text style={styles.unreadButtonText}>Marcar como no leído</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      <Toast
+        visible={showToast}
+        message={toastMessage}
+        type="success"
+        onHide={() => setShowToast(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -143,7 +186,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 40,
+    paddingBottom: 100,
   },
   imageContainer: {
     position: 'relative',
@@ -231,5 +274,29 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#333',
     lineHeight: 26,
+  },
+  bottomBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 16,
+    backgroundColor: COLORS.white,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  unreadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.primaryLight,
+    paddingVertical: 14,
+    borderRadius: 30,
+    gap: 8,
+  },
+  unreadButtonText: {
+    color: COLORS.primary,
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

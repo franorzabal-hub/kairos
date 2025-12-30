@@ -157,8 +157,11 @@ export function AppProvider({ children: childrenProp }: { children: ReactNode })
   };
 
   const logout = async () => {
+    // Clear read status before clearing user (need user.id for the API call)
+    if (user?.id) {
+      await clearAllReadStatus(user.id);
+    }
     await clearTokens();
-    await clearAllReadStatus();
     setUser(null);
     setChildren([]);
     setUnreadCountsState(defaultUnreadCounts);

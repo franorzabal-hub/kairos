@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth, useAppContext } from '../context/AppContext';
+import { clearAllReadStatus } from '../services/readStatusService';
 import Constants from 'expo-constants';
 import { COLORS, SPACING, BORDERS } from '../theme';
 
@@ -216,6 +217,24 @@ export default function SettingsScreen() {
     }
   };
 
+  const handleClearReadStatus = () => {
+    if (!user?.id) return;
+    Alert.alert(
+      'Marcar Todo Como No Leído',
+      '¿Estás seguro? Todas las novedades, eventos, mensajes y boletines aparecerán como no leídos.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Marcar No Leído',
+          onPress: async () => {
+            await clearAllReadStatus(user.id);
+            Alert.alert('Listo', 'Todo el contenido ha sido marcado como no leído.');
+          },
+        },
+      ]
+    );
+  };
+
   const updateNotification = (key: keyof typeof notifications, value: boolean) => {
     setNotifications(prev => ({ ...prev, [key]: value }));
     // TODO: Sync with backend
@@ -367,6 +386,12 @@ export default function SettingsScreen() {
             label="Idioma"
             value="Español"
             onPress={() => Alert.alert('Idioma', 'Por ahora solo español está disponible.')}
+          />
+
+          <SettingsRow
+            icon={<Ionicons name="eye-off-outline" size={22} color={COLORS.primary} style={styles.icon} />}
+            label="Marcar Todo No Leído"
+            onPress={handleClearReadStatus}
           />
         </View>
 

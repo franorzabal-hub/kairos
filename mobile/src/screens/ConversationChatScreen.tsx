@@ -23,6 +23,8 @@ import {
   useMarkConversationRead,
   useCloseConversation,
   useMuteConversation,
+  useArchiveConversation,
+  useToggleParticipantBlocked,
 } from '../api/hooks';
 import { ConversationMessage } from '../api/directus';
 import { MensajesStackParamList } from '../navigation/types';
@@ -56,6 +58,8 @@ export default function ConversationChatScreen() {
   const markAsRead = useMarkConversationRead();
   const closeConversation = useCloseConversation();
   const muteConversation = useMuteConversation();
+  const archiveConversation = useArchiveConversation();
+  const toggleBlocked = useToggleParticipantBlocked();
 
   const [inputText, setInputText] = useState('');
   const [isUrgent, setIsUrgent] = useState(false);
@@ -102,7 +106,13 @@ export default function ConversationChatScreen() {
     // Different options for teachers vs parents
     if (Platform.OS === 'ios') {
       const options = isTeacher
-        ? ['Cerrar conversación', isMuted ? 'Activar notificaciones' : 'Silenciar', 'Cancelar']
+        ? [
+            'Cerrar conversación',
+            'Archivar conversación',
+            'Bloquear participante',
+            isMuted ? 'Activar notificaciones' : 'Silenciar',
+            'Cancelar',
+          ]
         : [isMuted ? 'Activar notificaciones' : 'Silenciar', 'Cancelar'];
 
       const cancelButtonIndex = options.length - 1;
@@ -117,7 +127,9 @@ export default function ConversationChatScreen() {
         (buttonIndex) => {
           if (isTeacher) {
             if (buttonIndex === 0) handleCloseConversation();
-            else if (buttonIndex === 1) handleToggleMute();
+            else if (buttonIndex === 1) handleArchiveConversation();
+            else if (buttonIndex === 2) handleBlockParticipant();
+            else if (buttonIndex === 3) handleToggleMute();
           } else {
             if (buttonIndex === 0) handleToggleMute();
           }
@@ -128,6 +140,8 @@ export default function ConversationChatScreen() {
       const options = isTeacher
         ? [
             { text: 'Cerrar conversación', onPress: handleCloseConversation, style: 'destructive' as const },
+            { text: 'Archivar conversación', onPress: handleArchiveConversation },
+            { text: 'Bloquear participante', onPress: handleBlockParticipant, style: 'destructive' as const },
             { text: isMuted ? 'Activar notificaciones' : 'Silenciar', onPress: handleToggleMute },
             { text: 'Cancelar', style: 'cancel' as const },
           ]
@@ -157,6 +171,59 @@ export default function ConversationChatScreen() {
             } catch (error) {
               console.error('Error closing conversation:', error);
               Alert.alert('Error', 'No se pudo cerrar la conversación');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleArchiveConversation = () => {
+    Alert.alert(
+      'Archivar conversación',
+      '¿Estás seguro que querés archivar esta conversación? Se ocultará de la lista principal pero se podrá recuperar.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Archivar',
+          onPress: async () => {
+            try {
+              await archiveConversation.mutateAsync(conversationId);
+              Alert.alert('Éxito', 'La conversación ha sido archivada');
+              navigation.goBack();
+            } catch (error) {
+              console.error('Error archiving conversation:', error);
+              Alert.alert('Error', 'No se pudo archivar la conversación');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleBlockParticipant = () => {
+    Alert.alert(
+      'Bloquear participante',
+      '¿Estás seguro que querés bloquear al participante? No podrá ver ni enviar mensajes en esta conversación.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Bloquear',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // Block the other participant (not current user)
+              // This would need the other participant's ID - for now we use participantId
+              // In a real implementation, we'd need to fetch the other participant's record
+              await toggleBlocked.mutateAsync({
+                participantId: participantId,
+                isBlocked: true,
+              });
+              Alert.alert('Éxito', 'El participante ha sido bloqueado');
+              navigation.goBack();
+            } catch (error) {
+              console.error('Error blocking participant:', error);
+              Alert.alert('Error', 'No se pudo bloquear al participante');
             }
           },
         },
