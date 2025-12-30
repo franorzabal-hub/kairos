@@ -14,6 +14,8 @@ interface SwipeableAnnouncementCardProps {
   isPinned: boolean;
   isArchived: boolean;
   isAcknowledged?: boolean;
+  childName?: string;
+  childColor?: string;
   onMarkAsRead: () => void;
   onTogglePin: () => void;
   onArchive: () => void;
@@ -26,6 +28,8 @@ export default function SwipeableAnnouncementCard({
   isPinned,
   isArchived,
   isAcknowledged = false,
+  childName,
+  childColor,
   onMarkAsRead,
   onTogglePin,
   onArchive,
@@ -199,6 +203,17 @@ export default function SwipeableAnnouncementCard({
             <Text style={[styles.cardTitle, isUnread && styles.cardTitleUnread]}>{item.title}</Text>
           </View>
           <Text style={styles.cardSubtitle} numberOfLines={2}>{stripHtml(item.content)}</Text>
+          {/* Child indicator - shown when viewing "Todos" */}
+          {childName && (
+            <View style={styles.childRow}>
+              <View style={[styles.childAvatar, { backgroundColor: childColor || COLORS.primary }]}>
+                <Text style={styles.childInitial}>
+                  {childName.charAt(0).toUpperCase()}
+                </Text>
+              </View>
+              <Text style={styles.childName}>{childName}</Text>
+            </View>
+          )}
         </View>
       </TouchableOpacity>
     </Swipeable>
@@ -304,6 +319,29 @@ const styles = StyleSheet.create({
   },
   cardSubtitle: {
     ...TYPOGRAPHY.body,
+    color: COLORS.gray,
+  },
+  // Child indicator styles
+  childRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: SPACING.sm,
+    gap: SPACING.xs,
+  },
+  childAvatar: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  childInitial: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: COLORS.white,
+  },
+  childName: {
+    ...TYPOGRAPHY.caption,
     color: COLORS.gray,
   },
 

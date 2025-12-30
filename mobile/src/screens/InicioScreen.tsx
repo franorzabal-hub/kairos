@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet, RefreshControl, ActivityIndicator, TouchableOpacity, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,7 +20,7 @@ import {
 } from '../api/hooks';
 import { useSession } from '../hooks';
 import { Announcement, Event } from '../api/directus';
-import { COLORS, SPACING, BORDERS, TYPOGRAPHY } from '../theme';
+import { COLORS, CHILD_COLORS, SPACING, BORDERS, TYPOGRAPHY } from '../theme';
 import { stripHtml } from '../utils';
 
 export default function InicioScreen() {
@@ -67,6 +67,25 @@ export default function InicioScreen() {
       })
       .slice(0, 3); // Show max 3 events
   }, [events]);
+
+  // Get child info for announcement - shows which child it targets when viewing "Todos"
+  const getChildInfo = (announcement: Announcement): { name?: string; color?: string } => {
+    // Only show child indicator when viewing all children and there are multiple
+    if (!selectedChildId && children.length > 1) {
+      if (announcement.target_type === 'section') {
+        const childIndex = children.findIndex(c => c.section_id === announcement.target_id);
+        if (childIndex >= 0) {
+          return {
+            name: children[childIndex].first_name,
+            color: CHILD_COLORS[childIndex % CHILD_COLORS.length],
+          };
+        }
+      }
+      // Announcements for all children don't get a specific indicator
+      return {};
+    }
+    return {};
+  };
 
   // Apply filters and sorting to announcements
   const filteredAnnouncements = useMemo(() => {
@@ -133,21 +152,23 @@ export default function InicioScreen() {
     return date.toLocaleDateString('es-AR', { month: 'short' }).toUpperCase().replace('.', '');
   };
 
-  // Placeholder handlers for quick actions
-  const handleReportAbsence = () => {
+  // Memoize handlers to prevent ListHeader re-renders
+  const handleReportAbsence = useCallback(() => {
     // TODO: Implement absence report flow
     console.log('Report absence');
-  };
+  }, []);
 
-  const handlePickupChange = () => {
+  const handlePickupChange = useCallback(() => {
     router.push('/mishijos');
-  };
+  }, [router]);
 
-  const handleContactSchool = () => {
+  const handleContactSchool = useCallback(() => {
     router.push('/mensajes');
-  };
+  }, [router]);
 
-  const ListHeader = () => (
+  // Memoize ListHeader to prevent full re-render when child filter changes
+  // ChildSelector manages its own state through context, so we only depend on header-specific values
+  const ListHeader = useCallback(() => (
     <View style={styles.listHeader}>
       {/* Header with avatar */}
       <ScreenHeader />
@@ -209,7 +230,7 @@ export default function InicioScreen() {
         onSelect={(key) => setFilterMode(key as 'unread' | 'all')}
       />
     </View>
-  );
+  ), [upcomingEvents, filterMode, unreadCounts.inicio, router, setFilterMode, handleReportAbsence, handlePickupChange, handleContactSchool]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -232,6 +253,7 @@ export default function InicioScreen() {
             const itemIsPinned = pinnedIds.has(item.id) || Boolean(item.is_pinned);
             const itemIsArchived = archivedIds.has(item.id);
             const itemIsAcknowledged = acknowledgedIds.has(item.id);
+            const childInfo = getChildInfo(item);
 
             return (
               <SwipeableAnnouncementCard
@@ -240,6 +262,8 @@ export default function InicioScreen() {
                 isPinned={itemIsPinned}
                 isArchived={itemIsArchived}
                 isAcknowledged={itemIsAcknowledged}
+                childName={childInfo.name}
+                childColor={childInfo.color}
                 onMarkAsRead={() => markAsRead(item.id)}
                 onTogglePin={() => togglePin(item.id, itemIsPinned)}
                 onArchive={() => toggleArchive(item.id, false)}
