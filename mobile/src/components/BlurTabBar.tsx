@@ -21,6 +21,14 @@ interface BlurTabBarProps extends BottomTabBarProps {
   };
 }
 
+// Only these 4 routes should appear as visible tabs
+const VISIBLE_TAB_ROUTES = new Set([
+  'inicio/index',
+  'agenda/index',
+  'mensajes/index',
+  'mishijos/index',
+]);
+
 const TAB_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   'inicio/index': 'home-outline',
   'agenda/index': 'calendar-outline',
@@ -57,17 +65,8 @@ export default function BlurTabBar({ state, descriptors, navigation, unreadCount
     return null;
   }
 
-  // Filter out hidden routes (href: null) and dynamic routes ([id])
-  const visibleRoutes = state.routes.filter((route) => {
-    const { options } = descriptors[route.key];
-    // Exclude routes with href explicitly set to null
-    if ((options as any).href === null) return false;
-    // Exclude dynamic routes like [id]
-    if (route.name.includes('[')) return false;
-    // Exclude the index redirect
-    if (route.name === 'index') return false;
-    return true;
-  });
+  // Only show the 4 main tab routes (explicitly filter by name)
+  const visibleRoutes = state.routes.filter((route) => VISIBLE_TAB_ROUTES.has(route.name));
 
   // Determine which tab should be focused (handle hidden route → parent tab mapping)
   const currentRouteName = state.routes[state.index]?.name;
