@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,8 +12,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import * as LocalAuthentication from 'expo-local-authentication';
 import { useAuth, useAppContext } from '../context/AppContext';
 import { clearAllReadStatus } from '../services/readStatusService';
+import { isBiometricEnabled, setBiometricEnabled } from '../api/directus';
 import Constants from 'expo-constants';
 import { COLORS, SPACING, BORDERS } from '../theme';
 
@@ -111,6 +113,60 @@ export default function SettingsScreen() {
     theme: 'system', // 'light' | 'dark' | 'system'
     language: 'es',
   });
+
+  // Biometric authentication state
+  const [biometricEnabled, setBiometricState] = useState(false);
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [biometricType, setBiometricType] = useState<string>('Biometría');
+
+  // Check biometric status on mount
+  useEffect(() => {
+    checkBiometricStatus();
+  }, []);
+
+  const checkBiometricStatus = async () => {
+    try {
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+      setBiometricAvailable(hasHardware && isEnrolled);
+
+      // Determine biometric type for display
+      if (hasHardware) {
+        const types = await LocalAuthentication.supportedAuthenticationTypesAsync();
+        if (types.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION)) {
+          setBiometricType('Face ID');
+        } else if (types.includes(LocalAuthentication.AuthenticationType.FINGERPRINT)) {
+          setBiometricType('Touch ID');
+        }
+      }
+
+      const enabled = await isBiometricEnabled();
+      setBiometricState(enabled);
+    } catch (error) {
+      console.log('Error checking biometric status:', error);
+    }
+  };
+
+  const handleToggleBiometric = async (newValue: boolean) => {
+    if (newValue) {
+      // Activating - verify biometric first
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage: 'Confirma para activar autenticación biométrica',
+        cancelLabel: 'Cancelar',
+        disableDeviceFallback: false,
+      });
+
+      if (result.success) {
+        await setBiometricEnabled(true);
+        setBiometricState(true);
+        Alert.alert('Activado', `${biometricType} habilitado para inicio de sesión rápido.`);
+      }
+    } else {
+      // Deactivating
+      await setBiometricEnabled(false);
+      setBiometricState(false);
+    }
+  };
 
   const handleLogout = () => {
     Alert.alert(
@@ -447,11 +503,22 @@ export default function SettingsScreen() {
             onPress={handleChangePassword}
           />
 
-          <SettingsRow
-            icon={<Ionicons name="finger-print-outline" size={22} color={COLORS.primary} style={styles.icon} />}
-            label="Autenticación Biométrica"
-            onPress={() => Alert.alert('Biometría', 'Próximamente: inicio de sesión con huella o Face ID.')}
-          />
+          {biometricAvailable ? (
+            <ToggleRow
+              icon={<Ionicons name="finger-print-outline" size={22} color={COLORS.primary} style={styles.icon} />}
+              label={biometricType}
+              description="Inicio de sesión rápido"
+              value={biometricEnabled}
+              onValueChange={handleToggleBiometric}
+            />
+          ) : (
+            <SettingsRow
+              icon={<Ionicons name="finger-print-outline" size={22} color={COLORS.gray} style={styles.icon} />}
+              label="Autenticación Biométrica"
+              value="No disponible"
+              showChevron={false}
+            />
+          )}
         </View>
 
         {/* Legal Section */}

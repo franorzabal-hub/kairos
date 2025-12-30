@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { Student, AppUser, directus, saveTokens, getTokens, clearTokens } from '../api/directus';
+import * as LocalAuthentication from 'expo-local-authentication';
+import { Student, AppUser, directus, saveTokens, getTokens, clearTokens, isBiometricEnabled } from '../api/directus';
 import { readMe, readItems } from '@directus/sdk';
 import { clearAllReadStatus } from '../services/readStatusService';
 
@@ -85,6 +86,29 @@ export function AppProvider({ children: childrenProp }: { children: ReactNode })
     try {
       const { accessToken, refreshToken } = await getTokens();
       if (accessToken && refreshToken) {
+        // Check if biometric authentication is enabled
+        const biometricEnabled = await isBiometricEnabled();
+
+        if (biometricEnabled) {
+          // Verify device has biometric hardware and is enrolled
+          const hasHardware = await LocalAuthentication.hasHardwareAsync();
+          const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+
+          if (hasHardware && isEnrolled) {
+            const result = await LocalAuthentication.authenticateAsync({
+              promptMessage: 'Confirma tu identidad para continuar',
+              cancelLabel: 'Usar contraseña',
+              disableDeviceFallback: false,
+            });
+
+            if (!result.success) {
+              // User cancelled or biometric failed - require manual login
+              setIsLoading(false);
+              return;
+            }
+          }
+        }
+
         // Set tokens in the SDK so it can make authenticated requests
         await directus.setToken(accessToken);
 

@@ -227,6 +227,7 @@ interface Schema {
 // Token storage helpers
 const TOKEN_KEY = 'directus_token';
 const REFRESH_TOKEN_KEY = 'directus_refresh_token';
+const BIOMETRIC_ENABLED_KEY = 'biometric_auth_enabled';
 
 export async function saveTokens(accessToken: string, refreshToken: string) {
   await SecureStore.setItemAsync(TOKEN_KEY, accessToken);
@@ -242,6 +243,20 @@ export async function getTokens() {
 export async function clearTokens() {
   await SecureStore.deleteItemAsync(TOKEN_KEY);
   await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
+}
+
+// Biometric authentication helpers
+export async function setBiometricEnabled(enabled: boolean): Promise<void> {
+  await SecureStore.setItemAsync(BIOMETRIC_ENABLED_KEY, enabled ? 'true' : 'false');
+}
+
+export async function isBiometricEnabled(): Promise<boolean> {
+  const value = await SecureStore.getItemAsync(BIOMETRIC_ENABLED_KEY);
+  return value === 'true';
+}
+
+export async function clearBiometricSetting(): Promise<void> {
+  await SecureStore.deleteItemAsync(BIOMETRIC_ENABLED_KEY);
 }
 
 // Create Directus client
