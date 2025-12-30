@@ -153,7 +153,7 @@ export default function SettingsScreen() {
       const result = await LocalAuthentication.authenticateAsync({
         promptMessage: 'Confirma para activar autenticación biométrica',
         cancelLabel: 'Cancelar',
-        disableDeviceFallback: false,
+        disableDeviceFallback: true,
       });
 
       if (result.success) {

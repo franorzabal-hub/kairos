@@ -97,8 +97,8 @@ export function AppProvider({ children: childrenProp }: { children: ReactNode })
           if (hasHardware && isEnrolled) {
             const result = await LocalAuthentication.authenticateAsync({
               promptMessage: 'Confirma tu identidad para continuar',
-              cancelLabel: 'Usar contraseña',
-              disableDeviceFallback: false,
+              cancelLabel: 'Cancelar',
+              disableDeviceFallback: true,
             });
 
             if (!result.success) {
