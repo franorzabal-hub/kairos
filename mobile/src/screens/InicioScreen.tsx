@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { FlashList } from '@shopify/flash-list';
 import { useRouter } from 'expo-router';
+import ScreenHeader from '../components/ScreenHeader';
 import QuickAccess from '../components/QuickAccess';
 import FilterBar from '../components/FilterBar';
 import SwipeableAnnouncementCard from '../components/SwipeableAnnouncementCard';
@@ -147,23 +148,12 @@ export default function InicioScreen() {
 
   const ListHeader = () => (
     <View style={styles.listHeader}>
-      {/* Header with settings icon */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Text style={styles.greeting}>
-            Hola, {user?.first_name || 'Usuario'}
-          </Text>
-          <Text style={styles.subGreeting}>
-            Bienvenido a Kairos
-          </Text>
-        </View>
-        <TouchableOpacity
-          style={styles.settingsButton}
-          onPress={() => router.push('/settings')}
-        >
-          <Ionicons name="settings-outline" size={24} color={COLORS.darkGray} />
-        </TouchableOpacity>
-      </View>
+      {/* Header with avatar */}
+      <ScreenHeader
+        title={`Hola, ${user?.first_name || 'Usuario'}`}
+        subtitle="Bienvenido a Kairos"
+        showAvatar={true}
+      />
 
       {/* Quick Access Buttons */}
       <QuickAccess
@@ -291,29 +281,6 @@ const styles = StyleSheet.create({
   listHeader: {
     backgroundColor: COLORS.white,
     marginBottom: SPACING.sm,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: SPACING.screenPadding,
-    paddingVertical: SPACING.md,
-    backgroundColor: COLORS.white,
-  },
-  headerLeft: {
-    flex: 1,
-  },
-  greeting: {
-    ...TYPOGRAPHY.heading,
-    color: COLORS.darkGray,
-  },
-  subGreeting: {
-    ...TYPOGRAPHY.body,
-    color: COLORS.gray,
-    marginTop: 2,
-  },
-  settingsButton: {
-    padding: SPACING.sm,
   },
   loadingContainer: {
     flex: 1,

@@ -38,9 +38,12 @@ const TAB_BADGE_KEYS: Record<string, keyof BlurTabBarProps['unreadCounts']> = {
 export default function BlurTabBar({ state, descriptors, navigation, unreadCounts }: BlurTabBarProps) {
   const insets = useSafeAreaInsets();
   const segments = useSegments();
-  const isNestedRoute = segments[0] === '(tabs)' && segments.length > 2;
 
-  if (isNestedRoute) {
+  // Hide tab bar only on detail screens (routes with dynamic [id] params)
+  // segments example: ['(tabs)', 'agenda', '[id]'] for /agenda/123
+  const isDetailScreen = segments.some(s => s.startsWith('[') && s.endsWith(']'));
+
+  if (isDetailScreen) {
     return null;
   }
 
