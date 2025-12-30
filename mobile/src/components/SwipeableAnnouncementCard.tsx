@@ -36,7 +36,8 @@ export default function SwipeableAnnouncementCard({
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
-    return date.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' });
+    // Use uppercase to match event cards format (e.g., "29 DIC" instead of "29 dic")
+    return date.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' }).toUpperCase().replace('.', '');
   };
 
   const handlePress = () => {
