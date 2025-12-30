@@ -15,7 +15,7 @@ import { stripHtml } from '../utils';
 
 export default function NovedadesScreen() {
   const router = useRouter();
-  const { filterMode } = useFilters();
+  const { filterMode, selectedChildId, children } = useFilters();
   const { unreadCounts } = useUnreadCounts();
   const { isRead, filterUnread, markAsRead } = useContentReadStatus('announcements');
 
@@ -24,6 +24,11 @@ export default function NovedadesScreen() {
 
   // Fetch announcements
   const { data: announcements = [], isLoading, refetch, isRefetching } = useAnnouncements();
+
+  // Get selected child's section for filtering
+  const selectedChild = selectedChildId
+    ? children.find(c => c.id === selectedChildId)
+    : null;
 
   // Apply filters
   const filteredAnnouncements = useMemo(() => {
@@ -34,10 +39,29 @@ export default function NovedadesScreen() {
       result = filterUnread(result);
     }
 
-    // TODO: Filter by selectedChildId when announcements have student/grade relations
+    // Filter by selected child (if one is selected)
+    if (selectedChild) {
+      result = result.filter(announcement => {
+        // Show announcements for all
+        if (announcement.target_type === 'all') return true;
+
+        // Show section-specific announcements that match child's section
+        if (announcement.target_type === 'section') {
+          return announcement.target_id === selectedChild.section_id;
+        }
+
+        // Grade-specific announcements: show all for now
+        // TODO: Need to fetch grade_id from section to filter properly
+        if (announcement.target_type === 'grade') {
+          return true;
+        }
+
+        return true;
+      });
+    }
 
     return result;
-  }, [announcements, filterMode, filterUnread]);
+  }, [announcements, filterMode, filterUnread, selectedChild]);
 
   const onRefresh = async () => {
     await refetch();
