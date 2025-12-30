@@ -35,6 +35,16 @@ const TAB_BADGE_KEYS: Record<string, keyof BlurTabBarProps['unreadCounts']> = {
   'mishijos/index': 'mishijos',
 };
 
+// Map hidden/legacy routes to their parent tab for focus state
+const ROUTE_TO_PARENT_TAB: Record<string, string> = {
+  'novedades/index': 'inicio/index',
+  'novedades/[id]': 'inicio/index',
+  'eventos/index': 'agenda/index',
+  'eventos/[id]': 'agenda/index',
+  'cambios/index': 'mishijos/index',
+  'boletines/index': 'mishijos/index',
+};
+
 export default function BlurTabBar({ state, descriptors, navigation, unreadCounts }: BlurTabBarProps) {
   const insets = useSafeAreaInsets();
   const segments = useSegments();
@@ -51,13 +61,17 @@ export default function BlurTabBar({ state, descriptors, navigation, unreadCount
   const visibleRoutes = state.routes.filter((route) => {
     const { options } = descriptors[route.key];
     // Exclude routes with href explicitly set to null
-    if (options.href === null) return false;
+    if ((options as any).href === null) return false;
     // Exclude dynamic routes like [id]
     if (route.name.includes('[')) return false;
     // Exclude the index redirect
     if (route.name === 'index') return false;
     return true;
   });
+
+  // Determine which tab should be focused (handle hidden route → parent tab mapping)
+  const currentRouteName = state.routes[state.index]?.name;
+  const effectiveFocusedRoute = ROUTE_TO_PARENT_TAB[currentRouteName] || currentRouteName;
 
   return (
     <BlurView
@@ -69,14 +83,14 @@ export default function BlurTabBar({ state, descriptors, navigation, unreadCount
       <View style={styles.tabsContainer}>
         {visibleRoutes.map((route) => {
           const { options } = descriptors[route.key];
-          const index = state.routes.indexOf(route);
           const label = options.tabBarLabel !== undefined
             ? options.tabBarLabel
             : options.title !== undefined
             ? options.title
             : route.name;
 
-          const isFocused = state.index === index;
+          // Use effective focused route to handle hidden route → parent tab mapping
+          const isFocused = route.name === effectiveFocusedRoute;
           const iconName = TAB_ICONS[route.name] || 'help-outline';
           const badgeKey = TAB_BADGE_KEYS[route.name];
           const badge = badgeKey ? unreadCounts[badgeKey] : 0;
