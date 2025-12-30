@@ -31,21 +31,21 @@ export default function QuickAccess({
       id: 'absence',
       label: 'Reportar Ausencia',
       icon: 'medical-outline',
-      color: '#FF6B6B',
+      color: COLORS.primary,
       onPress: onReportAbsence,
     },
     {
       id: 'pickup',
       label: 'Cambio de Salida',
       icon: 'time-outline',
-      color: '#4ECDC4',
+      color: COLORS.primary,
       onPress: onPickupChange || (() => router.push('/mishijos')),
     },
     {
       id: 'contact',
       label: 'Contactar Colegio',
       icon: 'call-outline',
-      color: '#45B7D1',
+      color: COLORS.primary,
       onPress: onContactSchool || (() => router.push('/mensajes')),
     },
   ];
@@ -65,7 +65,7 @@ export default function QuickAccess({
             onPress={action.onPress}
             activeOpacity={0.7}
           >
-            <View style={[styles.iconContainer, { backgroundColor: action.color + '15' }]}>
+            <View style={styles.iconContainer}>
               <Ionicons name={action.icon} size={24} color={action.color} />
             </View>
             <Text style={styles.actionLabel} numberOfLines={2}>
@@ -106,6 +106,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: SPACING.xs,
+    backgroundColor: COLORS.lightGray,
   },
   actionLabel: {
     ...TYPOGRAPHY.caption,

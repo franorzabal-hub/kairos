@@ -3,25 +3,75 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-nati
 import { Ionicons } from '@expo/vector-icons';
 import DirectusImage from './DirectusImage';
 import { Student } from '../api/directus';
+import { useFilters } from '../context/AppContext';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY, SHADOWS } from '../theme';
 
 interface ChildSelectorProps {
-  children: Student[];
-  selectedChildId: string | null;
-  onSelectChild: (childId: string) => void;
+  children?: Student[];
+  selectedChildId?: string | null;
+  onSelectChild?: (childId: string) => void;
   showAllOption?: boolean;
   onSelectAll?: () => void;
+  compact?: boolean; // Inline chip style for header use
 }
 
 export default function ChildSelector({
-  children,
-  selectedChildId,
-  onSelectChild,
+  children: childrenProp,
+  selectedChildId: selectedChildIdProp,
+  onSelectChild: onSelectChildProp,
   showAllOption = false,
-  onSelectAll,
+  onSelectAll: onSelectAllProp,
+  compact = false,
 }: ChildSelectorProps) {
-  if (children.length === 0) {
+  // Use props if provided, otherwise use context
+  const filters = useFilters();
+  const children = childrenProp ?? filters.children;
+  const selectedChildId = selectedChildIdProp ?? filters.selectedChildId;
+  const onSelectChild = onSelectChildProp ?? filters.setSelectedChildId;
+  const onSelectAll = onSelectAllProp ?? (() => filters.setSelectedChildId(null));
+
+  if (!children || children.length === 0) {
     return null;
+  }
+
+  // Compact mode: dropdown-style chip showing selected child
+  if (compact) {
+    const selectedChild = selectedChildId
+      ? children.find(c => c.id === selectedChildId)
+      : null;
+    const displayName = selectedChild ? selectedChild.first_name : 'Todos';
+
+    // For compact mode with single child, just show the name
+    if (children.length === 1) {
+      return (
+        <View style={styles.compactChip}>
+          <Text style={styles.compactText}>{children[0].first_name}</Text>
+        </View>
+      );
+    }
+
+    // TODO: Could expand this to a dropdown/actionsheet
+    return (
+      <TouchableOpacity
+        style={styles.compactChip}
+        onPress={() => {
+          // Cycle through children + "Todos" option
+          if (!selectedChildId) {
+            onSelectChild(children[0].id);
+          } else {
+            const currentIndex = children.findIndex(c => c.id === selectedChildId);
+            if (currentIndex < children.length - 1) {
+              onSelectChild(children[currentIndex + 1].id);
+            } else {
+              onSelectAll?.();
+            }
+          }
+        }}
+      >
+        <Text style={styles.compactText}>{displayName}</Text>
+        <Ionicons name="chevron-down" size={14} color={COLORS.primary} />
+      </TouchableOpacity>
+    );
   }
 
   // Single child - show info card instead of selector
@@ -57,7 +107,6 @@ export default function ChildSelector({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>Seleccionar hijo/a</Text>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -129,12 +178,6 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.md,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
-  },
-  label: {
-    ...TYPOGRAPHY.caption,
-    color: COLORS.gray,
-    marginBottom: SPACING.sm,
-    paddingHorizontal: SPACING.screenPadding,
   },
   scrollContent: {
     paddingHorizontal: SPACING.screenPadding,
@@ -228,5 +271,20 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.caption,
     color: COLORS.gray,
     marginTop: 2,
+  },
+  // Compact mode styles
+  compactChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.primaryLight,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs,
+    borderRadius: BORDERS.radius.md,
+    gap: 4,
+  },
+  compactText: {
+    ...TYPOGRAPHY.caption,
+    fontWeight: '600',
+    color: COLORS.primary,
   },
 });

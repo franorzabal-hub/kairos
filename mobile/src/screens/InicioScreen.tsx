@@ -6,9 +6,9 @@ import { FlashList } from '@shopify/flash-list';
 import { useRouter } from 'expo-router';
 import ScreenHeader from '../components/ScreenHeader';
 import QuickAccess from '../components/QuickAccess';
-import FilterBar from '../components/FilterBar';
+import SegmentedControl from '../components/SegmentedControl';
+import ChildSelector from '../components/ChildSelector';
 import SwipeableAnnouncementCard from '../components/SwipeableAnnouncementCard';
-import DirectusImage from '../components/DirectusImage';
 import { useFilters, useUnreadCounts, useAppContext } from '../context/AppContext';
 import {
   useAnnouncements,
@@ -25,7 +25,7 @@ import { stripHtml } from '../utils';
 
 export default function InicioScreen() {
   const router = useRouter();
-  const { filterMode, selectedChildId, children } = useFilters();
+  const { filterMode, setFilterMode, selectedChildId, children } = useFilters();
   const { unreadCounts } = useUnreadCounts();
   const { user } = useAppContext();
   const { isRead, filterUnread, markAsRead } = useContentReadStatus('announcements');
@@ -127,9 +127,14 @@ export default function InicioScreen() {
     await Promise.all([refetchAnnouncements(), refetchEvents()]);
   };
 
-  const formatEventDate = (dateStr: string) => {
+  const formatEventDay = (dateStr: string) => {
     const date = new Date(dateStr);
-    return date.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' });
+    return date.getDate().toString().padStart(2, '0');
+  };
+
+  const formatEventMonth = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('es-AR', { month: 'short' }).toUpperCase().replace('.', '');
   };
 
   // Placeholder handlers for quick actions
@@ -178,18 +183,12 @@ export default function InicioScreen() {
                 style={styles.eventCard}
                 onPress={() => router.push({ pathname: '/agenda/[id]', params: { id: event.id } })}
               >
-                <DirectusImage
-                  fileId={event.image}
-                  style={styles.eventImage}
-                  resizeMode="cover"
-                  fallback={
-                    <View style={styles.eventImagePlaceholder}>
-                      <Ionicons name="calendar" size={24} color={COLORS.primary} />
-                    </View>
-                  }
-                />
+                {/* Date Block - prominently displayed */}
+                <View style={styles.eventDateBlock}>
+                  <Text style={styles.eventDateMonth}>{formatEventMonth(event.start_date)}</Text>
+                  <Text style={styles.eventDateDay}>{formatEventDay(event.start_date)}</Text>
+                </View>
                 <View style={styles.eventContent}>
-                  <Text style={styles.eventDate}>{formatEventDate(event.start_date)}</Text>
                   <Text style={styles.eventTitle} numberOfLines={2}>{event.title}</Text>
                 </View>
               </TouchableOpacity>
@@ -200,14 +199,18 @@ export default function InicioScreen() {
 
       {/* Novedades Section Header */}
       <View style={styles.novedadesHeader}>
-        <Text style={styles.sectionTitle}>Novedades</Text>
+        <View style={styles.novedadesTitleRow}>
+          <Text style={styles.sectionTitle}>Novedades</Text>
+          <ChildSelector compact />
+        </View>
       </View>
-      <FilterBar
-        unreadCount={unreadCounts.inicio}
-        pinnedCount={pinnedCount}
-        archivedCount={archivedCount}
-        showPinnedFilter={true}
-        showArchivedFilter={true}
+      <SegmentedControl
+        segments={[
+          { key: 'unread', label: 'No leídas', count: unreadCounts.inicio },
+          { key: 'all', label: 'Todas' },
+        ]}
+        selectedKey={filterMode === 'unread' ? 'unread' : 'all'}
+        onSelect={(key) => setFilterMode(key as 'unread' | 'all')}
       />
     </View>
   );
@@ -262,7 +265,6 @@ export default function InicioScreen() {
               </Text>
             </View>
           }
-          estimatedItemSize={150}
         />
       )}
     </SafeAreaView>
@@ -287,7 +289,7 @@ const styles = StyleSheet.create({
   eventsSection: {
     backgroundColor: COLORS.white,
     paddingVertical: SPACING.md,
-    marginBottom: SPACING.sm,
+    marginBottom: SPACING.lg, // Increased spacing before Novedades section
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -310,41 +312,55 @@ const styles = StyleSheet.create({
     gap: SPACING.md,
   },
   eventCard: {
-    width: 180,
+    width: 160,
     backgroundColor: COLORS.white,
     borderRadius: BORDERS.radius.lg,
     overflow: 'hidden',
     ...SHADOWS.card,
+    padding: SPACING.md,
+    alignItems: 'center',
   },
-  eventImage: {
-    width: '100%',
-    height: 100,
-  },
-  eventImagePlaceholder: {
-    width: '100%',
-    height: 100,
+  eventDateBlock: {
+    width: 64,
+    height: 64,
     backgroundColor: COLORS.primaryLight,
+    borderRadius: BORDERS.radius.lg,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: SPACING.sm,
+  },
+  eventDateMonth: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.primary,
+    letterSpacing: 0.5,
+    marginBottom: -2,
+  },
+  eventDateDay: {
+    fontSize: 26,
+    fontWeight: '700',
+    color: COLORS.primary,
+    letterSpacing: -0.5,
   },
   eventContent: {
-    padding: SPACING.sm,
-  },
-  eventDate: {
-    ...TYPOGRAPHY.caption,
-    color: COLORS.primary,
-    fontWeight: '600',
-    marginBottom: 4,
+    alignItems: 'center',
   },
   eventTitle: {
     ...TYPOGRAPHY.listItemTitle,
-    fontSize: 14,
+    fontSize: 13,
+    textAlign: 'center',
+    color: COLORS.darkGray,
   },
   novedadesHeader: {
     paddingHorizontal: SPACING.screenPadding,
-    paddingTop: SPACING.md,
+    paddingTop: SPACING.lg,
     paddingBottom: SPACING.xs,
     backgroundColor: COLORS.white,
+  },
+  novedadesTitleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   emptyState: {
     alignItems: 'center',
