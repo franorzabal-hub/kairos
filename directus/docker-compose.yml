@@ -2,9 +2,9 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: directus
-      POSTGRES_PASSWORD: directus
-      POSTGRES_DB: kairos
+      POSTGRES_USER: ${POSTGRES_USER:-directus}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-directus}
+      POSTGRES_DB: ${POSTGRES_DB:-kairos}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -30,14 +30,14 @@ services:
       DB_CLIENT: pg
       DB_HOST: postgres
       DB_PORT: 5432
-      DB_DATABASE: kairos
-      DB_USER: directus
-      DB_PASSWORD: directus
+      DB_DATABASE: ${POSTGRES_DB:-kairos}
+      DB_USER: ${POSTGRES_USER:-directus}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-directus}
 
-      # Security
-      SECRET: "kairos-super-secret-key-change-in-production"
-      ADMIN_EMAIL: "admin@kairos.app"
-      ADMIN_PASSWORD: "admin123"
+      # Security - Override these in .env for production!
+      SECRET: ${DIRECTUS_SECRET:-kairos-dev-secret-change-me}
+      ADMIN_EMAIL: ${DIRECTUS_ADMIN_EMAIL:-admin@kairos.app}
+      ADMIN_PASSWORD: ${DIRECTUS_ADMIN_PASSWORD:-admin123}
 
       # Server
       PUBLIC_URL: "http://localhost:8055"

@@ -13,26 +13,11 @@ import { useReadStatus } from '../hooks';
 import { Event } from '../api/directus';
 import { EventosStackParamList } from '../navigation/EventosStack';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY, UNREAD_STYLES, SHADOWS, BADGE_STYLES } from '../theme';
+import { stripHtml } from '../utils';
 
 const WEEKDAYS = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa', 'Do'];
 const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
                 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-
-// Strip HTML tags and decode entities for preview text
-const stripHtml = (html: string) => {
-  if (!html) return '';
-  return html
-    // Decode HTML entities first
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&amp;/g, '&')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&nbsp;/g, ' ')
-    // Then strip HTML tags
-    .replace(/<[^>]*>/g, '')
-    .trim();
-};
 
 type EventosNavigationProp = NativeStackNavigationProp<EventosStackParamList, 'EventosList'>;
 

@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # Setup Relations for Kairos
+# This script is IDEMPOTENT - safe to run multiple times
 DIRECTUS_URL="${DIRECTUS_URL:-https://kairos-directus-684614817316.us-central1.run.app}"
 TOKEN=$(cat /tmp/directus_token.txt 2>/dev/null || echo "")
 
@@ -12,12 +13,30 @@ fi
 API="$DIRECTUS_URL"
 AUTH="Authorization: Bearer $TOKEN"
 
-echo "Creating relations..."
+echo "Creating relations (idempotent)..."
 
-# Helper function
+# Check if relation exists
+relation_exists() {
+  local collection=$1
+  local field=$2
+  local result=$(curl -s -X GET "$API/relations/$collection/$field" \
+    -H "$AUTH" \
+    -H "Content-Type: application/json" | jq -r '.data.collection // "not_found"')
+  [ "$result" = "$collection" ]
+}
+
+# Helper function (with existence check)
 create_relation() {
   local data=$1
-  echo "Creating relation..."
+  local collection=$(echo "$data" | jq -r '.collection')
+  local field=$(echo "$data" | jq -r '.field')
+
+  if relation_exists "$collection" "$field"; then
+    echo "  ✓ Relation $collection.$field already exists, skipping"
+    return 0
+  fi
+
+  echo "  Creating relation: $collection.$field"
   curl -s -X POST "$API/relations" \
     -H "$AUTH" \
     -H "Content-Type: application/json" \

@@ -40,7 +40,6 @@ function AppContent() {
       registerForPushNotifications().then(token => {
         if (token) {
           savePushToken(user.id, token);
-          console.log('Push token registered:', token);
         }
       });
     }

@@ -68,12 +68,44 @@ export async function markAsRead(type: ContentType, id: string, userId: string):
 }
 
 /**
- * Mark multiple items as read
+ * Mark multiple items as read (batch operation)
  */
 export async function markMultipleAsRead(type: ContentType, ids: string[], userId: string): Promise<void> {
-  // Mark each item as read - could be optimized with batch creation
-  for (const id of ids) {
-    await markAsRead(type, id, userId);
+  if (ids.length === 0) return;
+
+  const dbType = contentTypeMap[type];
+
+  try {
+    // First, get existing reads to avoid duplicates
+    const existing = await directus.request(
+      readItems('content_reads', {
+        filter: {
+          user_id: { _eq: userId },
+          content_type: { _eq: dbType },
+          content_id: { _in: ids },
+        },
+        fields: ['content_id'],
+      })
+    );
+
+    const existingIds = new Set(existing.map((r: Pick<ContentRead, 'content_id'>) => r.content_id));
+    const newIds = ids.filter(id => !existingIds.has(id));
+
+    // Batch create new read records
+    if (newIds.length > 0) {
+      const records = newIds.map(id => ({
+        user_id: userId,
+        content_type: dbType,
+        content_id: id,
+      }));
+
+      // Create all at once using Promise.all for better performance
+      await Promise.all(records.map(record =>
+        directus.request(createItem('content_reads', record))
+      ));
+    }
+  } catch (error) {
+    console.error(`Error batch marking ${type} as read:`, error);
   }
 }
 
@@ -112,6 +144,55 @@ export async function isRead(type: ContentType, id: string, userId: string): Pro
 export async function countUnread(type: ContentType, allIds: string[], userId: string): Promise<number> {
   const readIds = await getReadIds(type, userId);
   return allIds.filter(id => !readIds.has(id)).length;
+}
+
+/**
+ * Get all read IDs for all content types in one call (optimized for useUnreadSync)
+ */
+export async function getAllReadIds(userId: string): Promise<Record<ContentType, Set<string>>> {
+  try {
+    const reads = await directus.request(
+      readItems('content_reads', {
+        filter: {
+          user_id: { _eq: userId },
+        },
+        fields: ['content_type', 'content_id'],
+      })
+    );
+
+    // Group by content type
+    const result: Record<ContentType, Set<string>> = {
+      announcements: new Set(),
+      events: new Set(),
+      cambios: new Set(),
+      boletines: new Set(),
+    };
+
+    // Reverse map from DB types to UI types
+    const reverseMap: Record<DbContentType, ContentType> = {
+      announcement: 'announcements',
+      event: 'events',
+      message: 'cambios',
+      report: 'boletines',
+    };
+
+    for (const read of reads as { content_type: DbContentType; content_id: string }[]) {
+      const uiType = reverseMap[read.content_type];
+      if (uiType) {
+        result[uiType].add(read.content_id);
+      }
+    }
+
+    return result;
+  } catch (error) {
+    console.error('Error getting all read IDs:', error);
+    return {
+      announcements: new Set(),
+      events: new Set(),
+      cambios: new Set(),
+      boletines: new Set(),
+    };
+  }
 }
 
 /**

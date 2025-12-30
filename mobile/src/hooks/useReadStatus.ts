@@ -7,6 +7,10 @@ import { useAuth } from '../context/AppContext';
 export type { ContentType } from '../services/readStatusService';
 
 /**
+ * @deprecated Use `useContentReadStatus` from '../api/hooks' instead.
+ * This hook uses local state while useContentReadStatus uses React Query,
+ * providing better caching and shared state across components.
+ *
  * Hook to track read status for a content type.
  * Returns the set of read IDs and functions to check/mark items as read.
  * Automatically refreshes when the screen comes back into focus.

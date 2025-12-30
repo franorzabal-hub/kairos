@@ -12,22 +12,7 @@ import { useAnnouncements, useChildren, useContentReadStatus } from '../api/hook
 import { Announcement } from '../api/directus';
 import { NovedadesStackParamList } from '../navigation/NovedadesStack';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY, UNREAD_STYLES, SHADOWS, BADGE_STYLES } from '../theme';
-
-// Strip HTML tags and decode entities for preview text
-const stripHtml = (html: string) => {
-  if (!html) return '';
-  return html
-    // Decode HTML entities first
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&amp;/g, '&')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&nbsp;/g, ' ')
-    // Then strip HTML tags
-    .replace(/<[^>]*>/g, '')
-    .trim();
-};
+import { stripHtml } from '../utils';
 
 type NovedadesNavigationProp = NativeStackNavigationProp<NovedadesStackParamList, 'NovedadesList'>;
 

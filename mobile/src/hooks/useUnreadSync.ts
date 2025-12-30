@@ -1,11 +1,12 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useUnreadCounts, useAuth } from '../context/AppContext';
 import { useAnnouncements, useEvents, useMessages, usePickupRequests, useReports, MessageWithReadStatus } from '../api/hooks';
-import { countUnread } from '../services/readStatusService';
+import { getAllReadIds } from '../services/readStatusService';
 
 /**
  * Hook that syncs unread counts whenever data changes.
  * Should be used once at the app level (e.g., in TabNavigator or App).
+ * Optimized to fetch all read IDs in a single API call.
  */
 export function useUnreadSync() {
   const { setUnreadCounts } = useUnreadCounts();
@@ -18,9 +19,18 @@ export function useUnreadSync() {
   const { data: cambios } = usePickupRequests();
   const { data: boletines } = useReports();
 
+  // Debounce ref to avoid multiple rapid updates
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Update unread counts when data changes
   useEffect(() => {
-    const updateCounts = async () => {
+    // Clear previous timeout
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
+    // Debounce the update by 100ms to batch rapid changes
+    timeoutRef.current = setTimeout(async () => {
       // Skip if no user (not logged in)
       if (!user?.id) {
         setUnreadCounts({
@@ -33,17 +43,20 @@ export function useUnreadSync() {
         return;
       }
 
-      // Announcements - use database tracking
+      // Fetch all read IDs in ONE API call
+      const allReadIds = await getAllReadIds(user.id);
+
+      // Announcements - use cached read IDs
       const novedadesCount = announcements
-        ? await countUnread('announcements', announcements.map(a => a.id), user.id)
+        ? announcements.filter(a => !allReadIds.announcements.has(a.id)).length
         : 0;
 
-      // Events - use database tracking
+      // Events - use cached read IDs
       const eventosCount = events
-        ? await countUnread('events', events.map(e => e.id), user.id)
+        ? events.filter(e => !allReadIds.events.has(e.id)).length
         : 0;
 
-      // Messages - use read_at field from API
+      // Messages - use read_at field from API (not content_reads)
       const mensajesCount = messages
         ? (messages as MessageWithReadStatus[]).filter(m => !m.read_at).length
         : 0;
@@ -53,9 +66,9 @@ export function useUnreadSync() {
         ? cambios.filter(c => c.status === 'pending').length
         : 0;
 
-      // Boletines - use database tracking
+      // Boletines - use cached read IDs
       const boletinesCount = boletines
-        ? await countUnread('boletines', boletines.map(b => b.id), user.id)
+        ? boletines.filter(b => !allReadIds.boletines.has(b.id)).length
         : 0;
 
       setUnreadCounts({
@@ -65,8 +78,12 @@ export function useUnreadSync() {
         cambios: cambiosCount,
         boletines: boletinesCount,
       });
-    };
+    }, 100);
 
-    updateCounts();
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
   }, [announcements, events, messages, cambios, boletines, setUnreadCounts, user?.id]);
 }

@@ -1,7 +1,8 @@
 import { createDirectus, rest, authentication } from '@directus/sdk';
 import * as SecureStore from 'expo-secure-store';
 
-const DIRECTUS_URL = 'https://kairos-directus-684614817316.us-central1.run.app';
+// Use environment variable with fallback to production URL
+const DIRECTUS_URL = process.env.EXPO_PUBLIC_DIRECTUS_URL || 'https://kairos-directus-684614817316.us-central1.run.app';
 
 // Define schema types matching our Directus collections
 export interface Organization {
@@ -48,7 +49,9 @@ export interface Announcement {
   target_id?: string;
   status: 'draft' | 'published' | 'archived';
   created_at: string;
+  // Note: Schema uses publish_at, client uses published_at (both supported via setup-schema-v2.sh)
   published_at?: string;
+  publish_at?: string;
 }
 
 export interface Event {
@@ -79,7 +82,8 @@ export interface Message {
   content: string;
   target_type: 'user' | 'section' | 'grade' | 'all';
   target_id?: string;
-  status: 'active' | 'closed';
+  // Schema uses: sent | archived (legacy messages collection)
+  status: 'sent' | 'archived';
   created_at: string;
 }
 
@@ -149,7 +153,8 @@ export interface PickupRequest {
   organization_id: string;
   student_id: string;
   requested_by: string;
-  request_type: 'early' | 'different_person' | 'both';
+  // Schema uses: different_time | different_person | both
+  request_type: 'different_time' | 'different_person' | 'both';
   pickup_date: string;
   pickup_time?: string;
   authorized_person?: string;

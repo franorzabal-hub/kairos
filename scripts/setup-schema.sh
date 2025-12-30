@@ -2,6 +2,7 @@
 
 # Setup Directus Schema for Kairos
 # Run this after Directus is deployed
+# This script is IDEMPOTENT - safe to run multiple times
 
 DIRECTUS_URL="${DIRECTUS_URL:-https://kairos-directus-684614817316.us-central1.run.app}"
 TOKEN=$(cat /tmp/directus_token.txt 2>/dev/null || echo "")
@@ -14,14 +15,28 @@ fi
 API="$DIRECTUS_URL"
 AUTH="Authorization: Bearer $TOKEN"
 
-echo "Creating collections in Directus..."
+echo "Creating collections in Directus (idempotent)..."
 
-# Helper function to create collection
+# Check if collection exists
+collection_exists() {
+  local name=$1
+  local result=$(curl -s -X GET "$API/collections/$name" \
+    -H "$AUTH" \
+    -H "Content-Type: application/json" | jq -r '.data.collection // "not_found"')
+  [ "$result" = "$name" ]
+}
+
+# Helper function to create collection (with existence check)
 create_collection() {
   local name=$1
   local fields=$2
 
-  echo "Creating collection: $name"
+  if collection_exists "$name"; then
+    echo "  ✓ Collection '$name' already exists, skipping"
+    return 0
+  fi
+
+  echo "  Creating collection: $name"
 
   curl -s -X POST "$API/collections" \
     -H "$AUTH" \

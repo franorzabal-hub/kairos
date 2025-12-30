@@ -6,8 +6,8 @@ App de comunicación padres-colegio. Multi-tenant con schema extensible (estilo 
 
 - **Backend/CMS**: Directus v11
 - **Database**: PostgreSQL 16
-- **Hosting**: Google Cloud Run + Cloud SQL
-- **Mobile**: React Native / Flutter (futuro)
+- **Hosting**: Google Cloud Run + Cloud SQL + Cloud Storage
+- **Mobile**: React Native con Expo
 
 ## Arquitectura
 
@@ -56,6 +56,8 @@ App de comunicación padres-colegio. Multi-tenant con schema extensible (estilo 
 
 ## Desarrollo local
 
+### Backend (Directus)
+
 ```bash
 # Levantar Directus + PostgreSQL
 cd directus
@@ -67,6 +69,43 @@ open http://localhost:8055
 # Credenciales
 # Email: admin@kairos.app
 # Password: admin123
+```
+
+### Mobile App (Expo)
+
+```bash
+cd mobile
+npm install
+
+# Desarrollo con Expo Go
+npx expo start
+
+# iOS Simulator
+npx expo start --ios
+
+# Android Emulator
+npx expo start --android
+```
+
+### Scripts de configuración Directus
+
+Los scripts son **idempotentes** (seguros de re-ejecutar):
+
+```bash
+# 1. Obtener token de autenticación
+./scripts/get-token.sh
+
+# 2. Configurar schema (collections + fields)
+./scripts/setup-schema.sh
+./scripts/setup-schema-v2.sh  # Colecciones adicionales
+./scripts/setup-relations.sh
+
+# 3. Configurar UI y permisos
+./scripts/configure-directus-ui.sh
+./scripts/configure-directus-policies.sh
+
+# 4. Datos de prueba (opcional)
+./scripts/seed-data.sh
 ```
 
 ## Documentación

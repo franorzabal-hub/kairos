@@ -310,53 +310,31 @@ export function useConversations() {
   const { user } = useAppContext();
   const directusUserId = user?.directus_user_id;
 
-  // Debug logging - add timestamp to track re-renders
-  const timestamp = Date.now();
   const isEnabled = !!directusUserId;
   const queryKey = [...queryKeys.conversations, directusUserId];
-  console.log(`[useConversations:${timestamp}] HOOK CALLED`);
-  console.log(`[useConversations:${timestamp}] user:`, user ? `${user.first_name} (${user.email})` : 'null');
-  console.log(`[useConversations:${timestamp}] directusUserId:`, directusUserId);
-  console.log(`[useConversations:${timestamp}] enabled:`, isEnabled);
-  console.log(`[useConversations:${timestamp}] queryKey:`, JSON.stringify(queryKey));
 
   return useQuery({
     queryKey,
     queryFn: async (): Promise<ConversationWithMeta[]> => {
-      console.log('[useConversations] ===== QUERY FN CALLED =====');
-      console.log('[useConversations] directusUserId in queryFn:', directusUserId);
-
       if (!directusUserId) {
-        console.log('[useConversations] No directusUserId - returning empty array');
-        console.log('[useConversations] user.id:', user?.id);
-        console.log('[useConversations] Possible issue: app_user.directus_user_id not set');
         return [];
       }
 
       // Fetch conversation_participants for this user with conversation and last message
-      console.log('[useConversations] Fetching participations for user:', directusUserId);
-      let participations;
-      try {
-        participations = await directus.request(
-          readItems('conversation_participants', {
-            filter: {
-              user_id: { _eq: directusUserId },
-              is_blocked: { _eq: false },
-            },
-            // Use type assertion for nested field syntax
-            fields: [
-              '*',
-              { conversation_id: ['*', { participants: ['*', { user_id: ['*'] }] }] },
-            ] as any,
-            sort: ['-date_created'] as any, // Sort by participation date since nested sort not reliable
-          })
-        );
-        console.log('[useConversations] Participations found:', participations?.length ?? 0);
-        console.log('[useConversations] Raw participations:', JSON.stringify(participations, null, 2));
-      } catch (error) {
-        console.error('[useConversations] Error fetching participations:', error);
-        throw error;
-      }
+      const participations = await directus.request(
+        readItems('conversation_participants', {
+          filter: {
+            user_id: { _eq: directusUserId },
+            is_blocked: { _eq: false },
+          },
+          // Use type assertion for nested field syntax
+          fields: [
+            '*',
+            { conversation_id: ['*', { participants: ['*', { user_id: ['*'] }] }] },
+          ] as any,
+          sort: ['-date_created'] as any, // Sort by participation date since nested sort not reliable
+        })
+      );
 
       // For each conversation, get the last message and unread count
       const conversationsWithMeta = await Promise.all(
@@ -404,7 +382,7 @@ export function useConversations() {
             .map(p => (typeof p.user_id === 'object' ? p.user_id : null) as DirectusUser | null)
             .filter((u): u is DirectusUser => u !== null);
 
-          const result = {
+          return {
             ...conversation,
             participantId: participation.id,
             unreadCount,
@@ -413,21 +391,12 @@ export function useConversations() {
             canReply: participation.can_reply,
             isBlocked: participation.is_blocked,
           };
-          console.log('[useConversations] Built ConversationWithMeta:', {
-            id: result.id,
-            subject: result.subject,
-            canReply: result.canReply,
-            'participation.can_reply': participation.can_reply,
-          });
-          return result;
         })
       );
 
       return conversationsWithMeta;
     },
     enabled: isEnabled,
-    staleTime: 0, // DEBUG: Force fresh fetch every time
-    gcTime: 0, // DEBUG: Don't cache
   });
 }
 

@@ -466,6 +466,45 @@ organizations (tenant)
 
 ---
 
+## Collections de Tracking
+
+### 18. content_reads (Estado de lectura)
+
+Trackea qué contenido ha leído cada usuario.
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| id | uuid | PK |
+| user_id | uuid | FK → app_users |
+| content_type | enum | announcement, event, message, report |
+| content_id | uuid | ID del contenido leído |
+| read_at | timestamp | Cuándo se leyó |
+
+**Uso:** Permite mostrar badges de "no leído" en la app móvil y sincronizar estado entre dispositivos.
+
+---
+
+### 19. push_tokens (Tokens de notificaciones)
+
+Almacena tokens de Expo Push para enviar notificaciones.
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| id | uuid | PK |
+| user_id | uuid | FK → app_users |
+| token | string | Expo Push Token |
+| device_type | enum | ios, android |
+| is_active | boolean | Si el token está activo |
+| date_created | timestamp | |
+| date_updated | timestamp | |
+
+**Notas:**
+- Un usuario puede tener múltiples tokens (múltiples dispositivos)
+- Los tokens se invalidan cuando el usuario cierra sesión
+- Usado por Directus Flows para enviar push notifications
+
+---
+
 ## Sistema de Releases
 
 ### ¿Cómo funcionan las migraciones?
