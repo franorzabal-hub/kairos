@@ -64,19 +64,152 @@ export function useChildren() {
   });
 }
 
-// Fetch announcements
-export function useAnnouncements() {
-  const { children, selectedChildId, filterMode } = useAppContext();
+// ========== Announcements with Advanced Filters ==========
+
+export type ReadFilter = 'all' | 'unread' | 'read';
+
+export interface UseAnnouncementsOptions {
+  readFilter?: ReadFilter;
+  showArchived?: boolean;
+  showPinnedOnly?: boolean;
+}
+
+// Fetch announcements with advanced filtering
+export function useAnnouncements(options: UseAnnouncementsOptions = {}) {
+  const { user, children, selectedChildId, filterMode } = useAppContext();
+
+  const {
+    readFilter = filterMode === 'unread' ? 'unread' : 'all',
+    showArchived = false,
+    showPinnedOnly = false,
+  } = options;
 
   return useQuery({
-    queryKey: [...queryKeys.announcements, selectedChildId, filterMode],
+    queryKey: [
+      ...queryKeys.announcements,
+      selectedChildId,
+      readFilter,
+      showArchived,
+      showPinnedOnly,
+      user?.id,
+    ],
     queryFn: async () => {
       const filter: any = {
         status: { _eq: 'published' },
       };
 
-      // If child selected, filter by section or grade
-      // For MVP, we fetch all published announcements
+      // Fetch announcements with attachments
+      const items = await directus.request(
+        readItems('announcements', {
+          filter,
+          sort: ['-pinned', '-pinned_at', '-published_at', '-created_at'] as any,
+          limit: 100,
+          fields: [
+            '*',
+            // Include attachments if they exist
+          ],
+        })
+      );
+
+      let announcements = items as Announcement[];
+
+      // If we have a user, fetch their read/status info
+      if (user?.id) {
+        try {
+          // Fetch user read records
+          const readRecords = await directus.request(
+            readItems('content_reads', {
+              filter: {
+                content_type: { _eq: 'announcement' },
+                user_id: { _eq: user.id },
+              },
+            })
+          );
+          const readMap = new Map(
+            (readRecords as any[]).map(r => [r.content_id, r])
+          );
+
+          // Fetch user status records (archived/pinned)
+          const statusRecords = await directus.request(
+            readItems('content_user_status', {
+              filter: {
+                content_type: { _eq: 'announcement' },
+                user_id: { _eq: user.id },
+              },
+            })
+          );
+          const statusMap = new Map(
+            (statusRecords as any[]).map(s => [s.content_id, s])
+          );
+
+          // Merge into announcements
+          announcements = announcements.map(a => ({
+            ...a,
+            user_read: readMap.get(a.id),
+            user_status: statusMap.get(a.id),
+          }));
+        } catch (error) {
+          console.warn('Could not fetch user read/status:', error);
+        }
+      }
+
+      // Apply client-side filters
+      let filtered = announcements;
+
+      // Filter by read status
+      if (readFilter === 'unread') {
+        filtered = filtered.filter(a => !a.user_read);
+      } else if (readFilter === 'read') {
+        filtered = filtered.filter(a => !!a.user_read);
+      }
+
+      // Filter archived
+      if (showArchived) {
+        // Show ONLY archived
+        filtered = filtered.filter(a => a.user_status?.is_archived);
+      } else {
+        // Hide archived
+        filtered = filtered.filter(a => !a.user_status?.is_archived);
+      }
+
+      // Filter pinned only
+      if (showPinnedOnly) {
+        filtered = filtered.filter(a =>
+          a.pinned || a.user_status?.is_pinned
+        );
+      }
+
+      // Sort: global pinned first, then user pinned, then by date
+      filtered.sort((a, b) => {
+        // Global pinned first
+        if (a.pinned && !b.pinned) return -1;
+        if (!a.pinned && b.pinned) return 1;
+
+        // Then user pinned
+        if (a.user_status?.is_pinned && !b.user_status?.is_pinned) return -1;
+        if (!a.user_status?.is_pinned && b.user_status?.is_pinned) return 1;
+
+        // Then by date
+        const dateA = new Date(a.published_at || a.created_at).getTime();
+        const dateB = new Date(b.published_at || b.created_at).getTime();
+        return dateB - dateA;
+      });
+
+      return filtered;
+    },
+  });
+}
+
+// Legacy hook for backwards compatibility
+export function useAnnouncementsLegacy() {
+  const { children, selectedChildId, filterMode } = useAppContext();
+
+  return useQuery({
+    queryKey: [...queryKeys.announcements, selectedChildId, filterMode, 'legacy'],
+    queryFn: async () => {
+      const filter: any = {
+        status: { _eq: 'published' },
+      };
 
       const items = await directus.request(
         readItems('announcements', {

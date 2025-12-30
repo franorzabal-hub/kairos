@@ -36,6 +36,97 @@ export interface Student {
   status: 'active' | 'inactive';
 }
 
+// ========== Cross-Functional Interfaces ==========
+
+export interface ContentTarget {
+  id: string;
+  content_type: 'announcement' | 'event' | 'message' | 'report';
+  content_id: string;
+  target_type: 'all' | 'level' | 'grade' | 'section' | 'user';
+  target_id?: string;
+  organization_id: string;
+  created_at: string;
+}
+
+export interface Attachment {
+  id: string;
+  content_type: 'announcement' | 'event' | 'message';
+  content_id: string;
+  file_id: string;
+  file_type: 'image' | 'video' | 'pdf' | 'document' | 'audio';
+  title?: string;
+  description?: string;
+  sort_order: number;
+  organization_id: string;
+  created_at: string;
+  // Populated from file_id relation
+  file?: {
+    id: string;
+    filename_download: string;
+    filesize: number;
+    type: string;
+  };
+}
+
+export interface ContentRead {
+  id: string;
+  content_type: 'announcement' | 'event' | 'message';
+  content_id: string;
+  user_id: string;
+  read_at: string;
+  acknowledged: boolean;
+  acknowledged_at?: string;
+  organization_id: string;
+}
+
+export interface ContentUserStatus {
+  id: string;
+  content_type: 'announcement' | 'event' | 'message';
+  content_id: string;
+  user_id: string;
+  is_archived: boolean;
+  archived_at?: string;
+  is_pinned: boolean;
+  pinned_at?: string;
+  organization_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Level {
+  id: string;
+  organization_id: string;
+  name: string;
+  slug: string;
+  order: number;
+  created_at: string;
+  // Populated
+  grades?: Grade[];
+}
+
+export interface Grade {
+  id: string;
+  organization_id: string;
+  level_id?: string;
+  name: string;
+  level?: string; // Legacy field
+  order: number;
+  // Populated
+  sections?: Section[];
+}
+
+export interface Section {
+  id: string;
+  organization_id: string;
+  grade_id: string;
+  name: string;
+  teacher_id?: string;
+  school_year: number;
+  capacity?: number;
+}
+
+// ========== Announcement (Updated) ==========
+
 export interface Announcement {
   id: string;
   organization_id: string;
@@ -44,11 +135,26 @@ export interface Announcement {
   content: string;
   image?: string;
   priority: 'urgent' | 'important' | 'normal';
-  target_type: 'all' | 'grade' | 'section';
-  target_id?: string;
+  target_type: 'all' | 'grade' | 'section';  // Legacy
+  target_id?: string;  // Legacy
   status: 'draft' | 'published' | 'archived';
   created_at: string;
   published_at?: string;
+
+  // New fields
+  pinned: boolean;
+  pinned_at?: string;
+  pinned_until?: string;
+  requires_acknowledgment: boolean;
+  acknowledgment_text?: string;
+
+  // Cross-functional relations (populated)
+  targets?: ContentTarget[];
+  attachments?: Attachment[];
+
+  // User-specific state (populated for current user)
+  user_read?: ContentRead;
+  user_status?: ContentUserStatus;
 }
 
 export interface Event {
@@ -213,6 +319,14 @@ interface Schema {
   reports: Report[];
   push_tokens: PushToken[];
   directus_users: DirectusUser[];
+  // Cross-functional tables
+  content_targets: ContentTarget[];
+  attachments: Attachment[];
+  content_reads: ContentRead[];
+  content_user_status: ContentUserStatus[];
+  levels: Level[];
+  grades: Grade[];
+  sections: Section[];
 }
 
 // Token storage helpers

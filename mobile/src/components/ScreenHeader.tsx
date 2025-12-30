@@ -11,13 +11,14 @@ interface ScreenHeaderProps {
   subtitle?: string;
   showBackButton?: boolean;
   showAvatar?: boolean;
+  rightComponent?: React.ReactNode;
 }
 
 type RootStackParamList = {
   Settings: undefined;
 };
 
-export default function ScreenHeader({ title, subtitle, showBackButton = false, showAvatar = true }: ScreenHeaderProps) {
+export default function ScreenHeader({ title, subtitle, showBackButton = false, showAvatar = true, rightComponent }: ScreenHeaderProps) {
   const { user } = useAuth();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
@@ -27,7 +28,7 @@ export default function ScreenHeader({ title, subtitle, showBackButton = false, 
     return (first + last).toUpperCase() || '?';
   };
 
-  // Detail mode: back button + centered title + spacer
+  // Detail mode: back button + centered title + spacer/rightComponent
   if (showBackButton) {
     return (
       <View style={styles.detailHeader}>
@@ -40,7 +41,11 @@ export default function ScreenHeader({ title, subtitle, showBackButton = false, 
           <Ionicons name="arrow-back" size={24} color={COLORS.primary} />
         </TouchableOpacity>
         <Text style={styles.detailTitle} numberOfLines={1}>{title}</Text>
-        <View style={styles.headerSpacer} />
+        {rightComponent ? (
+          <View style={styles.rightComponentContainer}>{rightComponent}</View>
+        ) : (
+          <View style={styles.headerSpacer} />
+        )}
       </View>
     );
   }
@@ -129,5 +134,10 @@ const styles = StyleSheet.create({
   },
   headerSpacer: {
     width: 40,
+  },
+  rightComponentContainer: {
+    width: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
