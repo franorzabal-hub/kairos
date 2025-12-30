@@ -81,33 +81,69 @@ export function useOrganization() {
 }
 
 // Fetch children for the current user
+// Uses student_guardians junction table to find the parent's children
 export function useChildren() {
   const { user, setChildren } = useAppContext();
 
   return useQuery({
     queryKey: [...queryKeys.children, user?.id],
     queryFn: async () => {
-      if (!user?.id) return [];
+      if (!user?.id) {
+        console.log('[useChildren] No user ID available');
+        return [];
+      }
 
-      // Get student_guardians for this user
+      // Debug: Log full user info to verify correct ID is being used
+      console.log('[useChildren] === DEBUG USER INFO ===');
+      console.log('[useChildren] user.id:', user.id);
+      console.log('[useChildren] user.email:', user.email);
+      console.log('[useChildren] user.directus_user_id:', user.directus_user_id);
+      console.log('[useChildren] user.first_name:', user.first_name);
+      console.log('[useChildren] === END DEBUG ===');
+
+      // Get student_guardians for this user (user_id references app_users.id)
+      console.log('[useChildren] Fetching guardians for user.id:', user.id);
       const guardians = await directus.request(
         readItems('student_guardians', {
           filter: { user_id: { _eq: user.id } },
         })
       );
 
-      if (!guardians.length) return [];
+      console.log('[useChildren] Found guardians:', guardians.length);
+      if (guardians.length > 0) {
+        console.log('[useChildren] Guardian records:', JSON.stringify(guardians, null, 2));
+      }
+
+      if (!guardians.length) {
+        console.log('[useChildren] No guardians found - children filter will be hidden');
+        return [];
+      }
 
       // Get students for these guardians
       const studentIds = guardians.map(g => g.student_id);
-      const students = await directus.request(
-        readItems('students', {
-          filter: { id: { _in: studentIds }, status: { _eq: 'active' } },
-        })
-      );
+      console.log('[useChildren] Student IDs to fetch:', studentIds);
 
-      setChildren(students as Student[]);
-      return students as Student[];
+      try {
+        // Note: Don't request grade_id - Parent role may not have permission for that field
+        const students = await directus.request(
+          readItems('students', {
+            filter: { id: { _in: studentIds }, status: { _eq: 'active' } },
+            fields: ['id', 'organization_id', 'first_name', 'last_name', 'birth_date', 'photo', 'section_id', 'status'],
+          })
+        );
+
+        console.log('[useChildren] Found students:', students.length);
+        if (students.length > 0) {
+          console.log('[useChildren] Student names:', students.map(s => `${s.first_name} ${s.last_name}`).join(', '));
+        }
+
+        setChildren(students as Student[]);
+        return students as Student[];
+      } catch (studentError: any) {
+        console.log('[useChildren] ❌ ERROR fetching students:', studentError?.message || studentError);
+        console.log('[useChildren] ❌ Error details:', JSON.stringify(studentError, null, 2));
+        throw studentError; // Re-throw to let React Query handle it
+      }
     },
     enabled: !!user?.id,
   });

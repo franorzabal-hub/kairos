@@ -13,8 +13,9 @@ import { useRouter } from 'expo-router';
 import { FlashList } from '@shopify/flash-list';
 import ScreenHeader from '../components/ScreenHeader';
 import FilterBar from '../components/FilterBar';
-import { useAuth, useFilters, useUnreadCounts } from '../context/AppContext';
+import { useFilters, useUnreadCounts } from '../context/AppContext';
 import { useConversations, ConversationWithMeta } from '../api/hooks';
+import { useSession } from '../hooks';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY, SHADOWS, UNREAD_STYLES } from '../theme';
 
 // Screen-specific colors for conversation list
@@ -25,7 +26,8 @@ const LIST_COLORS = {
 
 export default function ConversationListScreen() {
   const router = useRouter();
-  const { user } = useAuth();
+  // Centralized session state
+  const { user } = useSession();
   const { filterMode } = useFilters();
   const { unreadCounts } = useUnreadCounts();
   const queryResult = useConversations();

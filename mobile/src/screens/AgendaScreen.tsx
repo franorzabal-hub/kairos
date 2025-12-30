@@ -1,250 +1,300 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, RefreshControl, ActivityIndicator, SectionList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { FlashList } from '@shopify/flash-list';
-import { CalendarProvider, ExpandableCalendar } from 'react-native-calendars';
+import { Ionicons } from '@expo/vector-icons';
 import ScreenHeader from '../components/ScreenHeader';
-import FilterBar from '../components/FilterBar';
-import DirectusImage from '../components/DirectusImage';
-import { useFilters, useUnreadCounts } from '../context/AppContext';
+import ChildSelector from '../components/ChildSelector';
+import SegmentedControl from '../components/SegmentedControl';
+import EventCard, { EventStatus } from '../components/EventCard';
 import { useEvents } from '../api/hooks';
-import { useReadStatus } from '../hooks';
+import { useSession, useReadStatus } from '../hooks';
 import { Event } from '../api/directus';
-import { COLORS, SPACING, BORDERS, TYPOGRAPHY, UNREAD_STYLES, SHADOWS, BADGE_STYLES } from '../theme';
-import { stripHtml } from '../utils';
+import { COLORS, CHILD_COLORS, SPACING, TYPOGRAPHY, BORDERS } from '../theme';
 
-const formatDateKey = (date: Date) => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
+type TimeFilter = 'upcoming' | 'past';
 
-const parseDateKey = (dateKey: string) => {
-  return new Date(`${dateKey}T00:00:00`);
-};
+// Section types for grouping events
+type SectionKey = 'today' | 'tomorrow' | 'thisWeek' | 'upcoming' | 'past';
 
-const isEventOnDate = (event: Event, dateKey: string) => {
-  const targetDate = parseDateKey(dateKey);
-  const start = new Date(event.start_date);
-  const end = event.end_date ? new Date(event.end_date) : start;
-  const startDate = new Date(start.getFullYear(), start.getMonth(), start.getDate());
-  const endDate = new Date(end.getFullYear(), end.getMonth(), end.getDate());
-  return targetDate >= startDate && targetDate <= endDate;
-};
-
-const getMarkedDates = (events: Event[], selectedDate: string) => {
-  const marked: Record<string, { marked?: boolean; dotColor?: string; selected?: boolean; selectedColor?: string }> = {};
-
-  events.forEach((event) => {
-    const start = new Date(event.start_date);
-    const end = event.end_date ? new Date(event.end_date) : start;
-    const cursor = new Date(start.getFullYear(), start.getMonth(), start.getDate());
-    const finalDate = new Date(end.getFullYear(), end.getMonth(), end.getDate());
-
-    while (cursor <= finalDate) {
-      const key = formatDateKey(cursor);
-      marked[key] = {
-        ...marked[key],
-        marked: true,
-        dotColor: COLORS.primary,
-      };
-      cursor.setDate(cursor.getDate() + 1);
-    }
-  });
-
-  if (selectedDate) {
-    marked[selectedDate] = {
-      ...marked[selectedDate],
-      selected: true,
-      selectedColor: COLORS.primary,
-    };
-  }
-
-  return marked;
-};
+interface EventSection {
+  key: SectionKey;
+  title: string;
+  data: Event[];
+}
 
 export default function AgendaScreen() {
-  const router = useRouter();
-  const { filterMode } = useFilters();
-  const { unreadCounts } = useUnreadCounts();
-  const todayKey = useMemo(() => formatDateKey(new Date()), []);
-  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
-  const [selectedDate, setSelectedDate] = useState<string>(todayKey);
+  // Centralized session state - user, children, permissions
+  const { children, selectedChildId, setSelectedChildId, getChildById } = useSession();
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>('upcoming');
 
   const { data: events = [], isLoading, refetch, isRefetching } = useEvents();
-  const { isRead, filterUnread, markAsRead } = useReadStatus('events');
+  const { isRead, markAsRead } = useReadStatus('events');
 
-  // Apply filters
-  const filteredEvents = useMemo(() => {
-    let result = events;
+  // Get selected child for filtering
+  const selectedChild = selectedChildId ? getChildById(selectedChildId) : null;
 
-    // Filter by read status
-    if (filterMode === 'unread') {
-      result = filterUnread(result);
+  // Filter events by child
+  const childFilteredEvents = useMemo(() => {
+    if (!selectedChild) return events;
+    return events.filter(event => {
+      if (event.target_type === 'all') return true;
+      if (event.target_type === 'section') {
+        return event.target_id === selectedChild.section_id;
+      }
+      return true;
+    });
+  }, [events, selectedChild]);
+
+  // Date helpers
+  const now = useMemo(() => new Date(), []);
+  const today = useMemo(() => new Date(now.getFullYear(), now.getMonth(), now.getDate()), [now]);
+  const tomorrow = useMemo(() => {
+    const d = new Date(today);
+    d.setDate(d.getDate() + 1);
+    return d;
+  }, [today]);
+  const endOfWeek = useMemo(() => {
+    const d = new Date(today);
+    d.setDate(d.getDate() + (7 - d.getDay())); // Next Sunday
+    return d;
+  }, [today]);
+
+  // Group events into sections
+  const { upcomingSections, pastSection } = useMemo(() => {
+    const todayEvents: Event[] = [];
+    const tomorrowEvents: Event[] = [];
+    const thisWeekEvents: Event[] = [];
+    const laterEvents: Event[] = [];
+    const pastEvents: Event[] = [];
+
+    childFilteredEvents.forEach(event => {
+      const eventDate = new Date(event.start_date);
+      const eventDay = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate());
+
+      if (eventDay < today) {
+        pastEvents.push(event);
+      } else if (eventDay.getTime() === today.getTime()) {
+        todayEvents.push(event);
+      } else if (eventDay.getTime() === tomorrow.getTime()) {
+        tomorrowEvents.push(event);
+      } else if (eventDay <= endOfWeek) {
+        thisWeekEvents.push(event);
+      } else {
+        laterEvents.push(event);
+      }
+    });
+
+    // Sort upcoming by date ascending
+    const sortAsc = (a: Event, b: Event) =>
+      new Date(a.start_date).getTime() - new Date(b.start_date).getTime();
+
+    todayEvents.sort(sortAsc);
+    tomorrowEvents.sort(sortAsc);
+    thisWeekEvents.sort(sortAsc);
+    laterEvents.sort(sortAsc);
+
+    // Sort past by date descending (most recent first)
+    pastEvents.sort((a, b) =>
+      new Date(b.start_date).getTime() - new Date(a.start_date).getTime()
+    );
+
+    const upcoming: EventSection[] = [];
+    if (todayEvents.length > 0) {
+      upcoming.push({ key: 'today', title: 'HOY', data: todayEvents });
+    }
+    if (tomorrowEvents.length > 0) {
+      upcoming.push({ key: 'tomorrow', title: 'MAÑANA', data: tomorrowEvents });
+    }
+    if (thisWeekEvents.length > 0) {
+      upcoming.push({ key: 'thisWeek', title: 'ESTA SEMANA', data: thisWeekEvents });
+    }
+    if (laterEvents.length > 0) {
+      upcoming.push({ key: 'upcoming', title: 'PRÓXIMAMENTE', data: laterEvents });
     }
 
-    return result;
-  }, [events, filterMode, filterUnread]);
+    const past: EventSection | null = pastEvents.length > 0
+      ? { key: 'past', title: 'HISTORIAL', data: pastEvents }
+      : null;
 
-  const markedDates = useMemo(() => getMarkedDates(filteredEvents, selectedDate), [filteredEvents, selectedDate]);
+    return { upcomingSections: upcoming, pastSection: past };
+  }, [childFilteredEvents, today, tomorrow, endOfWeek]);
 
-  const eventsForSelectedDate = useMemo(() => {
-    if (!selectedDate) return [];
-    return filteredEvents.filter((event) => isEventOnDate(event, selectedDate));
-  }, [filteredEvents, selectedDate]);
+  // Get sections based on time filter
+  const sections = useMemo(() => {
+    if (timeFilter === 'upcoming') {
+      return upcomingSections;
+    } else {
+      return pastSection ? [pastSection] : [];
+    }
+  }, [timeFilter, upcomingSections, pastSection]);
+
+  // Count for tabs
+  const upcomingCount = useMemo(() =>
+    upcomingSections.reduce((sum, section) => sum + section.data.length, 0),
+    [upcomingSections]
+  );
+  const pastCount = pastSection?.data.length || 0;
+
+  // Get child info helper for EventCard - returns name and color
+  const getChildInfo = (event: Event): { name?: string; color?: string } => {
+    // If viewing all children, find which child the event targets
+    if (!selectedChildId && children.length > 1) {
+      if (event.target_type === 'section') {
+        const childIndex = children.findIndex(c => c.section_id === event.target_id);
+        if (childIndex >= 0) {
+          return {
+            name: children[childIndex].first_name,
+            color: CHILD_COLORS[childIndex % CHILD_COLORS.length],
+          };
+        }
+      }
+      // Events for all children don't get a specific color
+      return {};
+    }
+
+    // If a specific child is selected, show their color on section-targeted events
+    if (selectedChild && event.target_type === 'section') {
+      const childIndex = children.findIndex(c => c.id === selectedChildId);
+      return {
+        color: CHILD_COLORS[childIndex % CHILD_COLORS.length],
+      };
+    }
+
+    return {};
+  };
+
+  // Determine the status for an event
+  const getEventStatus = (event: Event): EventStatus => {
+    const eventDate = new Date(event.start_date);
+    const eventDay = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate());
+
+    // Past events
+    if (eventDay < today) {
+      return 'past';
+    }
+
+    // Events that require confirmation
+    if (event.requires_confirmation) {
+      // TODO: Check actual confirmation status from event_confirmations when implemented
+      return 'pending';
+    }
+
+    // Future events without confirmation requirement
+    return 'info';
+  };
 
   const onRefresh = async () => {
     await refetch();
   };
 
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' });
+  const handleSelectChild = (childId: string) => {
+    setSelectedChildId(childId);
   };
 
-  const renderEventCard = ({ item }: { item: Event }) => {
+  const handleSelectAll = () => {
+    setSelectedChildId(null);
+  };
+
+  // Render event card
+  const renderItem = ({ item }: { item: Event }) => {
     const itemIsUnread = !isRead(item.id);
+    const status = getEventStatus(item);
+    const childInfo = getChildInfo(item);
+
     return (
-      <TouchableOpacity
-        style={[styles.card, itemIsUnread && styles.cardUnread]}
+      <EventCard
+        event={item}
+        isUnread={itemIsUnread}
+        status={status}
+        childName={childInfo.name}
+        childColor={childInfo.color}
         onPress={() => {
           if (itemIsUnread) {
             markAsRead(item.id);
           }
-          // Navigate to agenda detail (uses eventos detail screen internally)
-          router.push({ pathname: '/agenda/[id]', params: { id: item.id } });
         }}
-      >
-        {item.requires_confirmation ? (
-          <View style={styles.confirmBadge}>
-            <Text style={styles.confirmBadgeText}>CONFIRMAR</Text>
-          </View>
-        ) : null}
-
-        {itemIsUnread && <View style={styles.unreadDot} />}
-
-        <DirectusImage
-          fileId={item.image}
-          style={styles.cardImage}
-          resizeMode="cover"
-          fallback={
-            <View style={styles.cardImagePlaceholder}>
-              <MaterialCommunityIcons name="school-outline" size={48} color={COLORS.primary} />
-              <Text style={styles.schoolName}>Colegio</Text>
-            </View>
-          }
-        />
-
-        <View style={styles.dateBadge}>
-          <Ionicons name="calendar-outline" size={12} color={COLORS.white} style={styles.dateIcon} />
-          <Text style={styles.dateText}>{formatDate(item.start_date)}</Text>
-        </View>
-
-        <View style={styles.cardContent}>
-          <Text style={styles.cardTitle}>{item.title}</Text>
-          {item.description ? (
-            <Text style={styles.cardDescription} numberOfLines={2}>
-              {stripHtml(item.description)}
-            </Text>
-          ) : null}
-          <Text style={styles.cardCta}>Ver Evento</Text>
-        </View>
-      </TouchableOpacity>
+      />
     );
   };
 
+  // Render section header (sticky)
+  const renderSectionHeader = ({ section }: { section: EventSection }) => (
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionTitle}>{section.title}</Text>
+      <View style={styles.sectionBadge}>
+        <Text style={styles.sectionBadgeText}>{section.data.length}</Text>
+      </View>
+    </View>
+  );
+
+  // Header with child selector and filter
   const ListHeader = () => (
     <View style={styles.listHeader}>
+      {/* Screen Header */}
       <ScreenHeader title="Agenda" />
-      <FilterBar unreadCount={unreadCounts.agenda} />
 
-      {/* View Toggle */}
-      <View style={styles.viewToggle}>
-        <TouchableOpacity
-          style={viewMode === 'list' ? [styles.toggleButton, styles.toggleActive] : styles.toggleButton}
-          onPress={() => setViewMode('list')}
-        >
-          <Text style={viewMode === 'list' ? [styles.toggleText, styles.toggleTextActive] : styles.toggleText}>
-            Lista
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={viewMode === 'calendar' ? [styles.toggleButton, styles.toggleActive] : styles.toggleButton}
-          onPress={() => setViewMode('calendar')}
-        >
-          <Text style={viewMode === 'calendar' ? [styles.toggleText, styles.toggleTextActive] : styles.toggleText}>
-            Calendario
-          </Text>
-        </TouchableOpacity>
+      {/* Child Selector - always show if there are children */}
+      {children.length > 0 && (
+        <ChildSelector
+          children={children}
+          selectedChildId={selectedChildId}
+          onSelectChild={handleSelectChild}
+          showAllOption={children.length > 1}
+          onSelectAll={handleSelectAll}
+        />
+      )}
+
+      {/* Compact time filter */}
+      <View style={styles.filterContainer}>
+        <SegmentedControl
+          segments={[
+            { key: 'upcoming', label: 'Agenda', count: upcomingCount },
+            { key: 'past', label: 'Historial', count: pastCount },
+          ]}
+          selectedKey={timeFilter}
+          onSelect={(key) => setTimeFilter(key as TimeFilter)}
+        />
       </View>
+    </View>
+  );
+
+  // Empty state
+  const EmptyComponent = () => (
+    <View style={styles.emptyState}>
+      <Ionicons
+        name={timeFilter === 'upcoming' ? 'calendar-outline' : 'time-outline'}
+        size={48}
+        color={COLORS.gray}
+      />
+      <Text style={styles.emptyText}>
+        {timeFilter === 'upcoming'
+          ? 'No hay eventos próximos'
+          : 'No hay eventos en el historial'}
+      </Text>
     </View>
   );
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {viewMode === 'calendar' ? (
-        <View style={styles.calendarWrapper}>
-          <ListHeader />
-          <CalendarProvider
-            date={selectedDate || todayKey}
-            onDateChanged={(date) => setSelectedDate(date)}
-            showTodayButton
-          >
-            <ExpandableCalendar
-              firstDay={1}
-              markedDates={markedDates}
-              initialPosition={ExpandableCalendar.positions.CLOSED}
-              theme={{
-                calendarBackground: COLORS.white,
-                todayTextColor: COLORS.primary,
-                selectedDayBackgroundColor: COLORS.primary,
-                selectedDayTextColor: COLORS.white,
-                dotColor: COLORS.primary,
-                dayTextColor: COLORS.darkGray,
-                monthTextColor: COLORS.darkGray,
-                arrowColor: COLORS.primary,
-              }}
-            />
-            <FlashList
-              data={eventsForSelectedDate}
-              keyExtractor={(item) => item.id}
-              refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />}
-              contentContainerStyle={styles.calendarListContent}
-              renderItem={renderEventCard}
-              ListEmptyComponent={
-                isLoading ? (
-                  <View style={styles.loadingState}>
-                    <ActivityIndicator size="large" color={COLORS.primary} />
-                  </View>
-                ) : (
-                  <View style={styles.emptyState}>
-                    <Text style={styles.emptyText}>No hay eventos para esta fecha</Text>
-                  </View>
-                )
-              }
-            />
-          </CalendarProvider>
-        </View>
-      ) : isLoading ? (
+      {isLoading ? (
         <View style={styles.loadingContainer}>
           <ListHeader />
-          <ActivityIndicator size="large" color={COLORS.primary} />
+          <View style={styles.loadingState}>
+            <ActivityIndicator size="large" color={COLORS.primary} />
+          </View>
         </View>
       ) : (
-        <FlashList
-          data={filteredEvents}
+        <SectionList
+          sections={sections}
           keyExtractor={(item) => item.id}
-          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />}
+          renderItem={renderItem}
+          renderSectionHeader={renderSectionHeader}
+          stickySectionHeadersEnabled={true}
           ListHeaderComponent={ListHeader}
+          ListEmptyComponent={EmptyComponent}
           contentContainerStyle={styles.listContent}
-          renderItem={renderEventCard}
-          ListEmptyComponent={
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>No hay eventos</Text>
-            </View>
+          refreshControl={
+            <RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />
           }
         />
       )}
@@ -259,132 +309,57 @@ const styles = StyleSheet.create({
   },
   listHeader: {
     backgroundColor: COLORS.white,
-    marginBottom: SPACING.sm,
+  },
+  filterContainer: {
+    paddingTop: SPACING.sm,
+    paddingBottom: SPACING.md,
+  },
+  // Section headers (sticky)
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.lightGray,
+    paddingHorizontal: SPACING.screenPadding,
+    paddingVertical: SPACING.sm,
+    gap: SPACING.sm,
+  },
+  sectionTitle: {
+    ...TYPOGRAPHY.caption,
+    fontWeight: '700',
+    color: COLORS.gray,
+    letterSpacing: 0.5,
+  },
+  sectionBadge: {
+    backgroundColor: COLORS.border,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: BORDERS.radius.full,
+  },
+  sectionBadgeText: {
+    ...TYPOGRAPHY.badge,
+    color: COLORS.gray,
   },
   loadingContainer: {
     flex: 1,
   },
-  viewToggle: {
-    flexDirection: 'row',
-    padding: SPACING.sm,
-    backgroundColor: COLORS.white,
-  },
-  toggleButton: {
-    flex: 1,
-    paddingVertical: SPACING.sm,
-    alignItems: 'center',
-    borderRadius: BORDERS.radius.md,
-  },
-  toggleActive: {
-    backgroundColor: COLORS.primary,
-  },
-  toggleText: {
-    color: COLORS.gray,
-    fontWeight: '500',
-  },
-  toggleTextActive: {
-    color: COLORS.white,
-  },
-  calendarWrapper: {
-    flex: 1,
-  },
-  calendarListContent: {
-    paddingBottom: SPACING.tabBarOffset,
-  },
   loadingState: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 24,
   },
   listContent: {
     paddingBottom: SPACING.tabBarOffset,
   },
-  card: {
-    backgroundColor: COLORS.white,
-    borderRadius: BORDERS.radius.lg,
-    marginBottom: SPACING.lg,
-    marginHorizontal: SPACING.screenPadding,
-    overflow: 'hidden',
-    ...SHADOWS.card,
-  },
-  cardUnread: {
-    ...UNREAD_STYLES.borderLeft,
-  },
-  unreadDot: {
-    position: 'absolute',
-    top: SPACING.md,
-    right: SPACING.md,
-    ...UNREAD_STYLES.dot,
-    zIndex: 2,
-  },
-  confirmBadge: {
-    position: 'absolute',
-    top: SPACING.md,
-    left: SPACING.md,
-    ...BADGE_STYLES.new,
-    zIndex: 1,
-  },
-  confirmBadgeText: {
-    color: COLORS.white,
-    ...TYPOGRAPHY.badge,
-  },
-  cardImage: {
-    height: 160,
-    width: '100%',
-  },
-  cardImagePlaceholder: {
-    height: 160,
-    backgroundColor: COLORS.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  schoolName: {
-    fontSize: 24,
-    color: COLORS.primary,
-  },
-  dateBadge: {
-    position: 'absolute',
-    top: 130,
-    left: SPACING.md,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    paddingHorizontal: 10,
-    paddingVertical: SPACING.xs,
-    borderRadius: BORDERS.radius.sm,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  dateIcon: {
-    marginRight: SPACING.xs,
-  },
-  dateText: {
-    color: COLORS.white,
-    ...TYPOGRAPHY.caption,
-  },
-  cardContent: {
-    padding: SPACING.cardPadding,
-  },
-  cardTitle: {
-    ...TYPOGRAPHY.cardTitle,
-    marginBottom: SPACING.xs,
-  },
-  cardDescription: {
-    ...TYPOGRAPHY.body,
-    color: COLORS.gray,
-    marginBottom: SPACING.sm,
-  },
-  cardCta: {
-    ...TYPOGRAPHY.body,
-    color: COLORS.primary,
-    fontWeight: '600',
-  },
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 40,
+    paddingVertical: 80,
+    gap: SPACING.md,
     marginHorizontal: SPACING.screenPadding,
   },
   emptyText: {
-    ...TYPOGRAPHY.listItemTitle,
+    ...TYPOGRAPHY.body,
     color: COLORS.gray,
+    textAlign: 'center',
   },
 });

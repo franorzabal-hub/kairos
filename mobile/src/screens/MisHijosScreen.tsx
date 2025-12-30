@@ -14,11 +14,10 @@ import { useRouter } from 'expo-router';
 import ScreenHeader from '../components/ScreenHeader';
 import ChildSelector from '../components/ChildSelector';
 import DirectusImage from '../components/DirectusImage';
-import { useFilters, useUnreadCounts } from '../context/AppContext';
 import { useChildren, useReports, usePickupRequests } from '../api/hooks';
 import { Report, PickupRequest } from '../api/directus';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY, SHADOWS, BADGE_STYLES, UNREAD_STYLES } from '../theme';
-import { useReadStatus } from '../hooks';
+import { useSession, useReadStatus } from '../hooks';
 
 interface MenuSection {
   id: string;
@@ -33,18 +32,18 @@ interface MenuSection {
 
 export default function MisHijosScreen() {
   const router = useRouter();
-  const { selectedChildId, setSelectedChildId, children } = useFilters();
-  const { unreadCounts } = useUnreadCounts();
+  // Centralized session state - user, children, permissions
+  const { children, selectedChildId, setSelectedChildId, isChildrenLoading, getChildById } = useSession();
 
-  // Fetch data
-  const { isLoading: childrenLoading, refetch: refetchChildren } = useChildren();
+  // Fetch data (useChildren just for refetch - React Query shares cache with useSession)
+  const { refetch: refetchChildren } = useChildren();
   const { data: reports = [], isLoading: reportsLoading, refetch: refetchReports } = useReports();
   const { data: pickupRequests = [], isLoading: pickupLoading, refetch: refetchPickup } = usePickupRequests();
 
   // Read status for reports
   const { isRead: isReportRead, filterUnread: filterUnreadReports } = useReadStatus('boletines');
 
-  const isLoading = childrenLoading || reportsLoading || pickupLoading;
+  const isLoading = isChildrenLoading || reportsLoading || pickupLoading;
 
   // If only one child, auto-select
   const effectiveSelectedChildId = useMemo(() => {
@@ -53,8 +52,8 @@ export default function MisHijosScreen() {
   }, [children, selectedChildId]);
 
   const selectedChild = useMemo(() => {
-    return children.find(c => c.id === effectiveSelectedChildId) || null;
-  }, [children, effectiveSelectedChildId]);
+    return effectiveSelectedChildId ? getChildById(effectiveSelectedChildId) || null : null;
+  }, [effectiveSelectedChildId, getChildById]);
 
   // Count unread reports for selected child
   const unreadReportsCount = useMemo(() => {
