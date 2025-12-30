@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { COLORS, SPACING, BORDERS, TYPOGRAPHY, SHADOWS } from '../theme';
+import { COLORS, SPACING, BORDERS, TYPOGRAPHY } from '../theme';
 
 interface QuickAction {
   id: string;
@@ -82,8 +82,7 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: COLORS.white,
     paddingVertical: SPACING.md,
-    marginBottom: SPACING.sm,
-    ...SHADOWS.card,
+    marginBottom: SPACING.xxl, // 24px gap before next section
   },
   title: {
     ...TYPOGRAPHY.sectionTitle,

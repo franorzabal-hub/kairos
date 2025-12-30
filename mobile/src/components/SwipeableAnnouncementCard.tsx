@@ -172,9 +172,6 @@ export default function SwipeableAnnouncementCard({
           </View>
         )}
 
-        {/* Unread dot */}
-        {isUnread && <View style={styles.unreadDot} />}
-
         {/* Image */}
         <DirectusImage
           fileId={item.image}
@@ -196,9 +193,11 @@ export default function SwipeableAnnouncementCard({
 
         {/* Content */}
         <View style={styles.cardContent}>
-          <Text style={styles.cardTitle}>{item.title}</Text>
+          <View style={styles.titleRow}>
+            {isUnread && <View style={styles.unreadDot} />}
+            <Text style={[styles.cardTitle, isUnread && styles.cardTitleUnread]}>{item.title}</Text>
+          </View>
           <Text style={styles.cardSubtitle} numberOfLines={2}>{stripHtml(item.content)}</Text>
-          <Text style={styles.cardCta}>Ver Novedad</Text>
         </View>
       </TouchableOpacity>
     </Swipeable>
@@ -218,12 +217,14 @@ const styles = StyleSheet.create({
   cardUnread: {
     ...UNREAD_STYLES.borderLeft,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
   unreadDot: {
-    position: 'absolute',
-    top: SPACING.md,
-    right: SPACING.md,
-    ...UNREAD_STYLES.dot,
-    zIndex: 2,
+    ...UNREAD_STYLES.dotSmall,
+    flexShrink: 0,
   },
   pinnedIndicator: {
     position: 'absolute',
@@ -295,16 +296,14 @@ const styles = StyleSheet.create({
   cardTitle: {
     ...TYPOGRAPHY.cardTitle,
     marginBottom: SPACING.xs,
+    flex: 1,
+  },
+  cardTitleUnread: {
+    fontWeight: '700',
   },
   cardSubtitle: {
     ...TYPOGRAPHY.body,
     color: COLORS.gray,
-    marginBottom: SPACING.sm,
-  },
-  cardCta: {
-    ...TYPOGRAPHY.body,
-    color: COLORS.primary,
-    fontWeight: '600',
   },
 
   // Swipe action styles

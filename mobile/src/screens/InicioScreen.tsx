@@ -20,7 +20,7 @@ import {
   useEvents
 } from '../api/hooks';
 import { Announcement, Event } from '../api/directus';
-import { COLORS, SPACING, BORDERS, TYPOGRAPHY, SHADOWS } from '../theme';
+import { COLORS, SPACING, BORDERS, TYPOGRAPHY } from '../theme';
 import { stripHtml } from '../utils';
 
 export default function InicioScreen() {
@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
   eventsSection: {
     backgroundColor: COLORS.white,
     paddingVertical: SPACING.md,
-    marginBottom: SPACING.lg, // Increased spacing before Novedades section
+    marginBottom: SPACING.xxl, // 24px gap before Novedades section
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -312,13 +312,14 @@ const styles = StyleSheet.create({
     gap: SPACING.md,
   },
   eventCard: {
-    width: 160,
+    width: 140, // Narrower for 2.5 peek-a-boo effect
     backgroundColor: COLORS.white,
     borderRadius: BORDERS.radius.lg,
     overflow: 'hidden',
-    ...SHADOWS.card,
+    borderWidth: 1,
+    borderColor: '#E5E7EB', // Subtle border instead of shadow
     padding: SPACING.md,
-    alignItems: 'center',
+    alignItems: 'flex-start', // Left align content
   },
   eventDateBlock: {
     width: 64,
@@ -343,12 +344,13 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   eventContent: {
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    width: '100%',
   },
   eventTitle: {
     ...TYPOGRAPHY.listItemTitle,
     fontSize: 13,
-    textAlign: 'center',
+    textAlign: 'left',
     color: COLORS.darkGray,
   },
   novedadesHeader: {
