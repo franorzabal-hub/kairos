@@ -5,11 +5,11 @@ import {
   TouchableOpacity,
   StyleSheet,
   Modal,
-  FlatList,
   Pressable,
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { FlashList } from '@shopify/flash-list';
 import { useFilters } from '../context/AppContext';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY } from '../theme';
 
@@ -135,7 +135,7 @@ export default function FilterBar({ unreadCount = 0, showUnreadFilter = true }: 
               <Text style={styles.childName}>Todos mis hijos</Text>
             </TouchableOpacity>
 
-            <FlatList
+            <FlashList
               data={children}
               keyExtractor={(item) => item.id}
               renderItem={({ item }) => (

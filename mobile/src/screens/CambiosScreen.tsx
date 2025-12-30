@@ -9,9 +9,14 @@ import {
   RefreshControl,
   ActivityIndicator,
   Alert,
+  Modal,
+  Pressable,
+  Platform,
 } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { FlashList } from '@shopify/flash-list';
 import ScreenHeader from '../components/ScreenHeader';
 import FilterBar from '../components/FilterBar';
 import { useFilters, useAppContext } from '../context/AppContext';
@@ -20,12 +25,47 @@ import { PickupRequest } from '../api/directus';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY, BADGE_STYLES, SHADOWS } from '../theme';
 
 const MOTIVO_OPTIONS = [
-  'Turno médico',
-  'Turno odontológico',
+  'Turno medico',
+  'Turno odontologico',
   'Actividad extracurricular',
   'Viaje familiar',
   'Otro',
 ];
+
+const formatDateInput = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const formatTimeInput = (date: Date) => {
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${hours}:${minutes}`;
+};
+
+const formatDateLabel = (dateStr: string) => {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('es-AR', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  });
+};
+
+const buildTimeValue = (timeStr: string) => {
+  if (!timeStr || !timeStr.includes(':')) {
+    return new Date();
+  }
+  const [hours, minutes] = timeStr.split(':').map((value) => Number(value));
+  const date = new Date();
+  date.setHours(Number.isFinite(hours) ? hours : 0);
+  date.setMinutes(Number.isFinite(minutes) ? minutes : 0);
+  date.setSeconds(0);
+  date.setMilliseconds(0);
+  return date;
+};
 
 export default function CambiosScreen() {
   const { children, user } = useAppContext();
@@ -53,10 +93,13 @@ export default function CambiosScreen() {
   const [editingRequest, setEditingRequest] = useState<PickupRequest | null>(null);
   const [selectedChildren, setSelectedChildren] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState('');
-  const [selectedTime, setSelectedTime] = useState('Al finalizar el día');
+  const [selectedTime, setSelectedTime] = useState('Al finalizar el dia');
   const [motivo, setMotivo] = useState('');
   const [authorizedPerson, setAuthorizedPerson] = useState('');
   const [comments, setComments] = useState('');
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [showMotivoPicker, setShowMotivoPicker] = useState(false);
 
   const toggleChild = (childId: string) => {
     setSelectedChildren(prev =>
@@ -74,7 +117,7 @@ export default function CambiosScreen() {
     setEditingRequest(null);
     setSelectedChildren([]);
     setSelectedDate('');
-    setSelectedTime('Al finalizar el día');
+    setSelectedTime('Al finalizar el dia');
     setMotivo('');
     setAuthorizedPerson('');
     setComments('');
@@ -94,7 +137,7 @@ export default function CambiosScreen() {
     setEditingRequest(request);
     setSelectedChildren([request.student_id]);
     setSelectedDate(request.pickup_date);
-    setSelectedTime(request.pickup_time || 'Al finalizar el día');
+    setSelectedTime(request.pickup_time || 'Al finalizar el dia');
     setMotivo(request.reason || '');
     setAuthorizedPerson(request.authorized_person || '');
     setComments(request.notes || '');
@@ -114,7 +157,6 @@ export default function CambiosScreen() {
 
     try {
       if (editingRequest) {
-        // Update existing request
         await updatePickupMutation.mutateAsync({
           id: editingRequest.id,
           data: {
@@ -125,12 +167,11 @@ export default function CambiosScreen() {
             notes: comments,
           },
         });
-        Alert.alert('Éxito', 'Solicitud actualizada correctamente');
+        Alert.alert('Exito', 'Solicitud actualizada correctamente');
       } else {
-        // Create a pickup request for each selected child
         for (const childId of selectedChildren) {
           await createPickupMutation.mutateAsync({
-            organization_id: '', // Will be set by backend/RLS
+            organization_id: '',
             student_id: childId,
             requested_by: user.id,
             request_type: 'different_person' as const,
@@ -141,7 +182,7 @@ export default function CambiosScreen() {
             notes: comments,
           });
         }
-        Alert.alert('Éxito', 'Solicitud enviada correctamente');
+        Alert.alert('Exito', 'Solicitud enviada correctamente');
       }
 
       resetForm();
@@ -190,146 +231,215 @@ export default function CambiosScreen() {
     </View>
   );
 
+  const renderHistoryItem = ({ item }: { item: PickupRequest }) => {
+    const child = children.find(c => c.id === item.student_id);
+    const childName = child ? `${child.first_name} ${child.last_name}` : 'Estudiante';
+    const isEditable = canEditRequest(item);
+
+    return (
+      <View style={styles.historyCard}>
+        <View style={styles.historyHeader}>
+          <Text style={styles.historyDate}>
+            {formatDate(item.pickup_date)} - {item.pickup_time}
+          </Text>
+          <View style={styles.headerRight}>
+            {isEditable && (
+              <TouchableOpacity
+                style={styles.editButton}
+                onPress={() => startEditing(item)}
+              >
+                <Ionicons name="pencil" size={16} color={COLORS.primary} />
+              </TouchableOpacity>
+            )}
+            <View style={item.status === 'approved' ? styles.statusBadgeApproved :
+                         item.status === 'rejected' ? styles.statusBadgeRejected :
+                         styles.statusBadgePending}>
+              <Text style={styles.statusText}>
+                {item.status === 'approved' ? 'Aprobado' :
+                 item.status === 'rejected' ? 'Rechazado' : 'Pendiente'}
+              </Text>
+            </View>
+          </View>
+        </View>
+        <Text style={styles.historyChild}>{childName}</Text>
+        <Text style={styles.historyDetail}>Motivo: {item.reason}</Text>
+        <Text style={styles.historyDetail}>Se retira con: {item.authorized_person}</Text>
+        {item.notes ? (
+          <Text style={styles.historyDetail}>Notas: {item.notes}</Text>
+        ) : null}
+      </View>
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {activeTab === 'nuevo' ? (
         <ScrollView style={styles.formContainer} contentContainerStyle={styles.formContent}>
           <ListHeader />
           <View style={styles.formBody}>
-          {/* Children Selection */}
-          <Text style={styles.label}>Este cambio aplica a:</Text>
-          {children.length === 0 ? (
-            <Text style={styles.noChildrenText}>No hay hijos registrados</Text>
-          ) : (
-            children.map((child) => (
-              <TouchableOpacity
-                key={child.id}
-                style={styles.checkboxRow}
-                onPress={() => toggleChild(child.id)}
-              >
-                <View style={selectedChildren.includes(child.id) ? [styles.checkbox, styles.checkboxChecked] : styles.checkbox}>
-                  {selectedChildren.includes(child.id) && (
-                    <Ionicons name="checkmark" size={16} color={COLORS.white} />
-                  )}
-                </View>
-                <Text style={styles.checkboxLabel}>{child.first_name} {child.last_name}</Text>
-              </TouchableOpacity>
-            ))
-          )}
+            <Text style={styles.label}>Este cambio aplica a:</Text>
+            {children.length === 0 ? (
+              <Text style={styles.noChildrenText}>No hay hijos registrados</Text>
+            ) : (
+              children.map((child) => (
+                <TouchableOpacity
+                  key={child.id}
+                  style={styles.checkboxRow}
+                  onPress={() => toggleChild(child.id)}
+                >
+                  <View style={selectedChildren.includes(child.id) ? [styles.checkbox, styles.checkboxChecked] : styles.checkbox}>
+                    {selectedChildren.includes(child.id) && (
+                      <Ionicons name="checkmark" size={16} color={COLORS.white} />
+                    )}
+                  </View>
+                  <Text style={styles.checkboxLabel}>{child.first_name} {child.last_name}</Text>
+                </TouchableOpacity>
+              ))
+            )}
 
-          {/* Date & Time */}
-          <View style={styles.row}>
-            <View style={styles.halfField}>
-              <Text style={styles.label}>Día</Text>
-              <TouchableOpacity style={styles.input}>
-                <Text style={styles.inputText}>{selectedDate || '30 Dec 2025'}</Text>
-              </TouchableOpacity>
+            <View style={styles.row}>
+              <View style={styles.halfField}>
+                <Text style={styles.label}>Dia</Text>
+                <TouchableOpacity style={styles.input} onPress={() => setShowDatePicker(true)}>
+                  <Text style={[styles.inputText, selectedDate ? styles.inputTextSelected : styles.inputTextPlaceholder]}>
+                    {selectedDate ? formatDateLabel(selectedDate) : 'Seleccionar fecha'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.halfField}>
+                <Text style={styles.label}>Hora</Text>
+                <TouchableOpacity style={styles.input} onPress={() => setShowTimePicker(true)}>
+                  <Text style={[styles.inputText, selectedTime ? styles.inputTextSelected : styles.inputTextPlaceholder]}>
+                    {selectedTime || 'Al finalizar el dia'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
-            <View style={styles.halfField}>
-              <Text style={styles.label}>Hora</Text>
-              <TouchableOpacity style={styles.input}>
-                <Text style={styles.inputText}>{selectedTime} ▼</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
 
-          {/* Motivo */}
-          <Text style={styles.label}>Motivo</Text>
-          <TouchableOpacity style={styles.input}>
-            <Text style={styles.inputText}>{motivo || 'Seleccione una opción'} ▼</Text>
-          </TouchableOpacity>
+            {showDatePicker && (
+              <View style={styles.pickerWrapper}>
+                <DateTimePicker
+                  value={selectedDate ? new Date(selectedDate) : new Date()}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                  onChange={(_event, date) => {
+                    if (Platform.OS !== 'ios') {
+                      setShowDatePicker(false);
+                    }
+                    if (date) {
+                      setSelectedDate(formatDateInput(date));
+                    }
+                  }}
+                />
+                {Platform.OS === 'ios' && (
+                  <TouchableOpacity style={styles.pickerDone} onPress={() => setShowDatePicker(false)}>
+                    <Text style={styles.pickerDoneText}>Listo</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
 
-          {/* Authorized Person */}
-          <Text style={styles.label}>Se retira con</Text>
-          <TextInput
-            style={styles.input}
-            value={authorizedPerson}
-            onChangeText={setAuthorizedPerson}
-            placeholder="Nombre de la persona autorizada"
-            placeholderTextColor={COLORS.gray}
-          />
+            {showTimePicker && (
+              <View style={styles.pickerWrapper}>
+                <DateTimePicker
+                  value={buildTimeValue(selectedTime)}
+                  mode="time"
+                  display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                  onChange={(_event, date) => {
+                    if (Platform.OS !== 'ios') {
+                      setShowTimePicker(false);
+                    }
+                    if (date) {
+                      setSelectedTime(formatTimeInput(date));
+                    }
+                  }}
+                />
+                {Platform.OS === 'ios' && (
+                  <TouchableOpacity style={styles.pickerDone} onPress={() => setShowTimePicker(false)}>
+                    <Text style={styles.pickerDoneText}>Listo</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
 
-          {/* Comments */}
-          <Text style={styles.label}>Comentarios</Text>
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            value={comments}
-            onChangeText={setComments}
-            placeholder="Ingrese un comentario"
-            placeholderTextColor={COLORS.gray}
-            multiline
-            numberOfLines={4}
-          />
+            <Text style={styles.label}>Motivo</Text>
+            <TouchableOpacity style={styles.input} onPress={() => setShowMotivoPicker(true)}>
+              <Text style={[styles.inputText, motivo ? styles.inputTextSelected : styles.inputTextPlaceholder]}>
+                {motivo || 'Seleccione una opcion'}
+              </Text>
+            </TouchableOpacity>
 
-          {/* Submit Button */}
-          <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-            <Text style={styles.submitButtonText}>Enviar autorización</Text>
-          </TouchableOpacity>
+            <Text style={styles.label}>Se retira con</Text>
+            <TextInput
+              style={styles.input}
+              value={authorizedPerson}
+              onChangeText={setAuthorizedPerson}
+              placeholder="Nombre de la persona autorizada"
+              placeholderTextColor={COLORS.gray}
+            />
+
+            <Text style={styles.label}>Comentarios</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              value={comments}
+              onChangeText={setComments}
+              placeholder="Ingrese un comentario"
+              placeholderTextColor={COLORS.gray}
+              multiline
+              numberOfLines={4}
+            />
+
+            <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
+              <Text style={styles.submitButtonText}>Enviar autorizacion</Text>
+            </TouchableOpacity>
           </View>
         </ScrollView>
       ) : isLoading ? (
-        <ScrollView contentContainerStyle={styles.loadingContainer}>
+        <View style={styles.loadingContainer}>
           <ListHeader />
           <ActivityIndicator size="large" color={COLORS.primary} />
-        </ScrollView>
+        </View>
       ) : (
-        <ScrollView
-          style={styles.historyContainer}
+        <FlashList
+          data={filteredPickupRequests}
+          keyExtractor={(item) => item.id}
+          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />}
+          ListHeaderComponent={ListHeader}
           contentContainerStyle={styles.historyContent}
-          refreshControl={
-            <RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />
-          }
-        >
-          <ListHeader />
-          <View style={styles.historyBody}>
-          {filteredPickupRequests.length === 0 ? (
+          renderItem={renderHistoryItem}
+          ListEmptyComponent={
             <View style={styles.emptyState}>
               <Text style={styles.emptyText}>No hay solicitudes en el historial</Text>
             </View>
-          ) : (
-            filteredPickupRequests.map((item: PickupRequest) => {
-              const child = children.find(c => c.id === item.student_id);
-              const childName = child ? `${child.first_name} ${child.last_name}` : 'Estudiante';
-              const isEditable = canEditRequest(item);
-
-              return (
-                <View key={item.id} style={styles.historyCard}>
-                  <View style={styles.historyHeader}>
-                    <Text style={styles.historyDate}>
-                      {formatDate(item.pickup_date)} - {item.pickup_time}
-                    </Text>
-                    <View style={styles.headerRight}>
-                      {isEditable && (
-                        <TouchableOpacity
-                          style={styles.editButton}
-                          onPress={() => startEditing(item)}
-                        >
-                          <Ionicons name="pencil" size={16} color={COLORS.primary} />
-                        </TouchableOpacity>
-                      )}
-                      <View style={item.status === 'approved' ? styles.statusBadgeApproved :
-                                   item.status === 'rejected' ? styles.statusBadgeRejected :
-                                   styles.statusBadgePending}>
-                        <Text style={styles.statusText}>
-                          {item.status === 'approved' ? 'Aprobado' :
-                           item.status === 'rejected' ? 'Rechazado' : 'Pendiente'}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-                  <Text style={styles.historyChild}>{childName}</Text>
-                  <Text style={styles.historyDetail}>Motivo: {item.reason}</Text>
-                  <Text style={styles.historyDetail}>Se retira con: {item.authorized_person}</Text>
-                  {item.notes ? (
-                    <Text style={styles.historyDetail}>Notas: {item.notes}</Text>
-                  ) : null}
-                </View>
-              );
-            })
-          )}
-          </View>
-        </ScrollView>
+          }
+        />
       )}
+
+      <Modal
+        visible={showMotivoPicker}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowMotivoPicker(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <Pressable style={styles.modalBackdrop} onPress={() => setShowMotivoPicker(false)} />
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Selecciona motivo</Text>
+            {MOTIVO_OPTIONS.map((option) => (
+              <TouchableOpacity
+                key={option}
+                style={styles.modalOption}
+                onPress={() => {
+                  setMotivo(option);
+                  setShowMotivoPicker(false);
+                }}
+              >
+                <Text style={styles.modalOptionText}>{option}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -418,7 +528,12 @@ const styles = StyleSheet.create({
   },
   inputText: {
     ...TYPOGRAPHY.listItemTitle,
+  },
+  inputTextPlaceholder: {
     color: COLORS.gray,
+  },
+  inputTextSelected: {
+    color: COLORS.darkGray,
   },
   textArea: {
     minHeight: 100,
@@ -427,6 +542,23 @@ const styles = StyleSheet.create({
     padding: SPACING.md,
     borderBottomWidth: 0,
     textAlignVertical: 'top',
+  },
+  pickerWrapper: {
+    marginTop: SPACING.md,
+    backgroundColor: COLORS.white,
+    borderRadius: BORDERS.radius.md,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  pickerDone: {
+    alignItems: 'flex-end',
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+  },
+  pickerDoneText: {
+    color: COLORS.primary,
+    fontWeight: '600',
   },
   submitButton: {
     backgroundColor: COLORS.primary,
@@ -440,13 +572,8 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.listItemTitle,
     fontWeight: '600',
   },
-  historyContainer: {
-    flex: 1,
-  },
   historyContent: {
     paddingBottom: SPACING.tabBarOffset,
-  },
-  historyBody: {
     paddingHorizontal: SPACING.screenPadding,
   },
   historyCard: {
@@ -471,11 +598,6 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.body,
     color: COLORS.gray,
     marginBottom: 2,
-  },
-  viewLink: {
-    color: COLORS.primary,
-    fontWeight: '600',
-    marginTop: SPACING.sm,
   },
   loadingContainer: {
     flex: 1,
@@ -522,5 +644,31 @@ const styles = StyleSheet.create({
   statusText: {
     color: COLORS.white,
     ...TYPOGRAPHY.badge,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  modalContent: {
+    backgroundColor: COLORS.white,
+    borderTopLeftRadius: SPACING.xl,
+    borderTopRightRadius: SPACING.xl,
+    padding: SPACING.xl,
+  },
+  modalTitle: {
+    ...TYPOGRAPHY.cardTitle,
+    marginBottom: SPACING.md,
+    textAlign: 'center',
+  },
+  modalOption: {
+    paddingVertical: SPACING.md,
+  },
+  modalOptionText: {
+    ...TYPOGRAPHY.listItemTitle,
+    textAlign: 'center',
   },
 });

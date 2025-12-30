@@ -4,6 +4,7 @@ import { BlurView } from 'expo-blur';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSegments } from 'expo-router';
 import { COLORS, SPACING, TYPOGRAPHY } from '../theme';
 
 interface BlurTabBarProps extends BottomTabBarProps {
@@ -17,23 +18,29 @@ interface BlurTabBarProps extends BottomTabBarProps {
 }
 
 const TAB_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
-  Novedades: 'megaphone-outline',
-  Eventos: 'calendar-outline',
-  Mensajes: 'chatbubbles-outline',
-  Cambios: 'time-outline',
-  Boletines: 'document-text-outline',
+  novedades: 'megaphone-outline',
+  eventos: 'calendar-outline',
+  mensajes: 'chatbubbles-outline',
+  cambios: 'time-outline',
+  boletines: 'document-text-outline',
 };
 
 const TAB_BADGE_KEYS: Record<string, keyof BlurTabBarProps['unreadCounts']> = {
-  Novedades: 'novedades',
-  Eventos: 'eventos',
-  Mensajes: 'mensajes',
-  Cambios: 'cambios',
-  Boletines: 'boletines',
+  novedades: 'novedades',
+  eventos: 'eventos',
+  mensajes: 'mensajes',
+  cambios: 'cambios',
+  boletines: 'boletines',
 };
 
 export default function BlurTabBar({ state, descriptors, navigation, unreadCounts }: BlurTabBarProps) {
   const insets = useSafeAreaInsets();
+  const segments = useSegments();
+  const isNestedRoute = segments[0] === '(tabs)' && segments.length > 2;
+
+  if (isNestedRoute) {
+    return null;
+  }
 
   return (
     <BlurView

@@ -27,7 +27,9 @@ import {
 // Query keys
 export const queryKeys = {
   announcements: ['announcements'] as const,
+  announcement: (id: string) => ['announcement', id] as const,
   events: ['events'] as const,
+  event: (id: string) => ['event', id] as const,
   messages: ['messages'] as const,
   messageRecipients: ['messageRecipients'] as const,
   conversations: ['conversations'] as const,
@@ -99,6 +101,21 @@ export function useAnnouncements() {
   });
 }
 
+// Fetch single announcement
+export function useAnnouncement(id: string) {
+  return useQuery({
+    queryKey: queryKeys.announcement(id),
+    queryFn: async () => {
+      if (!id) return null;
+      const item = await directus.request(
+        readItem('announcements', id)
+      );
+      return item as Announcement;
+    },
+    enabled: !!id,
+  });
+}
+
 // Fetch events
 export function useEvents() {
   const { selectedChildId, filterMode } = useAppContext();
@@ -120,6 +137,23 @@ export function useEvents() {
 
       return items as Event[];
     },
+  });
+}
+
+// Fetch single event
+export function useEvent(id: string) {
+  return useQuery({
+    queryKey: queryKeys.event(id),
+    queryFn: async () => {
+      if (!id) return null;
+      const item = await directus.request(
+        readItem('events', id, {
+          fields: ['*', { location_id: ['*'] }] as any,
+        })
+      );
+      return item as unknown as Event;
+    },
+    enabled: !!id,
   });
 }
 

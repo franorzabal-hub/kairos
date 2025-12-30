@@ -1,23 +1,20 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, RefreshControl, ActivityIndicator, FlatList } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useRouter } from 'expo-router';
+import { FlashList } from '@shopify/flash-list';
 import ScreenHeader from '../components/ScreenHeader';
 import FilterBar from '../components/FilterBar';
 import DirectusImage from '../components/DirectusImage';
 import { useFilters, useUnreadCounts } from '../context/AppContext';
 import { useAnnouncements, useChildren, useContentReadStatus } from '../api/hooks';
 import { Announcement } from '../api/directus';
-import { NovedadesStackParamList } from '../navigation/NovedadesStack';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY, UNREAD_STYLES, SHADOWS, BADGE_STYLES } from '../theme';
 import { stripHtml } from '../utils';
 
-type NovedadesNavigationProp = NativeStackNavigationProp<NovedadesStackParamList, 'NovedadesList'>;
-
 export default function NovedadesScreen() {
-  const navigation = useNavigation<NovedadesNavigationProp>();
+  const router = useRouter();
   const { filterMode } = useFilters();
   const { unreadCounts } = useUnreadCounts();
   const { isRead, filterUnread, markAsRead } = useContentReadStatus('announcements');
@@ -66,7 +63,7 @@ export default function NovedadesScreen() {
           <ActivityIndicator size="large" color={COLORS.primary} />
         </View>
       ) : (
-        <FlatList
+        <FlashList
           data={filteredAnnouncements}
           keyExtractor={(item) => item.id}
           refreshControl={
@@ -83,7 +80,7 @@ export default function NovedadesScreen() {
                 if (itemIsUnread) {
                   markAsRead(item.id);
                 }
-                navigation.navigate('NovedadDetail', { announcement: item });
+                router.push({ pathname: '/novedades/[id]', params: { id: item.id } });
               }}
             >
               {item.priority === 'urgent' ? (
