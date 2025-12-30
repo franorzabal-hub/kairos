@@ -52,6 +52,12 @@ export interface Announcement {
   // Note: Schema uses publish_at, client uses published_at (both supported via setup-schema-v2.sh)
   published_at?: string;
   publish_at?: string;
+  // Novedades V2 fields
+  is_pinned?: boolean;           // Global admin pinning (for all users)
+  requires_acknowledgment?: boolean;  // Requires explicit user confirmation
+  video_url?: string;            // YouTube/Vimeo embed URL
+  // Attachments (populated via M2M or fetched separately)
+  attachments?: AnnouncementAttachment[];
 }
 
 export interface Location {
@@ -219,6 +225,36 @@ export interface ContentRead {
   read_at: string;
 }
 
+// Novedades V2 - User-specific announcement actions
+export interface UserPinnedAnnouncement {
+  id: string;
+  user_id: string;
+  announcement_id: string;
+  pinned_at: string;
+}
+
+export interface UserArchivedAnnouncement {
+  id: string;
+  user_id: string;
+  announcement_id: string;
+  archived_at: string;
+}
+
+export interface AnnouncementAcknowledgment {
+  id: string;
+  user_id: string;
+  announcement_id: string;
+  acknowledged_at: string;
+}
+
+export interface AnnouncementAttachment {
+  id: string;
+  announcement_id: string;
+  file: string;  // directus_files ID
+  title?: string;
+  sort?: number;
+}
+
 // Schema definition for Directus SDK
 interface Schema {
   organizations: Organization[];
@@ -237,6 +273,11 @@ interface Schema {
   push_tokens: PushToken[];
   content_reads: ContentRead[];
   directus_users: DirectusUser[];
+  // Novedades V2 collections
+  user_pinned_announcements: UserPinnedAnnouncement[];
+  user_archived_announcements: UserArchivedAnnouncement[];
+  announcement_acknowledgments: AnnouncementAcknowledgment[];
+  announcement_attachments: AnnouncementAttachment[];
 }
 
 // Token storage helpers

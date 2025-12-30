@@ -4,7 +4,12 @@ import { Student, AppUser, directus, saveTokens, getTokens, clearTokens, isBiome
 import { readMe, readItems } from '@directus/sdk';
 import { clearAllReadStatus } from '../services/readStatusService';
 
-type FilterMode = 'unread' | 'all';
+// Extended filter mode for Novedades (announcements)
+// 'all' = show everything except archived
+// 'unread' = show only unread (non-archived)
+// 'pinned' = show only user-pinned items
+// 'archived' = show only archived items
+export type FilterMode = 'unread' | 'all' | 'pinned' | 'archived';
 
 interface AuthContextType {
   user: AppUser | null;

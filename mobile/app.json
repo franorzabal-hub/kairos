@@ -1,8 +1,9 @@
 {
   "expo": {
-    "name": "mobile",
-    "slug": "mobile",
+    "name": "Kairos",
+    "slug": "kairos-app",
     "version": "1.0.0",
+    "scheme": "kairos",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -14,6 +15,8 @@
     },
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "app.kairos.mobile",
+      "associatedDomains": ["applinks:kairos.app"],
       "infoPlist": {
         "NSFaceIDUsageDescription": "Usamos Face ID para un inicio de sesion mas rapido y seguro",
         "NSCalendarsUsageDescription": "Necesitamos acceso al calendario para guardar eventos",
@@ -22,6 +25,7 @@
       }
     },
     "android": {
+      "package": "app.kairos.mobile",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -31,7 +35,26 @@
         "WRITE_CALENDAR"
       ],
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "kairos.app",
+              "pathPrefix": "/novedades"
+            },
+            {
+              "scheme": "https",
+              "host": "kairos.app",
+              "pathPrefix": "/eventos"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"

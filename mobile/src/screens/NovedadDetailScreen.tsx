@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   useWindowDimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -13,8 +14,10 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import RenderHtml from 'react-native-render-html';
 import DirectusImage from '../components/DirectusImage';
 import ScreenHeader from '../components/ScreenHeader';
-import Toast from '../components/Toast';
-import { useAnnouncement, useContentReadStatus } from '../api/hooks';
+import AttachmentsList from '../components/AttachmentsList';
+import VideoEmbed from '../components/VideoEmbed';
+import AcknowledgmentBanner from '../components/AcknowledgmentBanner';
+import { useAnnouncement, useAnnouncementAttachments, useContentReadStatus, useAnnouncementStates, useAnnouncementPin, useAnnouncementAcknowledge } from '../api/hooks';
 import { COLORS, SPACING, BORDERS } from '../theme';
 
 // Decode HTML entities
@@ -35,11 +38,21 @@ export default function NovedadDetailScreen() {
   const announcementId = typeof id === 'string' ? id : '';
   const { data: announcement } = useAnnouncement(announcementId);
   const { width } = useWindowDimensions();
-  const { markAsRead, markAsUnread, isRead } = useContentReadStatus('announcements');
+  const { markAsRead } = useContentReadStatus('announcements');
 
-  const [isMarkedRead, setIsMarkedRead] = useState(true);
-  const [showToast, setShowToast] = useState(false);
-  const [toastMessage, setToastMessage] = useState('');
+  // Pinning state
+  const { data: announcementStates } = useAnnouncementStates();
+  const { togglePin, isPinning, isUnpinning } = useAnnouncementPin();
+  const pinnedIds = announcementStates?.pinnedIds ?? new Set<string>();
+  const isPinned = announcementId ? pinnedIds.has(announcementId) : false;
+
+  // Acknowledgment state
+  const { acknowledge, isAcknowledging } = useAnnouncementAcknowledge();
+  const acknowledgedIds = announcementStates?.acknowledgedIds ?? new Set<string>();
+  const isAcknowledged = announcementId ? acknowledgedIds.has(announcementId) : false;
+
+  // Attachments
+  const { data: attachments = [] } = useAnnouncementAttachments(announcementId);
 
   // Track if we've already marked this announcement as read to prevent loops
   const hasMarkedReadRef = useRef<string | null>(null);
@@ -49,20 +62,17 @@ export default function NovedadDetailScreen() {
     if (announcement && hasMarkedReadRef.current !== announcement.id) {
       hasMarkedReadRef.current = announcement.id;
       markAsRead(announcement.id);
-      setIsMarkedRead(true);
     }
   }, [announcement?.id, markAsRead]);
 
-  const handleMarkAsUnread = async () => {
-    if (!announcement) return;
-    await markAsUnread(announcement.id);
-    setIsMarkedRead(false);
-    setToastMessage('Marcado como no leído');
-    setShowToast(true);
-    // Navigate back after a short delay
-    setTimeout(() => {
-      router.back();
-    }, 800);
+  const handleTogglePin = async () => {
+    if (!announcementId) return;
+    await togglePin(announcementId, isPinned);
+  };
+
+  const handleAcknowledge = async () => {
+    if (!announcementId || isAcknowledged) return;
+    await acknowledge(announcementId);
   };
 
   const formatDate = (dateStr: string) => {
@@ -155,30 +165,54 @@ export default function NovedadDetailScreen() {
 
           <View style={styles.divider} />
 
+          {/* Acknowledgment Banner */}
+          {announcement.requires_acknowledgment && (
+            <AcknowledgmentBanner
+              isAcknowledged={isAcknowledged}
+              onAcknowledge={handleAcknowledge}
+              isLoading={isAcknowledging}
+            />
+          )}
+
+          {/* Embedded Video */}
+          {announcement.video_url && (
+            <VideoEmbed url={announcement.video_url} title={announcement.title} />
+          )}
+
           <RenderHtml
             contentWidth={width - 40}
             source={{ html: decodeHtmlEntities(announcement.content) }}
             baseStyle={styles.bodyText}
           />
+
+          {/* Attachments */}
+          <AttachmentsList attachments={attachments} />
         </View>
       </ScrollView>
 
-      {/* Footer with Mark as Unread button */}
-      {isMarkedRead && (
-        <View style={styles.bottomBar}>
-          <TouchableOpacity style={styles.unreadButton} onPress={handleMarkAsUnread}>
-            <Ionicons name="mail-unread-outline" size={20} color={COLORS.primary} />
-            <Text style={styles.unreadButtonText}>Marcar como no leído</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      <Toast
-        visible={showToast}
-        message={toastMessage}
-        type="success"
-        onHide={() => setShowToast(false)}
-      />
+      {/* Footer with Pin button */}
+      <View style={styles.bottomBar}>
+        <TouchableOpacity
+          style={[styles.pinButton, isPinned && styles.pinButtonActive]}
+          onPress={handleTogglePin}
+          disabled={isPinning || isUnpinning}
+        >
+          {(isPinning || isUnpinning) ? (
+            <ActivityIndicator size="small" color={isPinned ? COLORS.white : COLORS.primary} />
+          ) : (
+            <>
+              <Ionicons
+                name={isPinned ? 'pin' : 'pin-outline'}
+                size={20}
+                color={isPinned ? COLORS.white : COLORS.primary}
+              />
+              <Text style={[styles.pinButtonText, isPinned && styles.pinButtonTextActive]}>
+                {isPinned ? 'Fijado' : 'Fijar'}
+              </Text>
+            </>
+          )}
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }
@@ -291,7 +325,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
   },
-  unreadButton: {
+  pinButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -300,10 +334,16 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     gap: 8,
   },
-  unreadButtonText: {
+  pinButtonActive: {
+    backgroundColor: COLORS.primary,
+  },
+  pinButtonText: {
     color: COLORS.primary,
     fontSize: 16,
     fontWeight: '600',
+  },
+  pinButtonTextActive: {
+    color: COLORS.white,
   },
   emptyState: {
     flex: 1,

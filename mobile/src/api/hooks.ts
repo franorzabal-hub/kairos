@@ -4,6 +4,7 @@ import { readItems, createItem, updateItem, readItem } from '@directus/sdk';
 import {
   directus,
   Announcement,
+  AnnouncementAttachment,
   Event,
   Message,
   MessageRecipient,
@@ -23,11 +24,23 @@ import {
   markAsUnread as markAsUnreadService,
   ContentType,
 } from '../services/readStatusService';
+import {
+  getPinnedIds,
+  pinAnnouncement,
+  unpinAnnouncement,
+  getArchivedIds,
+  archiveAnnouncement,
+  unarchiveAnnouncement,
+  getAcknowledgedIds,
+  acknowledgeAnnouncement,
+  getAllUserAnnouncementStates,
+} from '../services/announcementActionsService';
 
 // Query keys
 export const queryKeys = {
   announcements: ['announcements'] as const,
   announcement: (id: string) => ['announcement', id] as const,
+  announcementAttachments: (id: string) => ['announcementAttachments', id] as const,
   events: ['events'] as const,
   event: (id: string) => ['event', id] as const,
   messages: ['messages'] as const,
@@ -39,6 +52,11 @@ export const queryKeys = {
   reports: ['reports'] as const,
   children: ['children'] as const,
   readIds: (type: string, userId: string) => ['readIds', type, userId] as const,
+  // Announcement actions
+  pinnedAnnouncements: (userId: string) => ['pinnedAnnouncements', userId] as const,
+  archivedAnnouncements: (userId: string) => ['archivedAnnouncements', userId] as const,
+  acknowledgedAnnouncements: (userId: string) => ['acknowledgedAnnouncements', userId] as const,
+  announcementStates: (userId: string) => ['announcementStates', userId] as const,
 };
 
 // Fetch children for the current user
@@ -113,6 +131,26 @@ export function useAnnouncement(id: string) {
       return item as Announcement;
     },
     enabled: !!id,
+  });
+}
+
+// Fetch announcement attachments
+export function useAnnouncementAttachments(announcementId: string) {
+  return useQuery({
+    queryKey: queryKeys.announcementAttachments(announcementId),
+    queryFn: async () => {
+      if (!announcementId) return [];
+      const items = await directus.request(
+        readItems('announcement_attachments', {
+          filter: { announcement_id: { _eq: announcementId } },
+          sort: ['sort'],
+          // Include file metadata from directus_files
+          fields: ['*', { file: ['*'] }] as any,
+        })
+      );
+      return items as unknown as AnnouncementAttachment[];
+    },
+    enabled: !!announcementId,
   });
 }
 
@@ -868,5 +906,288 @@ export function useContentReadStatus(type: ContentType) {
     markAsUnread,
     filterUnread,
     countUnread,
+  };
+}
+
+// ============================================
+// ANNOUNCEMENT ACTIONS HOOKS (Pin, Archive, Acknowledge)
+// ============================================
+
+/**
+ * Fetch all user announcement states (pinned, archived, acknowledged) in one call.
+ * Use this for the main feed to determine item states.
+ */
+export function useAnnouncementStates() {
+  const { user } = useAppContext();
+  const userId = user?.id;
+
+  return useQuery({
+    queryKey: queryKeys.announcementStates(userId ?? ''),
+    queryFn: async () => {
+      if (!userId) {
+        return {
+          pinnedIds: new Set<string>(),
+          archivedIds: new Set<string>(),
+          acknowledgedIds: new Set<string>(),
+        };
+      }
+      return getAllUserAnnouncementStates(userId);
+    },
+    enabled: !!userId,
+    staleTime: 0,
+  });
+}
+
+/**
+ * Hook for pinning/unpinning announcements
+ */
+export function useAnnouncementPin() {
+  const queryClient = useQueryClient();
+  const { user } = useAppContext();
+  const userId = user?.id;
+
+  const pinMutation = useMutation({
+    mutationFn: async (announcementId: string) => {
+      if (!userId) throw new Error('User not authenticated');
+      await pinAnnouncement(announcementId, userId);
+    },
+    onMutate: async (announcementId: string) => {
+      if (!userId) return;
+      const queryKey = queryKeys.announcementStates(userId);
+      await queryClient.cancelQueries({ queryKey });
+
+      const previous = queryClient.getQueryData<{
+        pinnedIds: Set<string>;
+        archivedIds: Set<string>;
+        acknowledgedIds: Set<string>;
+      }>(queryKey);
+
+      queryClient.setQueryData(queryKey, (old: typeof previous) => {
+        if (!old) return old;
+        const newPinned = new Set(old.pinnedIds);
+        newPinned.add(announcementId);
+        return { ...old, pinnedIds: newPinned };
+      });
+
+      return { previous };
+    },
+    onError: (_err, _id, context) => {
+      if (!userId || !context?.previous) return;
+      queryClient.setQueryData(queryKeys.announcementStates(userId), context.previous);
+    },
+    onSettled: () => {
+      if (!userId) return;
+      queryClient.invalidateQueries({ queryKey: queryKeys.announcementStates(userId) });
+    },
+  });
+
+  const unpinMutation = useMutation({
+    mutationFn: async (announcementId: string) => {
+      if (!userId) throw new Error('User not authenticated');
+      await unpinAnnouncement(announcementId, userId);
+    },
+    onMutate: async (announcementId: string) => {
+      if (!userId) return;
+      const queryKey = queryKeys.announcementStates(userId);
+      await queryClient.cancelQueries({ queryKey });
+
+      const previous = queryClient.getQueryData<{
+        pinnedIds: Set<string>;
+        archivedIds: Set<string>;
+        acknowledgedIds: Set<string>;
+      }>(queryKey);
+
+      queryClient.setQueryData(queryKey, (old: typeof previous) => {
+        if (!old) return old;
+        const newPinned = new Set(old.pinnedIds);
+        newPinned.delete(announcementId);
+        return { ...old, pinnedIds: newPinned };
+      });
+
+      return { previous };
+    },
+    onError: (_err, _id, context) => {
+      if (!userId || !context?.previous) return;
+      queryClient.setQueryData(queryKeys.announcementStates(userId), context.previous);
+    },
+    onSettled: () => {
+      if (!userId) return;
+      queryClient.invalidateQueries({ queryKey: queryKeys.announcementStates(userId) });
+    },
+  });
+
+  const isPinned = useCallback((announcementId: string, pinnedIds: Set<string>): boolean => {
+    return pinnedIds.has(announcementId);
+  }, []);
+
+  const togglePin = useCallback(async (announcementId: string, currentlyPinned: boolean) => {
+    if (currentlyPinned) {
+      await unpinMutation.mutateAsync(announcementId);
+    } else {
+      await pinMutation.mutateAsync(announcementId);
+    }
+  }, [pinMutation, unpinMutation]);
+
+  return {
+    pin: pinMutation.mutateAsync,
+    unpin: unpinMutation.mutateAsync,
+    togglePin,
+    isPinned,
+    isPinning: pinMutation.isPending,
+    isUnpinning: unpinMutation.isPending,
+  };
+}
+
+/**
+ * Hook for archiving/unarchiving announcements
+ */
+export function useAnnouncementArchive() {
+  const queryClient = useQueryClient();
+  const { user } = useAppContext();
+  const userId = user?.id;
+
+  const archiveMutation = useMutation({
+    mutationFn: async (announcementId: string) => {
+      if (!userId) throw new Error('User not authenticated');
+      await archiveAnnouncement(announcementId, userId);
+    },
+    onMutate: async (announcementId: string) => {
+      if (!userId) return;
+      const queryKey = queryKeys.announcementStates(userId);
+      await queryClient.cancelQueries({ queryKey });
+
+      const previous = queryClient.getQueryData<{
+        pinnedIds: Set<string>;
+        archivedIds: Set<string>;
+        acknowledgedIds: Set<string>;
+      }>(queryKey);
+
+      queryClient.setQueryData(queryKey, (old: typeof previous) => {
+        if (!old) return old;
+        const newArchived = new Set(old.archivedIds);
+        newArchived.add(announcementId);
+        return { ...old, archivedIds: newArchived };
+      });
+
+      return { previous };
+    },
+    onError: (_err, _id, context) => {
+      if (!userId || !context?.previous) return;
+      queryClient.setQueryData(queryKeys.announcementStates(userId), context.previous);
+    },
+    onSettled: () => {
+      if (!userId) return;
+      queryClient.invalidateQueries({ queryKey: queryKeys.announcementStates(userId) });
+    },
+  });
+
+  const unarchiveMutation = useMutation({
+    mutationFn: async (announcementId: string) => {
+      if (!userId) throw new Error('User not authenticated');
+      await unarchiveAnnouncement(announcementId, userId);
+    },
+    onMutate: async (announcementId: string) => {
+      if (!userId) return;
+      const queryKey = queryKeys.announcementStates(userId);
+      await queryClient.cancelQueries({ queryKey });
+
+      const previous = queryClient.getQueryData<{
+        pinnedIds: Set<string>;
+        archivedIds: Set<string>;
+        acknowledgedIds: Set<string>;
+      }>(queryKey);
+
+      queryClient.setQueryData(queryKey, (old: typeof previous) => {
+        if (!old) return old;
+        const newArchived = new Set(old.archivedIds);
+        newArchived.delete(announcementId);
+        return { ...old, archivedIds: newArchived };
+      });
+
+      return { previous };
+    },
+    onError: (_err, _id, context) => {
+      if (!userId || !context?.previous) return;
+      queryClient.setQueryData(queryKeys.announcementStates(userId), context.previous);
+    },
+    onSettled: () => {
+      if (!userId) return;
+      queryClient.invalidateQueries({ queryKey: queryKeys.announcementStates(userId) });
+    },
+  });
+
+  const isArchived = useCallback((announcementId: string, archivedIds: Set<string>): boolean => {
+    return archivedIds.has(announcementId);
+  }, []);
+
+  const toggleArchive = useCallback(async (announcementId: string, currentlyArchived: boolean) => {
+    if (currentlyArchived) {
+      await unarchiveMutation.mutateAsync(announcementId);
+    } else {
+      await archiveMutation.mutateAsync(announcementId);
+    }
+  }, [archiveMutation, unarchiveMutation]);
+
+  return {
+    archive: archiveMutation.mutateAsync,
+    unarchive: unarchiveMutation.mutateAsync,
+    toggleArchive,
+    isArchived,
+    isArchiving: archiveMutation.isPending,
+    isUnarchiving: unarchiveMutation.isPending,
+  };
+}
+
+/**
+ * Hook for acknowledging announcements
+ */
+export function useAnnouncementAcknowledge() {
+  const queryClient = useQueryClient();
+  const { user } = useAppContext();
+  const userId = user?.id;
+
+  const acknowledgeMutation = useMutation({
+    mutationFn: async (announcementId: string) => {
+      if (!userId) throw new Error('User not authenticated');
+      await acknowledgeAnnouncement(announcementId, userId);
+    },
+    onMutate: async (announcementId: string) => {
+      if (!userId) return;
+      const queryKey = queryKeys.announcementStates(userId);
+      await queryClient.cancelQueries({ queryKey });
+
+      const previous = queryClient.getQueryData<{
+        pinnedIds: Set<string>;
+        archivedIds: Set<string>;
+        acknowledgedIds: Set<string>;
+      }>(queryKey);
+
+      queryClient.setQueryData(queryKey, (old: typeof previous) => {
+        if (!old) return old;
+        const newAcknowledged = new Set(old.acknowledgedIds);
+        newAcknowledged.add(announcementId);
+        return { ...old, acknowledgedIds: newAcknowledged };
+      });
+
+      return { previous };
+    },
+    onError: (_err, _id, context) => {
+      if (!userId || !context?.previous) return;
+      queryClient.setQueryData(queryKeys.announcementStates(userId), context.previous);
+    },
+    onSettled: () => {
+      if (!userId) return;
+      queryClient.invalidateQueries({ queryKey: queryKeys.announcementStates(userId) });
+    },
+  });
+
+  const isAcknowledged = useCallback((announcementId: string, acknowledgedIds: Set<string>): boolean => {
+    return acknowledgedIds.has(announcementId);
+  }, []);
+
+  return {
+    acknowledge: acknowledgeMutation.mutateAsync,
+    isAcknowledged,
+    isAcknowledging: acknowledgeMutation.isPending,
   };
 }

@@ -1,20 +1,16 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
 import { FlashList } from '@shopify/flash-list';
 import ScreenHeader from '../components/ScreenHeader';
 import FilterBar from '../components/FilterBar';
-import DirectusImage from '../components/DirectusImage';
+import SwipeableAnnouncementCard from '../components/SwipeableAnnouncementCard';
 import { useFilters, useUnreadCounts } from '../context/AppContext';
-import { useAnnouncements, useChildren, useContentReadStatus } from '../api/hooks';
+import { useAnnouncements, useChildren, useContentReadStatus, useAnnouncementStates, useAnnouncementPin, useAnnouncementArchive } from '../api/hooks';
 import { Announcement } from '../api/directus';
-import { COLORS, SPACING, BORDERS, TYPOGRAPHY, UNREAD_STYLES, SHADOWS, BADGE_STYLES } from '../theme';
-import { stripHtml } from '../utils';
+import { COLORS, SPACING, TYPOGRAPHY } from '../theme';
 
 export default function NovedadesScreen() {
-  const router = useRouter();
   const { filterMode, selectedChildId, children } = useFilters();
   const { unreadCounts } = useUnreadCounts();
   const { isRead, filterUnread, markAsRead } = useContentReadStatus('announcements');
@@ -25,63 +21,99 @@ export default function NovedadesScreen() {
   // Fetch announcements
   const { data: announcements = [], isLoading, refetch, isRefetching } = useAnnouncements();
 
+  // Fetch user's pinned/archived/acknowledged states
+  const { data: announcementStates, isLoading: statesLoading } = useAnnouncementStates();
+  const pinnedIds = announcementStates?.pinnedIds ?? new Set<string>();
+  const archivedIds = announcementStates?.archivedIds ?? new Set<string>();
+  const acknowledgedIds = announcementStates?.acknowledgedIds ?? new Set<string>();
+
+  // Pin and archive mutations for swipe actions
+  const { togglePin } = useAnnouncementPin();
+  const { toggleArchive } = useAnnouncementArchive();
+
   // Get selected child's section for filtering
   const selectedChild = selectedChildId
     ? children.find(c => c.id === selectedChildId)
     : null;
 
-  // Apply filters
+  // Calculate counts for filter badges
+  const pinnedCount = pinnedIds.size;
+  const archivedCount = archivedIds.size;
+
+  // Apply filters and sorting
   const filteredAnnouncements = useMemo(() => {
     let result = announcements;
 
-    // Filter by read status
-    if (filterMode === 'unread') {
-      result = filterUnread(result);
-    }
-
-    // Filter by selected child (if one is selected)
+    // Filter by selected child first (always applies)
     if (selectedChild) {
       result = result.filter(announcement => {
-        // Show announcements for all
         if (announcement.target_type === 'all') return true;
-
-        // Show section-specific announcements that match child's section
         if (announcement.target_type === 'section') {
           return announcement.target_id === selectedChild.section_id;
         }
-
-        // Grade-specific announcements: show all for now
-        // TODO: Need to fetch grade_id from section to filter properly
         if (announcement.target_type === 'grade') {
-          return true;
+          return true; // TODO: Need to fetch grade_id from section
         }
-
         return true;
       });
     }
 
+    // Apply filter mode
+    switch (filterMode) {
+      case 'unread':
+        // Show only unread, exclude archived
+        result = filterUnread(result).filter(a => !archivedIds.has(a.id));
+        break;
+      case 'all':
+        // Show all except archived
+        result = result.filter(a => !archivedIds.has(a.id));
+        break;
+      case 'pinned':
+        // Show only user-pinned items (including archived if pinned)
+        result = result.filter(a => pinnedIds.has(a.id));
+        break;
+      case 'archived':
+        // Show only archived items
+        result = result.filter(a => archivedIds.has(a.id));
+        break;
+    }
+
+    // Sort: pinned items first (except when viewing pinned or archived filter)
+    if (filterMode !== 'pinned' && filterMode !== 'archived') {
+      result = [...result].sort((a, b) => {
+        const aPinned = pinnedIds.has(a.id) || a.is_pinned;
+        const bPinned = pinnedIds.has(b.id) || b.is_pinned;
+        if (aPinned && !bPinned) return -1;
+        if (!aPinned && bPinned) return 1;
+        // Then by date (newest first)
+        return new Date(b.published_at || b.created_at).getTime() -
+               new Date(a.published_at || a.created_at).getTime();
+      });
+    }
+
     return result;
-  }, [announcements, filterMode, filterUnread, selectedChild]);
+  }, [announcements, filterMode, filterUnread, selectedChild, pinnedIds, archivedIds]);
 
   const onRefresh = async () => {
     await refetch();
   };
 
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' });
-  };
-
   const ListHeader = () => (
     <View style={styles.listHeader}>
       <ScreenHeader title="Novedades" />
-      <FilterBar unreadCount={unreadCounts.novedades} />
+      <FilterBar
+        unreadCount={unreadCounts.novedades}
+        pinnedCount={pinnedCount}
+        archivedCount={archivedCount}
+        showPinnedFilter={true}
+        showArchivedFilter={true}
+      />
     </View>
   );
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {isLoading ? (
+      {isLoading || statesLoading ? (
         <View style={styles.loadingContainer}>
           <ListHeader />
           <ActivityIndicator size="large" color={COLORS.primary} />
@@ -97,54 +129,23 @@ export default function NovedadesScreen() {
           contentContainerStyle={styles.listContent}
           renderItem={({ item }: { item: Announcement }) => {
             const itemIsUnread = !isRead(item.id);
+            const itemIsPinned = pinnedIds.has(item.id) || Boolean(item.is_pinned);
+            const itemIsArchived = archivedIds.has(item.id);
+            const itemIsAcknowledged = acknowledgedIds.has(item.id);
+
             return (
-            <TouchableOpacity
-              style={[styles.card, itemIsUnread && styles.cardUnread]}
-              onPress={() => {
-                if (itemIsUnread) {
-                  markAsRead(item.id);
-                }
-                router.push({ pathname: '/novedades/[id]', params: { id: item.id } });
-              }}
-            >
-              {item.priority === 'urgent' ? (
-                <View style={styles.priorityBadge}>
-                  <Text style={styles.priorityBadgeText}>URGENTE</Text>
-                </View>
-              ) : item.priority === 'important' ? (
-                <View style={[styles.priorityBadge, styles.importantBadge]}>
-                  <Text style={styles.priorityBadgeText}>IMPORTANTE</Text>
-                </View>
-              ) : null}
-
-              {itemIsUnread && (
-                <View style={styles.unreadDot} />
-              )}
-
-              <DirectusImage
-                fileId={item.image}
-                style={styles.cardImage}
-                resizeMode="cover"
-                fallback={
-                  <View style={styles.cardImagePlaceholder}>
-                    <MaterialCommunityIcons name="school-outline" size={48} color={COLORS.primary} />
-                    <Text style={styles.schoolName}>Colegio</Text>
-                  </View>
-                }
+              <SwipeableAnnouncementCard
+                item={item}
+                isUnread={itemIsUnread}
+                isPinned={itemIsPinned}
+                isArchived={itemIsArchived}
+                isAcknowledged={itemIsAcknowledged}
+                onMarkAsRead={() => markAsRead(item.id)}
+                onTogglePin={() => togglePin(item.id, itemIsPinned)}
+                onArchive={() => toggleArchive(item.id, false)}
+                onUnarchive={() => toggleArchive(item.id, true)}
               />
-
-              <View style={styles.categoryBadge}>
-                <Ionicons name="megaphone-outline" size={12} color={COLORS.white} style={styles.categoryIcon} />
-                <Text style={styles.categoryText}>{formatDate(item.published_at || item.created_at)}</Text>
-              </View>
-
-              <View style={styles.cardContent}>
-                <Text style={styles.cardTitle}>{item.title}</Text>
-                <Text style={styles.cardSubtitle} numberOfLines={2}>{stripHtml(item.content)}</Text>
-                <Text style={styles.cardCta}>Ver Novedad</Text>
-              </View>
-            </TouchableOpacity>
-          );
+            );
           }}
           ListEmptyComponent={
             <View style={styles.emptyState}>
@@ -171,87 +172,6 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingBottom: SPACING.tabBarOffset,
-  },
-  card: {
-    backgroundColor: COLORS.white,
-    borderRadius: BORDERS.radius.lg,
-    marginBottom: SPACING.lg,
-    marginHorizontal: SPACING.screenPadding,
-    overflow: 'hidden',
-    ...SHADOWS.card,
-  },
-  cardUnread: {
-    ...UNREAD_STYLES.borderLeft,
-  },
-  unreadDot: {
-    position: 'absolute',
-    top: SPACING.md,
-    right: SPACING.md,
-    ...UNREAD_STYLES.dot,
-    zIndex: 2,
-  },
-  priorityBadge: {
-    position: 'absolute',
-    top: SPACING.md,
-    left: SPACING.md,
-    ...BADGE_STYLES.new,
-    zIndex: 1,
-  },
-  priorityBadgeText: {
-    color: COLORS.white,
-    ...TYPOGRAPHY.badgeSmall,
-  },
-  importantBadge: {
-    backgroundColor: COLORS.warning,
-  },
-  cardImage: {
-    height: 160,
-    width: '100%',
-  },
-  cardImagePlaceholder: {
-    height: 160,
-    backgroundColor: COLORS.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  schoolName: {
-    fontSize: 24,
-    color: COLORS.primary,
-  },
-  categoryBadge: {
-    position: 'absolute',
-    top: 130,
-    left: SPACING.md,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    paddingHorizontal: 10,
-    paddingVertical: SPACING.xs,
-    borderRadius: BORDERS.radius.sm,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  categoryIcon: {
-    marginRight: SPACING.xs,
-  },
-  categoryText: {
-    color: COLORS.white,
-    ...TYPOGRAPHY.caption,
-  },
-  cardContent: {
-    padding: SPACING.cardPadding,
-  },
-  cardTitle: {
-    ...TYPOGRAPHY.cardTitle,
-    marginBottom: SPACING.xs,
-  },
-  cardSubtitle: {
-    ...TYPOGRAPHY.body,
-    color: COLORS.gray,
-    marginBottom: SPACING.sm,
-  },
-  cardCta: {
-    ...TYPOGRAPHY.body,
-    color: COLORS.primary,
-    fontWeight: '600',
   },
   emptyState: {
     alignItems: 'center',

@@ -1,16 +1,23 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ActivityIndicator, View } from 'react-native';
 import { QueryClient } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Linking from 'expo-linking';
 
 import { AppProvider, useAuth } from '../src/context/AppContext';
 import LoginScreen from '../src/screens/LoginScreen';
 import { registerForPushNotifications, savePushToken } from '../src/services/notifications';
+import {
+  savePendingDeepLink,
+  consumePendingDeepLink,
+  navigateFromDeepLink,
+} from '../src/services/deepLinking';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -27,7 +34,9 @@ const persister = createAsyncStoragePersister({
 
 function RootContent() {
   const { isAuthenticated, isLoading, user } = useAuth();
+  const hasHandledDeepLink = useRef(false);
 
+  // Handle push notifications registration
   useEffect(() => {
     if (isAuthenticated && user?.id) {
       registerForPushNotifications().then((token) => {
@@ -37,6 +46,41 @@ function RootContent() {
       });
     }
   }, [isAuthenticated, user?.id]);
+
+  // Handle deep links when not authenticated - save for later
+  useEffect(() => {
+    if (!isAuthenticated && !isLoading) {
+      const handleUrl = (event: { url: string }) => {
+        savePendingDeepLink(event.url);
+      };
+
+      // Check initial URL
+      Linking.getInitialURL().then((url) => {
+        if (url) {
+          savePendingDeepLink(url);
+        }
+      });
+
+      // Listen for incoming URLs
+      const subscription = Linking.addEventListener('url', handleUrl);
+      return () => subscription.remove();
+    }
+  }, [isAuthenticated, isLoading]);
+
+  // Navigate to pending deep link after authentication
+  useEffect(() => {
+    if (isAuthenticated && !isLoading && !hasHandledDeepLink.current) {
+      hasHandledDeepLink.current = true;
+      consumePendingDeepLink().then((url) => {
+        if (url) {
+          // Small delay to ensure navigation stack is ready
+          setTimeout(() => {
+            navigateFromDeepLink(url);
+          }, 100);
+        }
+      });
+    }
+  }, [isAuthenticated, isLoading]);
 
   if (isLoading) {
     return (
@@ -63,19 +107,21 @@ function RootContent() {
 
 export default function RootLayout() {
   return (
-    <SafeAreaProvider>
-      <PersistQueryClientProvider
-        client={queryClient}
-        persistOptions={{
-          persister,
-          maxAge: 1000 * 60 * 60 * 24, // 24h
-        }}
-      >
-        <AppProvider>
-          <StatusBar style="dark" />
-          <RootContent />
-        </AppProvider>
-      </PersistQueryClientProvider>
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <PersistQueryClientProvider
+          client={queryClient}
+          persistOptions={{
+            persister,
+            maxAge: 1000 * 60 * 60 * 24, // 24h
+          }}
+        >
+          <AppProvider>
+            <StatusBar style="dark" />
+            <RootContent />
+          </AppProvider>
+        </PersistQueryClientProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }

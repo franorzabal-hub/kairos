@@ -10,15 +10,34 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { FlashList } from '@shopify/flash-list';
-import { useFilters } from '../context/AppContext';
+import { useFilters, FilterMode } from '../context/AppContext';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY } from '../theme';
+
+interface FilterOption {
+  mode: FilterMode;
+  label: string;
+  count?: number;
+  icon?: string;
+}
 
 interface FilterBarProps {
   unreadCount?: number;
   showUnreadFilter?: boolean;
+  // Additional filters for Novedades (pinned, archived)
+  pinnedCount?: number;
+  archivedCount?: number;
+  showPinnedFilter?: boolean;
+  showArchivedFilter?: boolean;
 }
 
-export default function FilterBar({ unreadCount = 0, showUnreadFilter = true }: FilterBarProps) {
+export default function FilterBar({
+  unreadCount = 0,
+  showUnreadFilter = true,
+  pinnedCount = 0,
+  archivedCount = 0,
+  showPinnedFilter = false,
+  showArchivedFilter = false,
+}: FilterBarProps) {
   const { filterMode, setFilterMode, selectedChildId, setSelectedChildId, children } = useFilters();
   const [showChildPicker, setShowChildPicker] = useState(false);
 
@@ -26,6 +45,35 @@ export default function FilterBar({ unreadCount = 0, showUnreadFilter = true }: 
   const childLabel = selectedChild
     ? `${selectedChild.first_name}`
     : 'Todos';
+
+  // Helper to render a filter pill
+  const renderFilterPill = (mode: FilterMode, label: string, count?: number, icon?: keyof typeof Ionicons.glyphMap) => (
+    <TouchableOpacity
+      key={mode}
+      style={[
+        styles.pill,
+        filterMode === mode && styles.pillActive,
+      ]}
+      onPress={() => setFilterMode(mode)}
+    >
+      {icon && (
+        <Ionicons
+          name={icon}
+          size={14}
+          color={filterMode === mode ? COLORS.white : COLORS.gray}
+          style={styles.pillIcon}
+        />
+      )}
+      <Text
+        style={[
+          styles.pillText,
+          filterMode === mode && styles.pillTextActive,
+        ]}
+      >
+        {label}{count !== undefined && count > 0 ? ` (${count})` : ''}
+      </Text>
+    </TouchableOpacity>
+  );
 
   return (
     <View style={styles.container}>
@@ -37,40 +85,16 @@ export default function FilterBar({ unreadCount = 0, showUnreadFilter = true }: 
         {showUnreadFilter && (
           <>
             {/* Unread Filter Pill */}
-            <TouchableOpacity
-              style={[
-                styles.pill,
-                filterMode === 'unread' && styles.pillActive,
-              ]}
-              onPress={() => setFilterMode('unread')}
-            >
-              <Text
-                style={[
-                  styles.pillText,
-                  filterMode === 'unread' && styles.pillTextActive,
-                ]}
-              >
-                No Leído{unreadCount > 0 ? ` (${unreadCount})` : ''}
-              </Text>
-            </TouchableOpacity>
+            {renderFilterPill('unread', 'No Leído', unreadCount)}
 
             {/* All Filter Pill */}
-            <TouchableOpacity
-              style={[
-                styles.pill,
-                filterMode === 'all' && styles.pillActive,
-              ]}
-              onPress={() => setFilterMode('all')}
-            >
-              <Text
-                style={[
-                  styles.pillText,
-                  filterMode === 'all' && styles.pillTextActive,
-                ]}
-              >
-                Todos
-              </Text>
-            </TouchableOpacity>
+            {renderFilterPill('all', 'Todos')}
+
+            {/* Pinned Filter Pill (if enabled) */}
+            {showPinnedFilter && renderFilterPill('pinned', 'Fijados', pinnedCount, 'pin-outline')}
+
+            {/* Archived Filter Pill (if enabled) */}
+            {showArchivedFilter && renderFilterPill('archived', 'Archivados', archivedCount, 'archive-outline')}
 
             {/* Divider */}
             <View style={styles.divider} />
