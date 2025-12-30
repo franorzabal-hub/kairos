@@ -15,15 +15,24 @@ export default function TabsLayout() {
       screenOptions={{ headerShown: false }}
       tabBar={(props) => <BlurTabBar {...props} unreadCounts={unreadCounts} />}
     >
+      {/* Index redirects to inicio */}
       <Tabs.Screen name="index" options={{ href: null }} />
-      <Tabs.Screen name="novedades/index" options={{ title: 'Novedades' }} />
-      <Tabs.Screen name="novedades/[id]" options={{ href: null }} />
-      <Tabs.Screen name="eventos/index" options={{ title: 'Eventos' }} />
-      <Tabs.Screen name="eventos/[id]" options={{ href: null }} />
+
+      {/* Main 4-tab navigation */}
+      <Tabs.Screen name="inicio/index" options={{ title: 'Inicio' }} />
+      <Tabs.Screen name="agenda/index" options={{ title: 'Agenda' }} />
+      <Tabs.Screen name="agenda/[id]" options={{ href: null }} />
       <Tabs.Screen name="mensajes/index" options={{ title: 'Mensajes' }} />
       <Tabs.Screen name="mensajes/[id]" options={{ href: null }} />
-      <Tabs.Screen name="cambios/index" options={{ title: 'Cambios' }} />
-      <Tabs.Screen name="boletines/index" options={{ title: 'Boletines' }} />
+      <Tabs.Screen name="mishijos/index" options={{ title: 'Mis Hijos' }} />
+
+      {/* Legacy routes - hidden from tab bar but accessible for deep linking */}
+      <Tabs.Screen name="novedades/index" options={{ href: null }} />
+      <Tabs.Screen name="novedades/[id]" options={{ href: null }} />
+      <Tabs.Screen name="eventos/index" options={{ href: null }} />
+      <Tabs.Screen name="eventos/[id]" options={{ href: null }} />
+      <Tabs.Screen name="cambios/index" options={{ href: null }} />
+      <Tabs.Screen name="boletines/index" options={{ href: null }} />
     </Tabs>
   );
 }

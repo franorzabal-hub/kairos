@@ -30,11 +30,15 @@ interface AppContextType extends AuthContextType {
   selectedChildId: string | null;
   setSelectedChildId: (id: string | null) => void;
 
-  // Unread counts per tab
+  // Unread counts per tab (new 4-tab structure)
   unreadCounts: {
+    inicio: number;      // Combined novedades + upcoming events
+    agenda: number;      // All events
+    mensajes: number;
+    mishijos: number;    // Reports + attendance
+    // Legacy keys for backwards compatibility
     novedades: number;
     eventos: number;
-    mensajes: number;
     cambios: number;
     boletines: number;
   };
@@ -42,9 +46,13 @@ interface AppContextType extends AuthContextType {
 }
 
 const defaultUnreadCounts = {
+  inicio: 0,
+  agenda: 0,
+  mensajes: 0,
+  mishijos: 0,
+  // Legacy keys
   novedades: 0,
   eventos: 0,
-  mensajes: 0,
   cambios: 0,
   boletines: 0,
 };

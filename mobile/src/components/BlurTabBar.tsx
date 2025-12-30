@@ -9,28 +9,30 @@ import { COLORS, SPACING, TYPOGRAPHY } from '../theme';
 
 interface BlurTabBarProps extends BottomTabBarProps {
   unreadCounts: {
+    inicio: number;      // Combined novedades + upcoming events
+    agenda: number;      // All events
+    mensajes: number;
+    mishijos: number;    // Reports + pickup + attendance
+    // Legacy keys for backwards compatibility
     novedades: number;
     eventos: number;
-    mensajes: number;
     cambios: number;
     boletines: number;
   };
 }
 
 const TAB_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
-  'novedades/index': 'megaphone-outline',
-  'eventos/index': 'calendar-outline',
+  'inicio/index': 'home-outline',
+  'agenda/index': 'calendar-outline',
   'mensajes/index': 'chatbubbles-outline',
-  'cambios/index': 'time-outline',
-  'boletines/index': 'document-text-outline',
+  'mishijos/index': 'people-outline',
 };
 
 const TAB_BADGE_KEYS: Record<string, keyof BlurTabBarProps['unreadCounts']> = {
-  'novedades/index': 'novedades',
-  'eventos/index': 'eventos',
+  'inicio/index': 'inicio',
+  'agenda/index': 'agenda',
   'mensajes/index': 'mensajes',
-  'cambios/index': 'cambios',
-  'boletines/index': 'boletines',
+  'mishijos/index': 'mishijos',
 };
 
 export default function BlurTabBar({ state, descriptors, navigation, unreadCounts }: BlurTabBarProps) {
