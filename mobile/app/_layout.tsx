@@ -5,7 +5,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, View, Platform } from 'react-native';
 import { QueryClient } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
@@ -18,6 +18,7 @@ import { ToastProvider } from '../src/context/ToastContext';
 import { PermissionProvider } from '../src/context/PermissionContext';
 import PermissionDebugPanel from '../src/components/PermissionDebugPanel';
 import LoginScreen from '../src/screens/LoginScreen';
+import { WebLoginScreen } from '../src/screens/web';
 import { ErrorBoundary } from '../src/components/ErrorBoundary';
 import { useQueryErrorHandler } from '../src/hooks';
 import {
@@ -148,6 +149,10 @@ function RootContent() {
   }
 
   if (!isAuthenticated) {
+    // Use web-optimized login for desktop browsers
+    if (Platform.OS === 'web') {
+      return <WebLoginScreen />;
+    }
     return <LoginScreen />;
   }
 

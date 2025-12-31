@@ -13,9 +13,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
-import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
 import * as Calendar from 'expo-calendar';
 import ScreenHeader from '../components/ScreenHeader';
+import MapPreview from '../components/MapPreview';
 import RenderHtml from 'react-native-render-html';
 import DirectusImage from '../components/DirectusImage';
 import Toast from '../components/Toast';
@@ -287,24 +287,12 @@ export default function EventoDetailScreen() {
               </View>
 
               {locationCoordinates ? (
-                <View style={styles.mapPreview}>
-                  <MapView
-                    style={styles.map}
-                    provider={Platform.OS === 'ios' ? PROVIDER_DEFAULT : undefined}
-                    scrollEnabled={false}
-                    zoomEnabled={false}
-                    pitchEnabled={false}
-                    rotateEnabled={false}
-                    region={{
-                      latitude: locationCoordinates.latitude,
-                      longitude: locationCoordinates.longitude,
-                      latitudeDelta: 0.01,
-                      longitudeDelta: 0.01,
-                    }}
-                  >
-                    <Marker coordinate={locationCoordinates} title={locationName} />
-                  </MapView>
-                </View>
+                <MapPreview
+                  latitude={locationCoordinates.latitude}
+                  longitude={locationCoordinates.longitude}
+                  title={locationName}
+                  style={styles.mapPreview}
+                />
               ) : null}
             </View>
           ) : null}
@@ -461,11 +449,6 @@ const styles = StyleSheet.create({
   },
   mapPreview: {
     marginTop: 12,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  map: {
-    width: '100%',
     height: 160,
   },
   infoRow: {

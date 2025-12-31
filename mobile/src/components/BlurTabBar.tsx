@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
@@ -56,6 +56,11 @@ const ROUTE_TO_PARENT_TAB: Record<string, string> = {
 export default function BlurTabBar({ state, descriptors, navigation, unreadCounts }: BlurTabBarProps) {
   const insets = useSafeAreaInsets();
   const segments = useSegments();
+
+  // Hide tab bar on web - WebLayout sidebar handles navigation
+  if (Platform.OS === 'web') {
+    return null;
+  }
 
   // Hide tab bar only on detail screens (routes with dynamic [id] params)
   // segments example: ['(tabs)', 'agenda', '[id]'] for /agenda/123
