@@ -6,8 +6,8 @@ import ScreenHeader from '../components/ScreenHeader';
 import ChildSelector from '../components/ChildSelector';
 import SegmentedControl from '../components/SegmentedControl';
 import EventCard, { EventStatus } from '../components/EventCard';
-import { useEvents } from '../api/hooks';
-import { useSession, useReadStatus } from '../hooks';
+import { useEvents, useContentReadStatus } from '../api/hooks';
+import { useSession } from '../hooks';
 import { Event } from '../api/directus';
 import { COLORS, CHILD_COLORS, SPACING, TYPOGRAPHY, BORDERS } from '../theme';
 
@@ -28,7 +28,7 @@ export default function AgendaScreen() {
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('upcoming');
 
   const { data: events = [], isLoading, refetch, isRefetching } = useEvents();
-  const { isRead, markAsRead } = useReadStatus('events');
+  const { isRead, markAsRead } = useContentReadStatus('events');
 
   // Get selected child for filtering
   const selectedChild = selectedChildId ? getChildById(selectedChildId) : null;

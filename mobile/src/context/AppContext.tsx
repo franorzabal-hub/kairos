@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { Student, AppUser, directus, saveTokens, getTokens, clearTokens, isBiometricEnabled } from '../api/directus';
 import { readMe, readItems } from '@directus/sdk';
@@ -78,19 +78,40 @@ export function AppProvider({ children: childrenProp }: { children: ReactNode })
     checkAuthStatus();
   }, []);
 
-  // Helper to fetch app_user by email (more reliable than directus_user_id)
+  // Helper to fetch app_user for current user
+  // The Directus permission filters app_users by directus_user_id = $CURRENT_USER
+  // So we just need to fetch and find the one matching our email
   const fetchAppUser = async (email: string): Promise<AppUser | null> => {
     try {
+      // Fetch app_users - the Directus permission will filter to current user's records
       const appUsers = await directus.request(
         readItems('app_users', {
-          filter: { email: { _eq: email } },
-          limit: 1,
+          limit: 10, // Should return only user's own records due to permission
         })
       );
-      return appUsers.length > 0 ? (appUsers[0] as AppUser) : null;
-    } catch (error) {
-      // Silently fail - user might not have permission to read app_users
-      console.log('Could not fetch app_user, using Directus user data');
+
+      if (!Array.isArray(appUsers) || appUsers.length === 0) {
+        if (__DEV__) console.log('[fetchAppUser] No app_users returned');
+        return null;
+      }
+
+      // Permission filters to current user, so we should only get our own record
+      // First try to match by email, then fall back to first record
+      let match = appUsers.find(u => u.email === email);
+
+      // If no email match, use first record (permission ensures it's ours)
+      if (!match && appUsers.length > 0) {
+        match = appUsers[0];
+      }
+
+      if (match) {
+        if (__DEV__) console.log('[fetchAppUser] ✅ Found app_user:', match.id);
+        return match as AppUser;
+      }
+
+      return null;
+    } catch (error: any) {
+      if (__DEV__) console.log('[fetchAppUser] Error:', error?.message);
       return null;
     }
   };
@@ -127,6 +148,7 @@ export function AppProvider({ children: childrenProp }: { children: ReactNode })
 
         // Try to get current user with stored token
         const currentUser = await directus.request(readMe());
+
         if (currentUser && currentUser.email) {
           // Fetch the app_user record by email
           const appUser = await fetchAppUser(currentUser.email);
@@ -136,6 +158,7 @@ export function AppProvider({ children: childrenProp }: { children: ReactNode })
             setUser(appUser);
           } else {
             // Fallback: create minimal user from Directus data
+            if (__DEV__) console.log('[checkAuthStatus] ⚠️ Fallback to Directus user - children query may fail');
             setUser({
               id: currentUser.id,
               organization_id: '',
@@ -149,20 +172,20 @@ export function AppProvider({ children: childrenProp }: { children: ReactNode })
         }
       }
     } catch (error) {
-      console.log('No valid session found');
+      if (__DEV__) console.log('[checkAuthStatus] No valid session');
       await clearTokens();
     } finally {
       setIsLoading(false);
     }
   };
 
-  const login = async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string) => {
     try {
       // Use the SDK's built-in login which handles token storage internally
       const result = await directus.login({ email, password });
 
       if (result.access_token && result.refresh_token) {
-        // Also save tokens to SecureStore for persistence across app restarts
+        // Save tokens to SecureStore for persistence across app restarts
         await saveTokens(result.access_token, result.refresh_token);
 
         // Get Directus user info
@@ -172,10 +195,10 @@ export function AppProvider({ children: childrenProp }: { children: ReactNode })
         const appUser = currentUser.email ? await fetchAppUser(currentUser.email) : null;
 
         if (appUser) {
-          // Use app_user data (has correct ID for relations)
           setUser(appUser);
         } else {
           // Fallback: create minimal user from Directus data
+          if (__DEV__) console.log('[login] ⚠️ Fallback to Directus user - children query may fail');
           setUser({
             id: currentUser.id,
             organization_id: '',
@@ -188,40 +211,59 @@ export function AppProvider({ children: childrenProp }: { children: ReactNode })
         }
       }
     } catch (error: any) {
-      console.error('Login failed:', error);
+      if (__DEV__) console.error('[login] Failed:', error?.message);
       throw new Error(error.errors?.[0]?.message || 'Error de autenticación');
     }
-  };
+  }, []);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     // Clear read status before clearing user (need user.id for the API call)
+    // This is non-critical - don't let it block logout
     if (user?.id) {
-      await clearAllReadStatus(user.id);
+      try {
+        await clearAllReadStatus(user.id);
+      } catch (error) {
+        // Non-critical - continue with logout even if this fails
+        if (__DEV__) console.log('[logout] Failed to clear read status:', error);
+      }
     }
+
     await clearTokens();
     setUser(null);
     setChildren([]);
     setUnreadCountsState(defaultUnreadCounts);
-  };
+  }, [user?.id]);
+
+  // Memoize context value to prevent unnecessary re-renders of consumers
+  const contextValue = useMemo<AppContextType>(() => ({
+    user,
+    isAuthenticated,
+    isLoading,
+    login,
+    logout,
+    children,
+    setChildren,
+    filterMode,
+    setFilterMode,
+    selectedChildId,
+    setSelectedChildId,
+    unreadCounts,
+    setUnreadCounts,
+  }), [
+    user,
+    isAuthenticated,
+    isLoading,
+    login,
+    logout,
+    children,
+    filterMode,
+    selectedChildId,
+    unreadCounts,
+    setUnreadCounts,
+  ]);
 
   return (
-    <AppContext.Provider
-      value={{
-        user,
-        isAuthenticated,
-        isLoading,
-        login,
-        logout,
-        children,
-        setChildren,
-        filterMode,
-        setFilterMode,
-        selectedChildId,
-        setSelectedChildId,
-        unreadCounts,
-        setUnreadCounts,
-      }}
-    >
+    <AppContext.Provider value={contextValue}>
       {childrenProp}
     </AppContext.Provider>
   );

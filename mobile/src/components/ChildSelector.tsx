@@ -15,7 +15,7 @@ interface ChildSelectorProps {
   compact?: boolean; // Inline chip style for header use
 }
 
-export default function ChildSelector({
+function ChildSelector({
   children: childrenProp,
   selectedChildId: selectedChildIdProp,
   onSelectChild: onSelectChildProp,
@@ -288,3 +288,6 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
   },
 });
+
+// Memoize to prevent unnecessary re-renders when parent state changes
+export default React.memo(ChildSelector);

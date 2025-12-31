@@ -11,7 +11,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Linking from 'expo-linking';
 
 import { AppProvider, useAuth } from '../src/context/AppContext';
+import { ThemeProvider } from '../src/context/ThemeContext';
 import LoginScreen from '../src/screens/LoginScreen';
+import { ErrorBoundary } from '../src/components/ErrorBoundary';
 import { registerForPushNotifications, savePushToken } from '../src/services/notifications';
 import {
   savePendingDeepLink,
@@ -95,13 +97,15 @@ function RootContent() {
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen
-        name="settings"
-        options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
-      />
-    </Stack>
+    <ThemeProvider>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen
+          name="settings"
+          options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+        />
+      </Stack>
+    </ThemeProvider>
   );
 }
 
@@ -118,7 +122,9 @@ export default function RootLayout() {
         >
           <AppProvider>
             <StatusBar style="dark" />
-            <RootContent />
+            <ErrorBoundary>
+              <RootContent />
+            </ErrorBoundary>
           </AppProvider>
         </PersistQueryClientProvider>
       </SafeAreaProvider>

@@ -1,6 +1,11 @@
 import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { readItems, createItem, updateItem, readItem } from '@directus/sdk';
+import { readItems, createItem, updateItem, readItem, aggregate } from '@directus/sdk';
+import { getAggregateCount } from '../types/directus';
+
+// Note: Directus SDK's TypeScript types don't fully support nested field syntax.
+// We use `as any` for fields with relations (e.g., { location_id: ['*'] }).
+// This is the community-standard workaround for the SDK's type limitations.
 import {
   directus,
   Announcement,
@@ -88,62 +93,30 @@ export function useChildren() {
   return useQuery({
     queryKey: [...queryKeys.children, user?.id],
     queryFn: async () => {
-      if (!user?.id) {
-        console.log('[useChildren] No user ID available');
-        return [];
-      }
-
-      // Debug: Log full user info to verify correct ID is being used
-      console.log('[useChildren] === DEBUG USER INFO ===');
-      console.log('[useChildren] user.id:', user.id);
-      console.log('[useChildren] user.email:', user.email);
-      console.log('[useChildren] user.directus_user_id:', user.directus_user_id);
-      console.log('[useChildren] user.first_name:', user.first_name);
-      console.log('[useChildren] === END DEBUG ===');
+      if (!user?.id) return [];
 
       // Get student_guardians for this user (user_id references app_users.id)
-      console.log('[useChildren] Fetching guardians for user.id:', user.id);
       const guardians = await directus.request(
         readItems('student_guardians', {
           filter: { user_id: { _eq: user.id } },
         })
       );
 
-      console.log('[useChildren] Found guardians:', guardians.length);
-      if (guardians.length > 0) {
-        console.log('[useChildren] Guardian records:', JSON.stringify(guardians, null, 2));
-      }
-
-      if (!guardians.length) {
-        console.log('[useChildren] No guardians found - children filter will be hidden');
-        return [];
-      }
+      if (!guardians.length) return [];
 
       // Get students for these guardians
       const studentIds = guardians.map(g => g.student_id);
-      console.log('[useChildren] Student IDs to fetch:', studentIds);
 
-      try {
-        // Note: Don't request grade_id - Parent role may not have permission for that field
-        const students = await directus.request(
-          readItems('students', {
-            filter: { id: { _in: studentIds }, status: { _eq: 'active' } },
-            fields: ['id', 'organization_id', 'first_name', 'last_name', 'birth_date', 'photo', 'section_id', 'status'],
-          })
-        );
+      // Note: Don't request grade_id - Parent role may not have permission for that field
+      const students = await directus.request(
+        readItems('students', {
+          filter: { id: { _in: studentIds }, status: { _eq: 'active' } },
+          fields: ['id', 'organization_id', 'first_name', 'last_name', 'birth_date', 'photo', 'section_id', 'status'],
+        })
+      );
 
-        console.log('[useChildren] Found students:', students.length);
-        if (students.length > 0) {
-          console.log('[useChildren] Student names:', students.map(s => `${s.first_name} ${s.last_name}`).join(', '));
-        }
-
-        setChildren(students as Student[]);
-        return students as Student[];
-      } catch (studentError: any) {
-        console.log('[useChildren] ❌ ERROR fetching students:', studentError?.message || studentError);
-        console.log('[useChildren] ❌ Error details:', JSON.stringify(studentError, null, 2));
-        throw studentError; // Re-throw to let React Query handle it
-      }
+      setChildren(students as Student[]);
+      return students as Student[];
     },
     enabled: !!user?.id,
   });
@@ -201,7 +174,7 @@ export function useAnnouncementAttachments(announcementId: string) {
         readItems('announcement_attachments', {
           filter: { announcement_id: { _eq: announcementId } },
           sort: ['sort'],
-          // Include file metadata from directus_files
+          // Include file metadata from directus_files (NestedFields for relational queries)
           fields: ['*', { file: ['*'] }] as any,
         })
       );
@@ -270,7 +243,7 @@ export function useMessages() {
           filter: {
             user_id: { _eq: directusUserId },
           },
-          // Use type assertion for nested field syntax
+          // NestedFields for relational message data
           fields: ['*', { message_id: ['*'] }] as any,
           sort: ['-date_created'],
           limit: 50,
@@ -456,12 +429,12 @@ export function useConversations() {
             user_id: { _eq: directusUserId },
             is_blocked: { _eq: false },
           },
-          // Use type assertion for nested field syntax
+          // NestedFields for deeply nested conversation data
           fields: [
             '*',
             { conversation_id: ['*', { participants: ['*', { user_id: ['*'] }] }] },
           ] as any,
-          sort: ['-date_created'] as any, // Sort by participation date since nested sort not reliable
+          sort: ['-date_created'],
         })
       );
 
@@ -500,7 +473,7 @@ export function useConversations() {
             })
           );
 
-          const unreadCount = Number((unreadMessages as any)[0]?.count ?? 0);
+          const unreadCount = getAggregateCount(unreadMessages);
 
           // Get other participants (not current user)
           const otherParticipants = (conversation.participants ?? [])

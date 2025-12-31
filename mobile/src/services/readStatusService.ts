@@ -1,15 +1,16 @@
 import { directus, ContentRead } from '../api/directus';
 import { readItems, createItem, deleteItems } from '@directus/sdk';
+import { CONTENT_TYPES, ContentTypeValue } from '../constants';
 
-// Map UI content types to database content types
-export type ContentType = 'announcements' | 'events' | 'cambios' | 'boletines';
+// ContentType derives from CONTENT_TYPES constant values
+export type ContentType = ContentTypeValue;
 type DbContentType = 'announcement' | 'event' | 'message' | 'report';
 
 const contentTypeMap: Record<ContentType, DbContentType> = {
-  announcements: 'announcement',
-  events: 'event',
-  cambios: 'message', // pickup requests tracked as messages
-  boletines: 'report',
+  [CONTENT_TYPES.ANNOUNCEMENTS]: 'announcement',
+  [CONTENT_TYPES.EVENTS]: 'event',
+  [CONTENT_TYPES.CAMBIOS]: 'message', // pickup requests tracked as messages
+  [CONTENT_TYPES.BOLETINES]: 'report',
 };
 
 /**

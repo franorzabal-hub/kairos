@@ -9,8 +9,7 @@ import ScreenHeader from '../components/ScreenHeader';
 import FilterBar from '../components/FilterBar';
 import DirectusImage from '../components/DirectusImage';
 import { useFilters, useUnreadCounts } from '../context/AppContext';
-import { useEvents } from '../api/hooks';
-import { useReadStatus } from '../hooks';
+import { useEvents, useContentReadStatus } from '../api/hooks';
 import { Event } from '../api/directus';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY, UNREAD_STYLES, SHADOWS, BADGE_STYLES } from '../theme';
 import { stripHtml } from '../utils';
@@ -80,7 +79,7 @@ export default function EventosScreen() {
   const [selectedDate, setSelectedDate] = useState<string>(todayKey);
 
   const { data: events = [], isLoading, refetch, isRefetching } = useEvents();
-  const { isRead, filterUnread, markAsRead } = useReadStatus('events');
+  const { isRead, filterUnread, markAsRead } = useContentReadStatus('events');
 
   // Apply filters
   const filteredEvents = useMemo(() => {

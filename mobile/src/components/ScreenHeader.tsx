@@ -11,6 +11,7 @@ interface ScreenHeaderProps {
   title?: string; // Tab/section title (e.g., "Mensajes", "Agenda") - shows org branding if not provided
   showBackButton?: boolean;
   backTitle?: string; // Title for detail screens with back button
+  rightAccessory?: React.ReactNode; // Optional custom element between title and avatar
 }
 
 // Helper to determine if a color is light or dark (for text contrast)
@@ -24,7 +25,7 @@ function isLightColor(hexColor: string): boolean {
   return luminance > 0.5;
 }
 
-export default function ScreenHeader({ title, showBackButton = false, backTitle }: ScreenHeaderProps) {
+export default function ScreenHeader({ title, showBackButton = false, backTitle, rightAccessory }: ScreenHeaderProps) {
   const { user } = useAuth();
   const { data: organization } = useOrganization();
   const router = useRouter();
@@ -94,15 +95,18 @@ export default function ScreenHeader({ title, showBackButton = false, backTitle 
         </TouchableOpacity>
       )}
 
-      {/* Right side: User avatar */}
-      <TouchableOpacity
-        onPress={() => router.push('/settings')}
-        style={[styles.avatarButton, { backgroundColor: avatarBgColor }]}
-        accessibilityLabel="Ir a configuración"
-        accessibilityRole="button"
-      >
-        <Text style={[styles.avatarText, { color: textColor }]}>{getInitials()}</Text>
-      </TouchableOpacity>
+      {/* Right side: Optional accessory + User avatar */}
+      <View style={styles.rightContainer}>
+        {rightAccessory}
+        <TouchableOpacity
+          onPress={() => router.push('/settings')}
+          style={[styles.avatarButton, { backgroundColor: avatarBgColor }]}
+          accessibilityLabel="Ir a configuración"
+          accessibilityRole="button"
+        >
+          <Text style={[styles.avatarText, { color: textColor }]}>{getInitials()}</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -148,6 +152,12 @@ const styles = StyleSheet.create({
   sectionTitle: {
     ...TYPOGRAPHY.screenTitle,
     flex: 1,
+  },
+  // Right container (accessory + avatar)
+  rightContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
   },
   // Avatar (right side)
   avatarButton: {

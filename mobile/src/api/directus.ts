@@ -12,6 +12,25 @@ export interface Organization {
   logo?: string;
   primary_color?: string; // Hex color for header/branding (e.g., "#1E40AF")
   settings?: Record<string, any>;
+  // O2M relation to campuses
+  campuses?: Campus[];
+}
+
+export interface Campus {
+  id: string;
+  organization_id: string;
+  name: string;
+  code?: string; // Short identifier (e.g., "NORTH", "CENTRAL")
+  address?: string;
+  phone?: string;
+  email?: string;
+  is_primary: boolean;
+  logo?: string;
+  primary_color?: string; // Override org color for this campus
+  settings?: Record<string, any>;
+  status: 'active' | 'inactive';
+  date_created?: string;
+  date_updated?: string;
 }
 
 export interface AppUser {
@@ -25,6 +44,8 @@ export interface AppUser {
   phone?: string;
   avatar?: string;
   status: 'active' | 'inactive' | 'pending';
+  // Direct M2M relationship to students (for parents)
+  children?: string[];
 }
 
 export interface Student {
@@ -203,7 +224,7 @@ export interface Report {
 export interface StudentGuardian {
   id: string;
   student_id: string;
-  user_id: string;
+  user_id: string; // References app_users.id (the guardian/parent)
   relationship: string;
   is_primary: boolean;
   can_pickup: boolean;
@@ -259,6 +280,7 @@ export interface AnnouncementAttachment {
 // Schema definition for Directus SDK
 interface Schema {
   organizations: Organization[];
+  campuses: Campus[];
   app_users: AppUser[];
   students: Student[];
   student_guardians: StudentGuardian[];

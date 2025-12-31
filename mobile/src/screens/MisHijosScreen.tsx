@@ -17,7 +17,8 @@ import DirectusImage from '../components/DirectusImage';
 import { useChildren, useReports, usePickupRequests } from '../api/hooks';
 import { Report, PickupRequest } from '../api/directus';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY, SHADOWS, BADGE_STYLES, UNREAD_STYLES } from '../theme';
-import { useSession, useReadStatus } from '../hooks';
+import { useSession } from '../hooks';
+import { useContentReadStatus } from '../api/hooks';
 
 interface MenuSection {
   id: string;
@@ -41,7 +42,7 @@ export default function MisHijosScreen() {
   const { data: pickupRequests = [], isLoading: pickupLoading, refetch: refetchPickup } = usePickupRequests();
 
   // Read status for reports
-  const { isRead: isReportRead, filterUnread: filterUnreadReports } = useReadStatus('boletines');
+  const { isRead: isReportRead, filterUnread: filterUnreadReports } = useContentReadStatus('boletines');
 
   const isLoading = isChildrenLoading || reportsLoading || pickupLoading;
 

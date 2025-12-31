@@ -47,7 +47,7 @@ const CTA_CONFIG: Partial<Record<EventStatus, {
   },
 };
 
-export default function EventCard({
+function EventCard({
   event,
   isUnread = false,
   status = 'info',
@@ -370,3 +370,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
+
+// Memoize to prevent unnecessary re-renders in lists
+export default React.memo(EventCard);

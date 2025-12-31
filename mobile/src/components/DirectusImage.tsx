@@ -16,7 +16,7 @@ interface DirectusImageProps extends Omit<ImageProps, 'source'> {
  * Image component that automatically handles Directus authentication
  * Uses access_token query parameter for authenticated asset access
  */
-export default function DirectusImage({ fileId, fallback, style, ...props }: DirectusImageProps) {
+function DirectusImage({ fileId, fallback, style, ...props }: DirectusImageProps) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -136,3 +136,6 @@ const styles = StyleSheet.create({
     fontFamily: 'monospace',
   },
 });
+
+// Memoize to prevent redundant image fetches when parent re-renders
+export default React.memo(DirectusImage);

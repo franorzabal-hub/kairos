@@ -29,6 +29,7 @@ export interface AnnouncementAcknowledgment {
 
 /**
  * Get all pinned announcement IDs for a user
+ * Limited to 500 to prevent unbounded queries
  */
 export async function getPinnedIds(userId: string): Promise<Set<string>> {
   try {
@@ -38,11 +39,13 @@ export async function getPinnedIds(userId: string): Promise<Set<string>> {
           user_id: { _eq: userId },
         },
         fields: ['announcement_id'],
+        limit: 500,
+        sort: ['-pinned_at'],
       })
     );
     return new Set(pinned.map((p: { announcement_id: string }) => p.announcement_id));
   } catch (error) {
-    console.error('Error getting pinned announcements:', error);
+    if (__DEV__) console.error('Error getting pinned announcements:', error);
     return new Set();
   }
 }
@@ -72,7 +75,7 @@ export async function pinAnnouncement(announcementId: string, userId: string): P
       );
     }
   } catch (error) {
-    console.error('Error pinning announcement:', error);
+    if (__DEV__) console.error('Error pinning announcement:', error);
     throw error;
   }
 }
@@ -91,7 +94,7 @@ export async function unpinAnnouncement(announcementId: string, userId: string):
       })
     );
   } catch (error) {
-    console.error('Error unpinning announcement:', error);
+    if (__DEV__) console.error('Error unpinning announcement:', error);
     throw error;
   }
 }
@@ -102,6 +105,7 @@ export async function unpinAnnouncement(announcementId: string, userId: string):
 
 /**
  * Get all archived announcement IDs for a user
+ * Limited to 500 to prevent unbounded queries
  */
 export async function getArchivedIds(userId: string): Promise<Set<string>> {
   try {
@@ -111,11 +115,13 @@ export async function getArchivedIds(userId: string): Promise<Set<string>> {
           user_id: { _eq: userId },
         },
         fields: ['announcement_id'],
+        limit: 500,
+        sort: ['-archived_at'],
       })
     );
     return new Set(archived.map((a: { announcement_id: string }) => a.announcement_id));
   } catch (error) {
-    console.error('Error getting archived announcements:', error);
+    if (__DEV__) console.error('Error getting archived announcements:', error);
     return new Set();
   }
 }
@@ -145,7 +151,7 @@ export async function archiveAnnouncement(announcementId: string, userId: string
       );
     }
   } catch (error) {
-    console.error('Error archiving announcement:', error);
+    if (__DEV__) console.error('Error archiving announcement:', error);
     throw error;
   }
 }
@@ -164,7 +170,7 @@ export async function unarchiveAnnouncement(announcementId: string, userId: stri
       })
     );
   } catch (error) {
-    console.error('Error unarchiving announcement:', error);
+    if (__DEV__) console.error('Error unarchiving announcement:', error);
     throw error;
   }
 }
@@ -175,6 +181,7 @@ export async function unarchiveAnnouncement(announcementId: string, userId: stri
 
 /**
  * Get all acknowledged announcement IDs for a user
+ * Limited to 500 to prevent unbounded queries
  */
 export async function getAcknowledgedIds(userId: string): Promise<Set<string>> {
   try {
@@ -184,11 +191,13 @@ export async function getAcknowledgedIds(userId: string): Promise<Set<string>> {
           user_id: { _eq: userId },
         },
         fields: ['announcement_id'],
+        limit: 500,
+        sort: ['-acknowledged_at'],
       })
     );
     return new Set(acknowledged.map((a: { announcement_id: string }) => a.announcement_id));
   } catch (error) {
-    console.error('Error getting acknowledgments:', error);
+    if (__DEV__) console.error('Error getting acknowledgments:', error);
     return new Set();
   }
 }
@@ -218,7 +227,7 @@ export async function acknowledgeAnnouncement(announcementId: string, userId: st
       );
     }
   } catch (error) {
-    console.error('Error acknowledging announcement:', error);
+    if (__DEV__) console.error('Error acknowledging announcement:', error);
     throw error;
   }
 }
@@ -228,7 +237,8 @@ export async function acknowledgeAnnouncement(announcementId: string, userId: st
 // ==========================================
 
 /**
- * Get all user action states (pinned, archived, acknowledged) in one call
+ * Get all user action states (pinned, archived, acknowledged) in one call.
+ * Each query is limited to 500 items to prevent unbounded queries.
  */
 export async function getAllUserAnnouncementStates(userId: string): Promise<{
   pinnedIds: Set<string>;
@@ -248,7 +258,7 @@ export async function getAllUserAnnouncementStates(userId: string): Promise<{
       acknowledgedIds: acknowledged,
     };
   } catch (error) {
-    console.error('Error getting user announcement states:', error);
+    if (__DEV__) console.error('Error getting user announcement states:', error);
     return {
       pinnedIds: new Set(),
       archivedIds: new Set(),

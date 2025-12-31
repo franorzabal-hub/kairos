@@ -22,7 +22,7 @@ interface SwipeableAnnouncementCardProps {
   onUnarchive: () => void;
 }
 
-export default function SwipeableAnnouncementCard({
+function SwipeableAnnouncementCard({
   item,
   isUnread,
   isPinned,
@@ -385,3 +385,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 });
+
+// Memoize to prevent unnecessary re-renders in lists
+export default React.memo(SwipeableAnnouncementCard);

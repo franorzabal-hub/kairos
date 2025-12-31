@@ -22,9 +22,13 @@ export const COLORS = {
 
   // Status colors
   success: '#4CAF50',
+  successLight: '#E8F5E9',
   warning: '#FF9800',
+  warningLight: '#FFF3E0',
   error: '#F44336',
+  errorLight: '#FFEBEE',
   info: '#2196F3',
+  infoLight: '#E3F2FD',
 
   // Semantic colors
   unreadBackground: '#F5E6EA', // primaryLight - for unread message backgrounds
@@ -39,6 +43,19 @@ export const COLORS = {
   tabInactive: '#8E8E93', // iOS system gray for inactive tabs
   tabBadge: '#FF3B30', // iOS red for notification badges
 } as const;
+
+// Distinct colors for identifying children (used in left border of cards)
+// These are vibrant but harmonious colors that work well as accents
+export const CHILD_COLORS = [
+  '#5C6BC0', // Indigo
+  '#26A69A', // Teal
+  '#FF7043', // Deep Orange
+  '#AB47BC', // Purple
+  '#42A5F5', // Blue
+  '#66BB6A', // Green
+  '#FFCA28', // Amber
+  '#EC407A', // Pink
+] as const;
 
 export const TYPOGRAPHY = {
   // Screen header (App Store style)
@@ -125,6 +142,13 @@ export const BORDERS = {
 } as const;
 
 export const SHADOWS = {
+  small: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
+    elevation: 1,
+  },
   card: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -207,6 +231,7 @@ export const BADGE_STYLES = {
 
 export default {
   COLORS,
+  CHILD_COLORS,
   TYPOGRAPHY,
   SPACING,
   BORDERS,
