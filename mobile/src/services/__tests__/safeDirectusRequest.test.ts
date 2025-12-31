@@ -37,7 +37,9 @@ describe('safeDirectusRequest', () => {
       const result = await safeRequest(requestFn, 'reports', 'read');
 
       expect(result.data).toBeNull();
-      expect(result.error).toBe(error);
+      // Error is wrapped in new Error() if not an Error instance
+      expect(result.error).toBeInstanceOf(Error);
+      expect(result.error?.message).toContain("don't have permission");
       expect(result.errorType).toBe('NO_PERMISSION');
       expect(result.errorMessage).toContain("don't have permission");
     });
