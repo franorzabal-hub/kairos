@@ -323,40 +323,65 @@ export default function WebAgendaScreen() {
           </Text>
         </View>
 
-        {/* Filters Row */}
-        <View style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: SPACING.xl,
-          flexWrap: 'wrap',
-          gap: SPACING.md,
-        }}>
-          {/* Child Selector */}
-          {children.length > 0 && (
-            <ChildSelector
-              children={children}
-              selectedChildId={selectedChildId}
-              onSelectChild={handleSelectChild}
-              showAllOption={children.length > 1}
-              onSelectAll={handleSelectAll}
-              compact
-            />
-          )}
+        {/* Toolbar System */}
+        <View className="flex-row justify-between items-center mb-8 border-b border-gray-200 pb-4">
+          
+          {/* Left: Child Filter (Pills) */}
+          <View className="flex-row items-center gap-2">
+            <Pressable
+              onPress={handleSelectAll}
+              className={`px-4 py-1.5 rounded-full border transition-all ${
+                !selectedChildId 
+                  ? 'bg-slate-900 border-slate-900' 
+                  : 'bg-white border-slate-200 hover:bg-gray-50'
+              }`}
+            >
+              <Text className={`text-sm font-medium ${!selectedChildId ? 'text-white' : 'text-slate-600'}`}>
+                Todos
+              </Text>
+            </Pressable>
+            
+            {children.map((child) => {
+              const isActive = selectedChildId === child.id;
+              return (
+                <Pressable
+                  key={child.id}
+                  onPress={() => handleSelectChild(child.id)}
+                  className={`px-4 py-1.5 rounded-full border transition-all ${
+                    isActive
+                      ? 'bg-slate-900 border-slate-900' 
+                      : 'bg-white border-slate-200 hover:bg-gray-50'
+                  }`}
+                >
+                  <Text className={`text-sm font-medium ${isActive ? 'text-white' : 'text-slate-600'}`}>
+                    {child.first_name}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
 
-          {/* Time Filter */}
-          <SegmentedControl
-            segments={[
-              { key: 'upcoming', label: 'Agenda', count: upcomingCount },
-              { key: 'past', label: 'Historial', count: pastCount },
-            ]}
-            selectedKey={timeFilter}
-            onSelect={(key) => setTimeFilter(key as TimeFilter)}
-            accentColor={selectedChildId
-              ? CHILD_COLORS[children.findIndex(c => c.id === selectedChildId) % CHILD_COLORS.length]
-              : undefined
-            }
-          />
+          {/* Right: View Tabs (Text) */}
+          <View className="flex-row items-center gap-6">
+            <Pressable
+              onPress={() => setTimeFilter('upcoming')}
+              className={`pb-1 ${timeFilter === 'upcoming' ? 'border-b-2 border-slate-900' : 'border-b-2 border-transparent'}`}
+            >
+              <Text className={`text-sm ${timeFilter === 'upcoming' ? 'font-bold text-slate-900' : 'font-medium text-slate-500 hover:text-slate-700'}`}>
+                Agenda ({upcomingCount})
+              </Text>
+            </Pressable>
+
+            <Pressable
+              onPress={() => setTimeFilter('past')}
+              className={`pb-1 ${timeFilter === 'past' ? 'border-b-2 border-slate-900' : 'border-b-2 border-transparent'}`}
+            >
+              <Text className={`text-sm ${timeFilter === 'past' ? 'font-bold text-slate-900' : 'font-medium text-slate-500 hover:text-slate-700'}`}>
+                Historial
+              </Text>
+            </Pressable>
+          </View>
+
         </View>
 
         {/* Content */}

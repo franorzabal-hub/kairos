@@ -106,13 +106,6 @@ export function WebEventCard({
 
       {/* Body: Content */}
       <View className="px-4 flex-1">
-        {/* Child Indicator */}
-        {childName && (
-           <Text className="text-xs font-medium text-gray-500 mb-1">
-             {childName}
-           </Text>
-        )}
-
         {/* Title */}
         <Text 
           className={`text-lg font-bold text-gray-900 leading-snug mb-2 ${isPast ? 'text-gray-500' : ''} ${isCancelled ? 'line-through' : ''}`}
@@ -135,22 +128,46 @@ export function WebEventCard({
         </View>
       </View>
 
-      {/* Footer: Action Button */}
-      <View className="mt-auto border-t border-gray-100">
+      {/* Footer: Child Info & Action */}
+      <View className="mt-auto border-t border-gray-100 bg-gray-50/50 px-4 py-3 flex-row items-center justify-between">
+        
+        {/* Left: Child Identity */}
+        <View className="flex-row items-center gap-2">
+          {childName ? (
+            <>
+              <View 
+                className="w-6 h-6 rounded-full items-center justify-center"
+                style={{ backgroundColor: childColor || COLORS.primary }}
+              >
+                <Text className="text-[10px] font-bold text-white">
+                  {childName.charAt(0).toUpperCase()}
+                </Text>
+              </View>
+              <Text className="text-xs font-medium text-gray-600">
+                {childName}
+              </Text>
+            </>
+          ) : (
+            <Text className="text-xs font-medium text-gray-400">General</Text>
+          )}
+        </View>
+
+        {/* Right: Compact Action */}
         {ctaConfig ? (
           <Pressable 
             onPress={handleActionPress}
-            className="w-full py-3 items-center justify-center bg-orange-50 hover:bg-orange-100 transition-colors"
+            className="px-3 py-1.5 rounded-md hover:bg-white hover:shadow-sm transition-all border border-transparent hover:border-gray-200"
           >
             <Text 
-              className="text-sm font-bold text-orange-600"
+              className="text-xs font-bold"
+              style={{ color: ctaConfig.textColor }}
             >
               {ctaConfig.label}
             </Text>
           </Pressable>
         ) : (
-          <View className="w-full py-3 items-center justify-center bg-gray-50 group-hover:bg-gray-100 transition-colors">
-            <Text className="text-sm font-medium text-gray-500">Ver detalles</Text>
+          <View className="px-3 py-1.5">
+            <Text className="text-xs font-medium text-gray-400">Detalles</Text>
           </View>
         )}
       </View>
