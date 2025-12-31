@@ -16,7 +16,6 @@ import { Event } from '../../../api/directus';
 import { useEventCardLogic } from '../../../hooks';
 import { COLORS } from '../../../theme';
 import { EventStatus } from '../../../types/events';
-import DirectusImage from '../../DirectusImage';
 
 // Web-specific pressable state type
 type WebPressableState = PressableStateCallbackType & { hovered?: boolean };

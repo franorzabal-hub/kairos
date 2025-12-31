@@ -8,12 +8,11 @@
  * - Works well in 2-3 column grids
  */
 import React, { useState } from 'react';
-import { View, Text, Pressable, Platform, Image, PressableStateCallbackType } from 'react-native';
+import { View, Text, Pressable, Platform, PressableStateCallbackType } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import DirectusImage from '../../DirectusImage';
 import { Announcement } from '../../../api/directus';
-import { COLORS, SPACING, BORDERS, TYPOGRAPHY, BADGE_STYLES, UNREAD_STYLES } from '../../../theme';
+import { COLORS, SPACING, BORDERS, TYPOGRAPHY, UNREAD_STYLES } from '../../../theme';
 import { stripHtml } from '../../../utils';
 
 // Web-specific pressable state type
