@@ -253,6 +253,10 @@ export default function AgendaScreen() {
           ]}
           selectedKey={timeFilter}
           onSelect={(key) => setTimeFilter(key as TimeFilter)}
+          accentColor={selectedChildId
+            ? CHILD_COLORS[children.findIndex(c => c.id === selectedChildId) % CHILD_COLORS.length]
+            : undefined
+          }
         />
       </View>
     </View>

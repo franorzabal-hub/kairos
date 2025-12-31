@@ -2,6 +2,19 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY } from '../theme';
 
+/**
+ * Creates a pastel/light version of a hex color by blending with white
+ */
+function getPastelColor(hexColor: string, intensity: number = 0.15): string {
+  const r = parseInt(hexColor.slice(1, 3), 16);
+  const g = parseInt(hexColor.slice(3, 5), 16);
+  const b = parseInt(hexColor.slice(5, 7), 16);
+  const blendedR = Math.round(r * intensity + 255 * (1 - intensity));
+  const blendedG = Math.round(g * intensity + 255 * (1 - intensity));
+  const blendedB = Math.round(b * intensity + 255 * (1 - intensity));
+  return `#${blendedR.toString(16).padStart(2, '0')}${blendedG.toString(16).padStart(2, '0')}${blendedB.toString(16).padStart(2, '0')}`;
+}
+
 interface Segment {
   key: string;
   label: string;
@@ -12,9 +25,10 @@ interface SegmentedControlProps {
   segments: Segment[];
   selectedKey: string;
   onSelect: (key: string) => void;
+  accentColor?: string; // Dynamic color for badge (follows child color)
 }
 
-export default function SegmentedControl({ segments, selectedKey, onSelect }: SegmentedControlProps) {
+export default function SegmentedControl({ segments, selectedKey, onSelect, accentColor }: SegmentedControlProps) {
   return (
     <View style={styles.container}>
       <View style={styles.segmentWrapper}>
@@ -36,8 +50,20 @@ export default function SegmentedControl({ segments, selectedKey, onSelect }: Se
                 {segment.label}
               </Text>
               {segment.count !== undefined && segment.count > 0 && (
-                <View style={[styles.countBadge, isSelected && styles.countBadgeSelected]}>
-                  <Text style={[styles.countText, isSelected && styles.countTextSelected]}>
+                <View style={[
+                  styles.countBadge,
+                  isSelected && (accentColor
+                    ? { backgroundColor: getPastelColor(accentColor) }
+                    : styles.countBadgeSelected
+                  ),
+                ]}>
+                  <Text style={[
+                    styles.countText,
+                    isSelected && (accentColor
+                      ? { color: accentColor }
+                      : styles.countTextSelected
+                    ),
+                  ]}>
                     {segment.count}
                   </Text>
                 </View>
