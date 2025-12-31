@@ -12,7 +12,18 @@ export const COLORS = {
   white: '#FFFFFF',
   black: '#000000',
 
-  // Gray scale
+  // Gray scale (Tailwind-inspired)
+  gray50: '#F9FAFB',
+  gray100: '#F3F4F6',
+  gray200: '#E5E7EB',
+  gray300: '#D1D5DB',
+  gray400: '#9CA3AF',
+  gray500: '#6B7280',
+  gray600: '#4B5563',
+  gray700: '#374151',
+  gray800: '#1F2937',
+  gray900: '#111827',
+  // Legacy gray aliases (for backwards compatibility)
   gray: '#666666',
   lightGray: '#F5F5F5',
   darkGray: '#333333',
@@ -23,16 +34,29 @@ export const COLORS = {
   // Status colors
   success: '#4CAF50',
   successLight: '#E8F5E9',
+  successBright: '#22C55E', // Tailwind green-500, for web status indicators
   warning: '#FF9800',
   warningLight: '#FFF3E0',
   error: '#F44336',
   errorLight: '#FFEBEE',
+  errorDark: '#D32F2F', // Darker red for urgent indicators
   info: '#2196F3',
   infoLight: '#E3F2FD',
 
   // Semantic colors
   unreadBackground: '#F5E6EA', // primaryLight - for unread message backgrounds
   calendarHighlight: '#E3F2FD',
+
+  // Chat colors
+  chatBubbleOwn: '#DCF8C6', // WhatsApp-style green for own messages
+  chatBubbleOther: '#FFFFFF', // White for other participants' messages
+  chatBubbleUrgent: '#D32F2F', // Red border for urgent messages
+
+  // Accent colors (for menus, icons, etc.)
+  indigo: '#6366F1',
+  emerald: '#10B981',
+  amber: '#F59E0B',
+  red: '#EF4444',
 
   // UI element colors
   pillBackground: '#F2F2F7', // iOS-style pill background
@@ -42,6 +66,10 @@ export const COLORS = {
   tabActive: '#007AFF', // iOS system blue for active tabs
   tabInactive: '#8E8E93', // iOS system gray for inactive tabs
   tabBadge: '#FF3B30', // iOS red for notification badges
+
+  // Web sidebar colors (dark theme)
+  sidebarMuted: '#6C7086', // Muted text/icons in sidebar
+  sidebarText: '#CDD6F4', // Main text color in sidebar
 } as const;
 
 // Distinct colors for identifying children (used in left border of cards)
@@ -55,6 +83,19 @@ export const CHILD_COLORS = [
   '#66BB6A', // Green
   '#FFCA28', // Amber
   '#EC407A', // Pink
+] as const;
+
+// Avatar colors for user avatars in conversation lists
+// Used with hash function to get consistent colors per user
+export const AVATAR_COLORS = [
+  '#6366F1', // Indigo
+  '#8B5CF6', // Violet
+  '#EC4899', // Pink
+  '#F59E0B', // Amber
+  '#10B981', // Emerald
+  '#3B82F6', // Blue
+  '#EF4444', // Red
+  '#14B8A6', // Teal
 ] as const;
 
 export const TYPOGRAPHY = {

@@ -29,10 +29,6 @@ import { ConversationMessage, DirectusUser } from '../api/directus';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY, SIZES } from '../theme';
 import { ChatBubble, FirstMessageCard, MessageInput, DateSeparator } from '../components/chat';
 
-// Screen-specific colors
-const CHAT_COLORS = {
-  closedBanner: '#F5F5F5',  // Gray background for closed conversation
-};
 
 export default function ConversationChatScreen() {
   const router = useRouter();
@@ -555,7 +551,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: SPACING.md,
-    backgroundColor: CHAT_COLORS.closedBanner,
+    backgroundColor: COLORS.lightGray,
     borderTopWidth: BORDERS.width.thin,
     borderTopColor: COLORS.border,
     gap: SPACING.sm,
