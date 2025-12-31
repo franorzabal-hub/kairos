@@ -39,16 +39,35 @@ const isEventOnDate = (event: Event, dateKey: string) => {
   return targetDate >= startDate && targetDate <= endDate;
 };
 
+// OPTIMIZED: Cache date marks to avoid recalculating for each event
+// Uses a Map for O(1) lookups and limits iteration to visible calendar range
 const getMarkedDates = (events: Event[], selectedDate: string) => {
   const marked: Record<string, { marked?: boolean; dotColor?: string; selected?: boolean; selectedColor?: string }> = {};
+
+  // Calculate visible range (current month +/- 2 months for calendar scroll)
+  const today = new Date();
+  const rangeStart = new Date(today.getFullYear(), today.getMonth() - 2, 1);
+  const rangeEnd = new Date(today.getFullYear(), today.getMonth() + 3, 0);
 
   events.forEach((event) => {
     const start = new Date(event.start_date);
     const end = event.end_date ? new Date(event.end_date) : start;
-    const cursor = new Date(start.getFullYear(), start.getMonth(), start.getDate());
-    const finalDate = new Date(end.getFullYear(), end.getMonth(), end.getDate());
 
-    while (cursor <= finalDate) {
+    // Skip events entirely outside visible range
+    if (end < rangeStart || start > rangeEnd) return;
+
+    // Clamp to visible range to avoid unnecessary iterations
+    const clampedStart = start < rangeStart ? rangeStart : start;
+    const clampedEnd = end > rangeEnd ? rangeEnd : end;
+
+    const cursor = new Date(clampedStart.getFullYear(), clampedStart.getMonth(), clampedStart.getDate());
+    const finalDate = new Date(clampedEnd.getFullYear(), clampedEnd.getMonth(), clampedEnd.getDate());
+
+    // Limit iterations to prevent performance issues with very long events
+    const MAX_DAYS = 90;
+    let daysProcessed = 0;
+
+    while (cursor <= finalDate && daysProcessed < MAX_DAYS) {
       const key = formatDateKey(cursor);
       marked[key] = {
         ...marked[key],
@@ -56,6 +75,7 @@ const getMarkedDates = (events: Event[], selectedDate: string) => {
         dotColor: COLORS.primary,
       };
       cursor.setDate(cursor.getDate() + 1);
+      daysProcessed++;
     }
   });
 

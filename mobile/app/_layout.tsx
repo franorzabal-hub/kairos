@@ -12,8 +12,10 @@ import * as Linking from 'expo-linking';
 
 import { AppProvider, useAuth } from '../src/context/AppContext';
 import { ThemeProvider } from '../src/context/ThemeContext';
+import { ToastProvider } from '../src/context/ToastContext';
 import LoginScreen from '../src/screens/LoginScreen';
 import { ErrorBoundary } from '../src/components/ErrorBoundary';
+import { useQueryErrorHandler } from '../src/hooks';
 import {
   registerForPushNotifications,
   savePushToken,
@@ -37,6 +39,12 @@ const queryClient = new QueryClient({
 const persister = createAsyncStoragePersister({
   storage: AsyncStorage,
 });
+
+// Component to initialize global error handling
+function GlobalErrorHandler() {
+  useQueryErrorHandler();
+  return null;
+}
 
 function RootContent() {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -164,10 +172,13 @@ export default function RootLayout() {
           }}
         >
           <AppProvider>
-            <StatusBar style="dark" />
-            <ErrorBoundary>
-              <RootContent />
-            </ErrorBoundary>
+            <ToastProvider>
+              <GlobalErrorHandler />
+              <StatusBar style="dark" />
+              <ErrorBoundary>
+                <RootContent />
+              </ErrorBoundary>
+            </ToastProvider>
           </AppProvider>
         </PersistQueryClientProvider>
       </SafeAreaProvider>

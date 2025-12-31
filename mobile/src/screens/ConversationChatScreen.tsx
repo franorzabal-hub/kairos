@@ -15,7 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { FlashList, FlashListRef } from '@shopify/flash-list';
-import { useAppContext } from '../context/AppContext';
+import { useSession } from '../hooks';
 import {
   useConversationMessages,
   useConversation,
@@ -42,7 +42,7 @@ export default function ConversationChatScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const conversationId = typeof id === 'string' ? id : '';
 
-  const { user } = useAppContext();
+  const { user } = useSession();
   const directusUserId = user?.directus_user_id;
 
   const { data: conversation } = useConversation(conversationId);

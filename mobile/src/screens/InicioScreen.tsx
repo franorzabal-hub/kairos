@@ -44,9 +44,13 @@ export default function InicioScreen() {
 
   // Fetch user's pinned/archived/acknowledged states
   const { data: announcementStates, isLoading: statesLoading } = useAnnouncementStates();
-  const pinnedIds = useMemo(() => announcementStates?.pinnedIds instanceof Set ? announcementStates.pinnedIds : new Set<string>(), [announcementStates]);
-  const archivedIds = useMemo(() => announcementStates?.archivedIds instanceof Set ? announcementStates.archivedIds : new Set<string>(), [announcementStates]);
-  const acknowledgedIds = useMemo(() => announcementStates?.acknowledgedIds instanceof Set ? announcementStates.acknowledgedIds : new Set<string>(), [announcementStates]);
+
+  // OPTIMIZED: Consolidated 3 useMemo into 1 to reduce overhead
+  const { pinnedIds, archivedIds, acknowledgedIds } = useMemo(() => ({
+    pinnedIds: announcementStates?.pinnedIds instanceof Set ? announcementStates.pinnedIds : new Set<string>(),
+    archivedIds: announcementStates?.archivedIds instanceof Set ? announcementStates.archivedIds : new Set<string>(),
+    acknowledgedIds: announcementStates?.acknowledgedIds instanceof Set ? announcementStates.acknowledgedIds : new Set<string>(),
+  }), [announcementStates]);
 
   // Pin and archive mutations for swipe actions
   const { togglePin } = useAnnouncementPin();
@@ -181,55 +185,71 @@ export default function InicioScreen() {
     router.push('/mensajes');
   }, [router]);
 
-  // Memoize ListHeader to prevent full re-render when child filter changes
-  // ChildSelector manages its own state through context, so we only depend on header-specific values
-  const ListHeader = useCallback(() => (
-    <View style={styles.listHeader}>
+  // OPTIMIZED: Use useMemo instead of useCallback for JSX
+  // Split into stable and dynamic parts to minimize re-renders
+  const stableHeaderContent = useMemo(() => (
+    <>
       {/* Header with avatar */}
       <ScreenHeader />
 
-      {/* Quick Access Buttons */}
+      {/* Quick Access Buttons - handlers are stable via useCallback */}
       <QuickAccess
         onReportAbsence={handleReportAbsence}
         onPickupChange={handlePickupChange}
         onContactSchool={handleContactSchool}
       />
+    </>
+  ), [handleReportAbsence, handlePickupChange, handleContactSchool]);
 
-      {/* Upcoming Events Section */}
-      {upcomingEvents.length > 0 && (
-        <View style={styles.eventsSection}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Próximos Eventos</Text>
-            <TouchableOpacity onPress={() => router.push('/agenda')}>
-              <Text style={styles.seeAll}>Ver todos</Text>
-            </TouchableOpacity>
-          </View>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.eventsScroll}
-          >
-            {upcomingEvents.map((event) => (
-              <TouchableOpacity
-                key={event.id}
-                style={styles.eventCard}
-                onPress={() => router.push({ pathname: '/agenda/[id]', params: { id: event.id } })}
-              >
-                {/* Date Block - prominently displayed */}
-                <View style={styles.eventDateBlock}>
-                  <Text style={styles.eventDateMonth}>{formatEventMonth(event.start_date)}</Text>
-                  <Text style={styles.eventDateDay}>{formatEventDay(event.start_date)}</Text>
-                </View>
-                <View style={styles.eventContent}>
-                  <Text style={styles.eventTitle} numberOfLines={2}>{event.title}</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+  // Event navigation handler - memoized to prevent inline function creation
+  const handleEventPress = useCallback((eventId: string) => {
+    router.push({ pathname: '/agenda/[id]', params: { id: eventId } });
+  }, [router]);
+
+  const handleSeeAllEvents = useCallback(() => {
+    router.push('/agenda');
+  }, [router]);
+
+  // Memoize the events section separately since it depends on upcomingEvents
+  const eventsSection = useMemo(() => {
+    if (upcomingEvents.length === 0) return null;
+
+    return (
+      <View style={styles.eventsSection}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Próximos Eventos</Text>
+          <TouchableOpacity onPress={handleSeeAllEvents}>
+            <Text style={styles.seeAll}>Ver todos</Text>
+          </TouchableOpacity>
         </View>
-      )}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.eventsScroll}
+        >
+          {upcomingEvents.map((event) => (
+            <TouchableOpacity
+              key={event.id}
+              style={styles.eventCard}
+              onPress={() => handleEventPress(event.id)}
+            >
+              <View style={styles.eventDateBlock}>
+                <Text style={styles.eventDateMonth}>{formatEventMonth(event.start_date)}</Text>
+                <Text style={styles.eventDateDay}>{formatEventDay(event.start_date)}</Text>
+              </View>
+              <View style={styles.eventContent}>
+                <Text style={styles.eventTitle} numberOfLines={2}>{event.title}</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+    );
+  }, [upcomingEvents, handleSeeAllEvents, handleEventPress]);
 
-      {/* Novedades Section Header */}
+  // Memoize filter section - depends on filterMode and unreadCounts
+  const filterSection = useMemo(() => (
+    <>
       <View style={styles.novedadesHeader}>
         <View style={styles.novedadesTitleRow}>
           <Text style={styles.sectionTitle}>Novedades</Text>
@@ -244,8 +264,45 @@ export default function InicioScreen() {
         selectedKey={filterMode === 'unread' ? 'unread' : 'all'}
         onSelect={(key) => setFilterMode(key as 'unread' | 'all')}
       />
+    </>
+  ), [filterMode, unreadCounts.inicio, setFilterMode]);
+
+  // Compose the full header from memoized parts
+  const ListHeader = useCallback(() => (
+    <View style={styles.listHeader}>
+      {stableHeaderContent}
+      {eventsSection}
+      {filterSection}
     </View>
-  ), [upcomingEvents, filterMode, unreadCounts.inicio, router, setFilterMode, handleReportAbsence, handlePickupChange, handleContactSchool]);
+  ), [stableHeaderContent, eventsSection, filterSection]);
+
+  // OPTIMIZED: Memoize renderItem to prevent re-creating callbacks on each render
+  const renderAnnouncementItem = useCallback(({ item }: { item: Announcement }) => {
+    const itemIsUnread = !isRead(item.id);
+    const itemIsPinned = pinnedIds.has(item.id) || Boolean(item.is_pinned);
+    const itemIsArchived = archivedIds.has(item.id);
+    const itemIsAcknowledged = acknowledgedIds.has(item.id);
+    const childInfo = getChildInfo(item);
+
+    return (
+      <SwipeableAnnouncementCard
+        item={item}
+        isUnread={itemIsUnread}
+        isPinned={itemIsPinned}
+        isArchived={itemIsArchived}
+        isAcknowledged={itemIsAcknowledged}
+        childName={childInfo.name}
+        childColor={childInfo.color}
+        onMarkAsRead={() => markAsRead(item.id)}
+        onTogglePin={() => togglePin(item.id, itemIsPinned)}
+        onArchive={() => toggleArchive(item.id, false)}
+        onUnarchive={() => toggleArchive(item.id, true)}
+      />
+    );
+  }, [isRead, pinnedIds, archivedIds, acknowledgedIds, getChildInfo, markAsRead, togglePin, toggleArchive]);
+
+  // Memoize keyExtractor
+  const keyExtractor = useCallback((item: Announcement) => item.id, []);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -257,35 +314,13 @@ export default function InicioScreen() {
       ) : (
         <FlashList
           data={filteredAnnouncements}
-          keyExtractor={(item) => item.id}
+          keyExtractor={keyExtractor}
           refreshControl={
             <RefreshControl refreshing={isRefetchingAnnouncements} onRefresh={onRefresh} />
           }
           ListHeaderComponent={ListHeader}
           contentContainerStyle={styles.listContent}
-          renderItem={({ item }: { item: Announcement }) => {
-            const itemIsUnread = !isRead(item.id);
-            const itemIsPinned = pinnedIds.has(item.id) || Boolean(item.is_pinned);
-            const itemIsArchived = archivedIds.has(item.id);
-            const itemIsAcknowledged = acknowledgedIds.has(item.id);
-            const childInfo = getChildInfo(item);
-
-            return (
-              <SwipeableAnnouncementCard
-                item={item}
-                isUnread={itemIsUnread}
-                isPinned={itemIsPinned}
-                isArchived={itemIsArchived}
-                isAcknowledged={itemIsAcknowledged}
-                childName={childInfo.name}
-                childColor={childInfo.color}
-                onMarkAsRead={() => markAsRead(item.id)}
-                onTogglePin={() => togglePin(item.id, itemIsPinned)}
-                onArchive={() => toggleArchive(item.id, false)}
-                onUnarchive={() => toggleArchive(item.id, true)}
-              />
-            );
-          }}
+          renderItem={renderAnnouncementItem}
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <Ionicons name="newspaper-outline" size={48} color={COLORS.gray} />
