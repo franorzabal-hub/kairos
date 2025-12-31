@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -12,11 +12,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { FlashList } from '@shopify/flash-list';
 import ScreenHeader from '../components/ScreenHeader';
-import FilterBar from '../components/FilterBar';
-import { useFilters, useUnreadCounts } from '../context/AppContext';
+import ChildSelector from '../components/ChildSelector';
+import SegmentedControl from '../components/SegmentedControl';
+import { useUnreadCounts } from '../context/AppContext';
 import { useConversations, ConversationWithMeta } from '../api/hooks';
 import { useSession } from '../hooks';
-import { COLORS, SPACING, BORDERS, TYPOGRAPHY, SHADOWS, UNREAD_STYLES } from '../theme';
+import { COLORS, CHILD_COLORS, SPACING, BORDERS, TYPOGRAPHY, SHADOWS, UNREAD_STYLES } from '../theme';
 
 // Screen-specific colors for conversation list
 const LIST_COLORS = {
@@ -24,22 +25,39 @@ const LIST_COLORS = {
   urgentLight: '#FFEBEE',   // Light red background for urgent avatars
 };
 
+type MessageFilter = 'all' | 'unread';
+
 export default function ConversationListScreen() {
   const router = useRouter();
-  // Centralized session state
-  const { user } = useSession();
-  const { filterMode } = useFilters();
+  // Centralized session state - user, children, permissions
+  const { user, children, selectedChildId, setSelectedChildId } = useSession();
+  const [messageFilter, setMessageFilter] = useState<MessageFilter>('all');
   const { unreadCounts } = useUnreadCounts();
   const queryResult = useConversations();
   const { data: conversations = [], isLoading, refetch, isRefetching } = queryResult;
 
   // Apply filters
   const filteredConversations = useMemo(() => {
-    if (filterMode === 'unread') {
+    if (messageFilter === 'unread') {
       return conversations.filter(conv => conv.unreadCount > 0);
     }
     return conversations;
-  }, [conversations, filterMode]);
+  }, [conversations, messageFilter]);
+
+  // Count for tabs
+  const allCount = conversations.length;
+  const unreadCount = useMemo(() =>
+    conversations.filter(conv => conv.unreadCount > 0).length,
+    [conversations]
+  );
+
+  const handleSelectChild = (childId: string) => {
+    setSelectedChildId(childId);
+  };
+
+  const handleSelectAll = () => {
+    setSelectedChildId(null);
+  };
 
   const onRefresh = async () => {
     await refetch();
@@ -164,8 +182,35 @@ export default function ConversationListScreen() {
 
   const ListHeader = () => (
     <View style={styles.listHeader}>
+      {/* Screen Header */}
       <ScreenHeader title="Mensajes" />
-      <FilterBar unreadCount={unreadCounts.mensajes} />
+
+      {/* Child Selector - always show if there are children */}
+      {children.length > 0 && (
+        <ChildSelector
+          children={children}
+          selectedChildId={selectedChildId}
+          onSelectChild={handleSelectChild}
+          showAllOption={children.length > 1}
+          onSelectAll={handleSelectAll}
+        />
+      )}
+
+      {/* Message filter */}
+      <View style={styles.filterContainer}>
+        <SegmentedControl
+          segments={[
+            { key: 'all', label: 'Todos', count: allCount },
+            { key: 'unread', label: 'No leídos', count: unreadCount },
+          ]}
+          selectedKey={messageFilter}
+          onSelect={(key) => setMessageFilter(key as MessageFilter)}
+          accentColor={selectedChildId
+            ? CHILD_COLORS[children.findIndex(c => c.id === selectedChildId) % CHILD_COLORS.length]
+            : undefined
+          }
+        />
+      </View>
     </View>
   );
 
@@ -208,7 +253,10 @@ const styles = StyleSheet.create({
   },
   listHeader: {
     backgroundColor: COLORS.white,
-    marginBottom: SPACING.sm,
+  },
+  filterContainer: {
+    paddingTop: SPACING.sm,
+    paddingBottom: SPACING.md,
   },
   loadingContainer: {
     flex: 1,
