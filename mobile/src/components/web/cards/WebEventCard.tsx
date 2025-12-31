@@ -75,94 +75,82 @@ export function WebEventCard({
       onPress={handlePress}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
-      className="flex-row bg-white rounded-xl overflow-hidden shadow-sm border border-transparent hover:border-gray-300 hover:shadow-md transition-all cursor-pointer h-32 group"
+      className="flex-col bg-white rounded-xl overflow-hidden border border-gray-200 hover:border-orange-300 hover:shadow-md transition-all cursor-pointer h-full group"
     >
-      {/* Date Block - Left Side */}
-      <View 
-        className="w-24 items-center justify-center border-r border-gray-100"
-        style={{ backgroundColor: isPast ? '#F3F4F6' : dateBlockBgColor + '10' }} // Light background opacity
-      >
-        <Text 
-          className="text-xs font-bold uppercase tracking-wider mb-1"
-          style={{ color: isPast ? COLORS.gray : dateBlockBgColor }}
-        >
-          {formatMonth(event.start_date)}
-        </Text>
-        <Text 
-          className="text-3xl font-bold"
-          style={{ color: isPast ? COLORS.gray : dateBlockBgColor }}
-        >
-          {formatDay(event.start_date)}
-        </Text>
-        <Text className="text-xs font-medium text-gray-500 mt-1">
-          {formatTime(event.start_date)}
-        </Text>
-      </View>
+      {/* Header: Date & Status */}
+      <View className="flex-row items-start justify-between p-4 pb-2">
+        {/* Date Block (Compact) */}
+        <View className="flex-row items-baseline gap-1">
+          <Text className="text-2xl font-bold text-gray-900">
+            {formatDay(event.start_date)}
+          </Text>
+          <Text className="text-sm font-semibold uppercase text-gray-500">
+            {formatMonth(event.start_date)}
+          </Text>
+        </View>
 
-      {/* Main Content - Center */}
-      <View className="flex-1 p-4 justify-center">
-        {/* Status / Child Tag */}
-        <View className="flex-row items-center mb-2 gap-2">
-          {childName && (
-            <View className="flex-row items-center bg-gray-100 rounded-full px-2 py-0.5">
-              <View 
-                className="w-2 h-2 rounded-full mr-1.5"
-                style={{ backgroundColor: childColor || COLORS.primary }} 
-              />
-              <Text className="text-xs font-medium text-gray-600">
-                {childName}
-              </Text>
+        {/* Badges */}
+        <View className="flex-row gap-2">
+           {isUnread && (
+            <View className="bg-orange-100 px-2 py-0.5 rounded text-orange-700">
+              <Text className="text-[10px] font-bold text-orange-700 uppercase">NUEVO</Text>
             </View>
           )}
           {isCancelled && (
-            <View className="bg-red-100 px-2 py-0.5 rounded-full">
-              <Text className="text-xs font-bold text-red-600 uppercase">Cancelado</Text>
-            </View>
-          )}
-          {isUnread && (
-            <View className="bg-primary/10 px-2 py-0.5 rounded-full">
-              <Text className="text-xs font-bold text-primary uppercase">Nuevo</Text>
+            <View className="bg-red-100 px-2 py-0.5 rounded">
+               <Text className="text-[10px] font-bold text-red-600 uppercase">CANCELADO</Text>
             </View>
           )}
         </View>
+      </View>
+
+      {/* Body: Content */}
+      <View className="px-4 flex-1">
+        {/* Child Indicator */}
+        {childName && (
+           <Text className="text-xs font-medium text-gray-500 mb-1">
+             {childName}
+           </Text>
+        )}
 
         {/* Title */}
         <Text 
-          className={`text-lg font-semibold text-gray-900 mb-1 ${isPast ? 'text-gray-500' : ''} ${isCancelled ? 'line-through' : ''}`}
-          numberOfLines={1}
+          className={`text-lg font-bold text-gray-900 leading-snug mb-2 ${isPast ? 'text-gray-500' : ''} ${isCancelled ? 'line-through' : ''}`}
         >
           {event.title}
         </Text>
 
-        {/* Location */}
-        {event.location_external && (
-          <View className="flex-row items-center text-gray-500">
-            <Ionicons name="location-outline" size={14} color={COLORS.gray500} style={{ marginRight: 4 }} />
-            <Text className="text-sm text-gray-500" numberOfLines={1}>
-              {event.location_external}
-            </Text>
-          </View>
-        )}
+        {/* Details */}
+        <View className="gap-1 mb-4">
+           <View className="flex-row items-center gap-1.5">
+             <Ionicons name="time-outline" size={14} color={COLORS.gray500} />
+             <Text className="text-sm text-gray-600">{formatTime(event.start_date)}</Text>
+           </View>
+           {event.location_external && (
+            <View className="flex-row items-center gap-1.5">
+              <Ionicons name="location-outline" size={14} color={COLORS.gray500} />
+              <Text className="text-sm text-gray-600" numberOfLines={1}>{event.location_external}</Text>
+            </View>
+           )}
+        </View>
       </View>
 
-      {/* Action / Context - Right Side */}
-      <View className="w-32 p-4 items-end justify-center border-l border-gray-50 bg-gray-50/30">
+      {/* Footer: Action Button */}
+      <View className="mt-auto border-t border-gray-100">
         {ctaConfig ? (
           <Pressable 
             onPress={handleActionPress}
-            className="px-3 py-2 rounded-lg hover:opacity-80 transition-opacity"
-            style={{ backgroundColor: ctaConfig.bgColor }}
+            className="w-full py-3 items-center justify-center bg-orange-50 hover:bg-orange-100 transition-colors"
           >
             <Text 
-              className="text-xs font-bold"
-              style={{ color: ctaConfig.textColor }}
+              className="text-sm font-bold text-orange-600"
             >
               {ctaConfig.label}
             </Text>
           </Pressable>
         ) : (
-          <View className="w-8 h-8 rounded-full bg-gray-100 items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-            <Ionicons name="chevron-forward" size={18} color={COLORS.gray500} />
+          <View className="w-full py-3 items-center justify-center bg-gray-50 group-hover:bg-gray-100 transition-colors">
+            <Text className="text-sm font-medium text-gray-500">Ver detalles</Text>
           </View>
         )}
       </View>

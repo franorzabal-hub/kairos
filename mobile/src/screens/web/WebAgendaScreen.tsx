@@ -221,7 +221,7 @@ export default function WebAgendaScreen() {
     const isCollapsed = collapsedSections.has(section.key);
 
     return (
-      <View key={section.key} style={{ marginBottom: SPACING.lg }}>
+      <View key={section.key} style={{ marginBottom: SPACING.xl }}>
         {/* Section Header - Clickable to collapse */}
         <Pressable
           onPress={() => toggleSection(section.key)}
@@ -229,32 +229,26 @@ export default function WebAgendaScreen() {
             flexDirection: 'row',
             alignItems: 'center',
             paddingVertical: SPACING.sm,
-            paddingHorizontal: SPACING.xs,
             marginBottom: isCollapsed ? 0 : SPACING.md,
             gap: SPACING.sm,
-            borderRadius: BORDERS.radius.md,
-            ...(Platform.OS === 'web' && {
-              cursor: 'pointer',
-              backgroundColor: (state as WebPressableState).hovered ? COLORS.border + '30' : 'transparent',
-              transition: 'background-color 0.2s',
-            } as any),
+            cursor: 'pointer',
+            opacity: (state as WebPressableState).hovered ? 0.8 : 1,
           })}
         >
           <Ionicons
             name={isCollapsed ? 'chevron-forward' : 'chevron-down'}
-            size={16}
-            color={COLORS.gray}
+            size={20}
+            color={COLORS.darkGray}
           />
           <Text style={{
-            ...TYPOGRAPHY.caption,
-            fontWeight: '700',
-            color: COLORS.gray,
-            letterSpacing: 0.5,
+            ...TYPOGRAPHY.sectionTitle,
+            fontSize: 18,
+            color: COLORS.darkGray,
           }}>
             {section.title}
           </Text>
           <View style={{
-            backgroundColor: COLORS.border,
+            backgroundColor: COLORS.lightGray,
             paddingHorizontal: 8,
             paddingVertical: 2,
             borderRadius: BORDERS.radius.full,
@@ -270,48 +264,52 @@ export default function WebAgendaScreen() {
 
         {/* Events Grid - Hidden when collapsed */}
         {!isCollapsed && (
-          <ResponsiveCardGrid minColumnWidth={340} gap={SPACING.md}>
+          <View className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {section.data.map((event) => {
               const itemIsUnread = !isRead(event.id);
               const status = getEventStatus(event);
               const childInfo = getChildInfo(event);
 
               return (
-                <WebEventCard
-                  key={event.id}
-                  event={event}
-                  isUnread={itemIsUnread}
-                  status={status}
-                  childName={childInfo.name}
-                  childColor={childInfo.color}
-                  onPress={() => {
-                    if (itemIsUnread) {
-                      markAsRead(event.id);
-                    }
-                  }}
-                />
+                <View key={event.id} className="h-full">
+                  <WebEventCard
+                    event={event}
+                    isUnread={itemIsUnread}
+                    status={status}
+                    childName={childInfo.name}
+                    childColor={childInfo.color}
+                    onPress={() => {
+                      if (itemIsUnread) {
+                        markAsRead(event.id);
+                      }
+                    }}
+                  />
+                </View>
               );
             })}
-          </ResponsiveCardGrid>
+          </View>
         )}
       </View>
     );
   };
 
   return (
-    <WebLayout>
+    <WebLayout 
+      title="Agenda"
+      breadcrumbs={[{ label: 'Inicio', href: '/' }, { label: 'Agenda', href: '/agenda' }]}
+    >
       <View style={{
         flex: 1,
-        padding: SPACING.lg,
-        maxWidth: 1200,
+        maxWidth: 1400,
         marginHorizontal: 'auto',
         width: '100%',
+        paddingBottom: 40,
       }}>
         {/* Page Header */}
         <View style={{ marginBottom: SPACING.lg }}>
           <Text style={{
             ...TYPOGRAPHY.sectionTitle,
-            fontSize: 28,
+            fontSize: 32,
             color: COLORS.darkGray,
             marginBottom: SPACING.xs,
           }}>
@@ -321,7 +319,7 @@ export default function WebAgendaScreen() {
             ...TYPOGRAPHY.body,
             color: COLORS.gray,
           }}>
-            Eventos y actividades del colegio
+            Eventos, excursiones y actividades del colegio
           </Text>
         </View>
 
@@ -330,7 +328,7 @@ export default function WebAgendaScreen() {
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'space-between',
-          marginBottom: SPACING.lg,
+          marginBottom: SPACING.xl,
           flexWrap: 'wrap',
           gap: SPACING.md,
         }}>
