@@ -2,24 +2,48 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import DirectusImage from './DirectusImage';
 import { useAuth } from '../context/AppContext';
+import { useOrganization } from '../api/hooks';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY } from '../theme';
 
 interface ScreenHeaderProps {
-  title: string;
-  subtitle?: string;
+  title?: string; // Tab/section title (e.g., "Mensajes", "Agenda") - shows org branding if not provided
   showBackButton?: boolean;
-  showAvatar?: boolean;
+  backTitle?: string; // Title for detail screens with back button
+  rightAccessory?: React.ReactNode; // Optional custom element between title and avatar
 }
 
-export default function ScreenHeader({ title, subtitle, showBackButton = false, showAvatar = true }: ScreenHeaderProps) {
+// Helper to determine if a color is light or dark (for text contrast)
+function isLightColor(hexColor: string): boolean {
+  const hex = hexColor.replace('#', '');
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+  // Using relative luminance formula
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.5;
+}
+
+function ScreenHeader({ title, showBackButton = false, backTitle, rightAccessory }: ScreenHeaderProps) {
   const { user } = useAuth();
+  const { data: organization } = useOrganization();
   const router = useRouter();
+
+  // Get org color or fallback to primary
+  const headerColor = organization?.primary_color || COLORS.primary;
+  const isLight = isLightColor(headerColor);
+  const textColor = isLight ? COLORS.black : COLORS.white;
+  const avatarBgColor = isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.2)';
 
   const getInitials = () => {
     const first = user?.first_name?.charAt(0) || '';
     const last = user?.last_name?.charAt(0) || '';
     return (first + last).toUpperCase() || '?';
+  };
+
+  const getOrgInitials = () => {
+    return organization?.name?.charAt(0)?.toUpperCase() || 'K';
   };
 
   // Detail mode: back button + centered title + spacer
@@ -34,29 +58,55 @@ export default function ScreenHeader({ title, subtitle, showBackButton = false, 
         >
           <Ionicons name="arrow-back" size={24} color={COLORS.primary} />
         </TouchableOpacity>
-        <Text style={styles.detailTitle} numberOfLines={1}>{title}</Text>
+        <Text style={styles.detailTitle} numberOfLines={1}>{backTitle || ''}</Text>
         <View style={styles.headerSpacer} />
       </View>
     );
   }
 
-  // List mode: left-aligned title + avatar
+  // Main header with consistent org color background
   return (
-    <View style={styles.header}>
-      <View style={styles.titleContainer}>
-        <Text style={styles.title}>{title}</Text>
-        {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
-      </View>
-      {showAvatar && (
+    <View style={[styles.header, { backgroundColor: headerColor }]}>
+      {/* Left side: Title OR Organization logo + name */}
+      {title ? (
+        <Text style={[styles.sectionTitle, { color: textColor }]}>{title}</Text>
+      ) : (
+        <TouchableOpacity
+          style={styles.orgContainer}
+          onPress={() => {
+            // TODO: Open workspace settings/switcher
+          }}
+          accessibilityLabel="Configuración del colegio"
+          accessibilityRole="button"
+        >
+          <DirectusImage
+            fileId={organization?.logo}
+            style={styles.orgLogo}
+            resizeMode="cover"
+            fallback={
+              <View style={[styles.orgLogoPlaceholder, { backgroundColor: avatarBgColor }]}>
+                <Text style={[styles.orgLogoInitial, { color: textColor }]}>{getOrgInitials()}</Text>
+              </View>
+            }
+          />
+          <Text style={[styles.orgName, { color: textColor }]} numberOfLines={1}>
+            {organization?.name || 'Kairos'}
+          </Text>
+        </TouchableOpacity>
+      )}
+
+      {/* Right side: Optional accessory + User avatar */}
+      <View style={styles.rightContainer}>
+        {rightAccessory}
         <TouchableOpacity
           onPress={() => router.push('/settings')}
-          style={styles.avatarButton}
+          style={[styles.avatarButton, { backgroundColor: avatarBgColor }]}
           accessibilityLabel="Ir a configuración"
           accessibilityRole="button"
         >
-          <Text style={styles.avatarText}>{getInitials()}</Text>
+          <Text style={[styles.avatarText, { color: textColor }]}>{getInitials()}</Text>
         </TouchableOpacity>
-      )}
+      </View>
     </View>
   );
 }
@@ -65,37 +115,61 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     paddingHorizontal: SPACING.screenPadding,
-    paddingTop: SPACING.sm,
-    paddingBottom: SPACING.md,
-    backgroundColor: COLORS.white,
+    paddingTop: SPACING.md,
+    paddingBottom: SPACING.lg,
   },
-  titleContainer: {
+  // Organization (left side - for home tab)
+  orgContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     flex: 1,
+    marginRight: SPACING.md,
   },
-  title: {
-    ...TYPOGRAPHY.screenTitle,
-    color: COLORS.black,
+  orgLogo: {
+    width: 36,
+    height: 36,
+    borderRadius: BORDERS.radius.md,
   },
-  subtitle: {
-    fontSize: 15,
-    color: COLORS.gray,
-    marginTop: SPACING.xs,
-  },
-  avatarButton: {
-    width: 40,
-    height: 40,
-    borderRadius: BORDERS.radius.full,
-    backgroundColor: COLORS.primary,
+  orgLogoPlaceholder: {
+    width: 36,
+    height: 36,
+    borderRadius: BORDERS.radius.md,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 2,
+  },
+  orgLogoInitial: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  orgName: {
+    ...TYPOGRAPHY.screenTitle,
+    marginLeft: SPACING.sm,
+    flex: 1,
+  },
+  // Section title (for other tabs)
+  sectionTitle: {
+    ...TYPOGRAPHY.screenTitle,
+    flex: 1,
+  },
+  // Right container (accessory + avatar)
+  rightContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
+  // Avatar (right side)
+  avatarButton: {
+    width: 36,
+    height: 36,
+    borderRadius: BORDERS.radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   avatarText: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
-    color: COLORS.white,
   },
   // Detail header styles
   detailHeader: {
@@ -126,3 +200,6 @@ const styles = StyleSheet.create({
     width: 40,
   },
 });
+
+// Memoize to prevent unnecessary re-renders
+export default React.memo(ScreenHeader);

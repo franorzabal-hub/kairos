@@ -9,50 +9,68 @@ import { COLORS, SPACING, TYPOGRAPHY } from '../theme';
 
 interface BlurTabBarProps extends BottomTabBarProps {
   unreadCounts: {
+    inicio: number;      // Combined novedades + upcoming events
+    agenda: number;      // All events
+    mensajes: number;
+    mishijos: number;    // Reports + pickup + attendance
+    // Legacy keys for backwards compatibility
     novedades: number;
     eventos: number;
-    mensajes: number;
     cambios: number;
     boletines: number;
   };
 }
 
+// Only these 4 routes should appear as visible tabs
+const VISIBLE_TAB_ROUTES = new Set([
+  'inicio/index',
+  'agenda/index',
+  'mensajes/index',
+  'mishijos/index',
+]);
+
 const TAB_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
-  'novedades/index': 'megaphone-outline',
-  'eventos/index': 'calendar-outline',
+  'inicio/index': 'home-outline',
+  'agenda/index': 'calendar-outline',
   'mensajes/index': 'chatbubbles-outline',
-  'cambios/index': 'time-outline',
-  'boletines/index': 'document-text-outline',
+  'mishijos/index': 'people-outline',
 };
 
 const TAB_BADGE_KEYS: Record<string, keyof BlurTabBarProps['unreadCounts']> = {
-  'novedades/index': 'novedades',
-  'eventos/index': 'eventos',
+  'inicio/index': 'inicio',
+  'agenda/index': 'agenda',
   'mensajes/index': 'mensajes',
-  'cambios/index': 'cambios',
-  'boletines/index': 'boletines',
+  'mishijos/index': 'mishijos',
+};
+
+// Map hidden/legacy routes to their parent tab for focus state
+const ROUTE_TO_PARENT_TAB: Record<string, string> = {
+  'novedades/index': 'inicio/index',
+  'novedades/[id]': 'inicio/index',
+  'eventos/index': 'agenda/index',
+  'eventos/[id]': 'agenda/index',
+  'cambios/index': 'mishijos/index',
+  'boletines/index': 'mishijos/index',
 };
 
 export default function BlurTabBar({ state, descriptors, navigation, unreadCounts }: BlurTabBarProps) {
   const insets = useSafeAreaInsets();
   const segments = useSegments();
-  const isNestedRoute = segments[0] === '(tabs)' && segments.length > 2;
 
-  if (isNestedRoute) {
+  // Hide tab bar only on detail screens (routes with dynamic [id] params)
+  // segments example: ['(tabs)', 'agenda', '[id]'] for /agenda/123
+  const isDetailScreen = segments.some(s => s.startsWith('[') && s.endsWith(']'));
+
+  if (isDetailScreen) {
     return null;
   }
 
-  // Filter out hidden routes (href: null) and dynamic routes ([id])
-  const visibleRoutes = state.routes.filter((route) => {
-    const { options } = descriptors[route.key];
-    // Exclude routes with href explicitly set to null
-    if (options.href === null) return false;
-    // Exclude dynamic routes like [id]
-    if (route.name.includes('[')) return false;
-    // Exclude the index redirect
-    if (route.name === 'index') return false;
-    return true;
-  });
+  // Only show the 4 main tab routes (explicitly filter by name)
+  const visibleRoutes = state.routes.filter((route) => VISIBLE_TAB_ROUTES.has(route.name));
+
+  // Determine which tab should be focused (handle hidden route → parent tab mapping)
+  const currentRouteName = state.routes[state.index]?.name;
+  const effectiveFocusedRoute = ROUTE_TO_PARENT_TAB[currentRouteName] || currentRouteName;
 
   return (
     <BlurView
@@ -64,14 +82,14 @@ export default function BlurTabBar({ state, descriptors, navigation, unreadCount
       <View style={styles.tabsContainer}>
         {visibleRoutes.map((route) => {
           const { options } = descriptors[route.key];
-          const index = state.routes.indexOf(route);
           const label = options.tabBarLabel !== undefined
             ? options.tabBarLabel
             : options.title !== undefined
             ? options.title
             : route.name;
 
-          const isFocused = state.index === index;
+          // Use effective focused route to handle hidden route → parent tab mapping
+          const isFocused = route.name === effectiveFocusedRoute;
           const iconName = TAB_ICONS[route.name] || 'help-outline';
           const badgeKey = TAB_BADGE_KEYS[route.name];
           const badge = badgeKey ? unreadCounts[badgeKey] : 0;

@@ -19,7 +19,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { FlashList } from '@shopify/flash-list';
 import ScreenHeader from '../components/ScreenHeader';
 import FilterBar from '../components/FilterBar';
-import { useFilters, useAppContext } from '../context/AppContext';
+import { useFilters } from '../context/AppContext';
+import { useSession } from '../hooks';
 import { usePickupRequests, useCreatePickupRequest, useUpdatePickupRequest, useChildren } from '../api/hooks';
 import { PickupRequest } from '../api/directus';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY, BADGE_STYLES, SHADOWS } from '../theme';
@@ -68,7 +69,7 @@ const buildTimeValue = (timeStr: string) => {
 };
 
 export default function CambiosScreen() {
-  const { children, user } = useAppContext();
+  const { user, children } = useSession();
   const { selectedChildId } = useFilters();
 
   // Fetch children on mount

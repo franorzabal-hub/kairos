@@ -1,219 +1,132 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import * as LocalAuthentication from 'expo-local-authentication';
-import { Student, AppUser, directus, saveTokens, getTokens, clearTokens, isBiometricEnabled } from '../api/directus';
-import { readMe, readItems } from '@directus/sdk';
+/**
+ * AppContext - Backwards-compatible wrapper
+ *
+ * This file maintains backwards compatibility with existing code
+ * that uses useAppContext(). New code should prefer the split contexts:
+ * - useAuth() for authentication
+ * - useChildren() for children state
+ * - useUI() for filters and unread counts
+ *
+ * @deprecated Prefer using specific context hooks
+ */
+import React, { createContext, useContext, useMemo, ReactNode, useEffect, useCallback } from 'react';
+import { Student, AppUser } from '../api/directus';
 import { clearAllReadStatus } from '../services/readStatusService';
 
-type FilterMode = 'unread' | 'all';
+// Import split contexts
+import { AuthProvider, useAuth } from './AuthContext';
+import { ChildrenProvider, useChildren } from './ChildrenContext';
+import { UIProvider, useUI, FilterMode } from './UIContext';
 
-interface AuthContextType {
+// Re-export for backwards compatibility
+export type { FilterMode };
+export { useAuth };
+
+interface AppContextType {
+  // Auth state
   user: AppUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-}
 
-interface AppContextType extends AuthContextType {
   // Children state
   children: Student[];
   setChildren: (children: Student[]) => void;
 
-  // Global filter state
+  // UI state
   filterMode: FilterMode;
   setFilterMode: (mode: FilterMode) => void;
   selectedChildId: string | null;
   setSelectedChildId: (id: string | null) => void;
-
-  // Unread counts per tab
   unreadCounts: {
+    inicio: number;
+    agenda: number;
+    mensajes: number;
+    mishijos: number;
     novedades: number;
     eventos: number;
-    mensajes: number;
     cambios: number;
     boletines: number;
   };
   setUnreadCounts: (counts: Partial<AppContextType['unreadCounts']>) => void;
 }
 
-const defaultUnreadCounts = {
-  novedades: 0,
-  eventos: 0,
-  mensajes: 0,
-  cambios: 0,
-  boletines: 0,
-};
-
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-export function AppProvider({ children: childrenProp }: { children: ReactNode }) {
-  const [user, setUser] = useState<AppUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [children, setChildren] = useState<Student[]>([]);
-  const [filterMode, setFilterMode] = useState<FilterMode>('unread');
-  const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
-  const [unreadCounts, setUnreadCountsState] = useState(defaultUnreadCounts);
+/**
+ * AppContextBridge - Internal component that bridges split contexts
+ */
+function AppContextBridge({ children: childrenProp }: { children: ReactNode }) {
+  const auth = useAuth();
+  const childrenCtx = useChildren();
+  const ui = useUI();
 
-  const setUnreadCounts = useCallback((counts: Partial<AppContextType['unreadCounts']>) => {
-    setUnreadCountsState(prev => ({ ...prev, ...counts }));
-  }, []);
-
-  const isAuthenticated = user !== null;
-
-  // Check for existing token on app start
-  useEffect(() => {
-    checkAuthStatus();
-  }, []);
-
-  // Helper to fetch app_user by email (more reliable than directus_user_id)
-  const fetchAppUser = async (email: string): Promise<AppUser | null> => {
-    try {
-      const appUsers = await directus.request(
-        readItems('app_users', {
-          filter: { email: { _eq: email } },
-          limit: 1,
-        })
-      );
-      return appUsers.length > 0 ? (appUsers[0] as AppUser) : null;
-    } catch (error) {
-      // Silently fail - user might not have permission to read app_users
-      console.log('Could not fetch app_user, using Directus user data');
-      return null;
-    }
-  };
-
-  const checkAuthStatus = async () => {
-    try {
-      const { accessToken, refreshToken } = await getTokens();
-      if (accessToken && refreshToken) {
-        // Check if biometric authentication is enabled
-        const biometricEnabled = await isBiometricEnabled();
-
-        if (biometricEnabled) {
-          // Verify device has biometric hardware and is enrolled
-          const hasHardware = await LocalAuthentication.hasHardwareAsync();
-          const isEnrolled = await LocalAuthentication.isEnrolledAsync();
-
-          if (hasHardware && isEnrolled) {
-            const result = await LocalAuthentication.authenticateAsync({
-              promptMessage: 'Confirma tu identidad para continuar',
-              cancelLabel: 'Cancelar',
-              disableDeviceFallback: true,
-            });
-
-            if (!result.success) {
-              // User cancelled or biometric failed - require manual login
-              setIsLoading(false);
-              return;
-            }
-          }
-        }
-
-        // Set tokens in the SDK so it can make authenticated requests
-        await directus.setToken(accessToken);
-
-        // Try to get current user with stored token
-        const currentUser = await directus.request(readMe());
-        if (currentUser && currentUser.email) {
-          // Fetch the app_user record by email
-          const appUser = await fetchAppUser(currentUser.email);
-
-          if (appUser) {
-            // Use app_user data (has correct ID for relations)
-            setUser(appUser);
-          } else {
-            // Fallback: create minimal user from Directus data
-            setUser({
-              id: currentUser.id,
-              organization_id: '',
-              role: 'parent',
-              first_name: currentUser.first_name || '',
-              last_name: currentUser.last_name || '',
-              email: currentUser.email || '',
-              status: 'active',
-            });
-          }
-        }
+  // Clear read status on logout (enhanced logout)
+  const enhancedLogout = useCallback(async () => {
+    if (auth.user?.id) {
+      try {
+        await clearAllReadStatus(auth.user.id);
+      } catch (error) {
+        if (__DEV__) console.log('[AppContext] Failed to clear read status:', error);
       }
-    } catch (error) {
-      console.log('No valid session found');
-      await clearTokens();
-    } finally {
-      setIsLoading(false);
     }
-  };
+    // Reset children and UI state
+    childrenCtx.setChildren([]);
+    ui.resetUnreadCounts();
+    // Call original logout
+    await auth.logout();
+  }, [auth, childrenCtx, ui]);
 
-  const login = async (email: string, password: string) => {
-    try {
-      // Use the SDK's built-in login which handles token storage internally
-      const result = await directus.login({ email, password });
+  // Combine all contexts into single value for backwards compatibility
+  const contextValue = useMemo<AppContextType>(() => ({
+    // Auth
+    user: auth.user,
+    isAuthenticated: auth.isAuthenticated,
+    isLoading: auth.isLoading,
+    login: auth.login,
+    logout: enhancedLogout,
 
-      if (result.access_token && result.refresh_token) {
-        // Also save tokens to SecureStore for persistence across app restarts
-        await saveTokens(result.access_token, result.refresh_token);
+    // Children
+    children: childrenCtx.children,
+    setChildren: childrenCtx.setChildren,
+    selectedChildId: childrenCtx.selectedChildId,
+    setSelectedChildId: childrenCtx.setSelectedChildId,
 
-        // Get Directus user info
-        const currentUser = await directus.request(readMe());
-
-        // Fetch the app_user record by email
-        const appUser = currentUser.email ? await fetchAppUser(currentUser.email) : null;
-
-        if (appUser) {
-          // Use app_user data (has correct ID for relations)
-          setUser(appUser);
-        } else {
-          // Fallback: create minimal user from Directus data
-          setUser({
-            id: currentUser.id,
-            organization_id: '',
-            role: 'parent',
-            first_name: currentUser.first_name || '',
-            last_name: currentUser.last_name || '',
-            email: currentUser.email || '',
-            status: 'active',
-          });
-        }
-      }
-    } catch (error: any) {
-      console.error('Login failed:', error);
-      throw new Error(error.errors?.[0]?.message || 'Error de autenticación');
-    }
-  };
-
-  const logout = async () => {
-    // Clear read status before clearing user (need user.id for the API call)
-    if (user?.id) {
-      await clearAllReadStatus(user.id);
-    }
-    await clearTokens();
-    setUser(null);
-    setChildren([]);
-    setUnreadCountsState(defaultUnreadCounts);
-  };
+    // UI
+    filterMode: ui.filterMode,
+    setFilterMode: ui.setFilterMode,
+    unreadCounts: ui.unreadCounts,
+    setUnreadCounts: ui.setUnreadCounts,
+  }), [auth, childrenCtx, ui, enhancedLogout]);
 
   return (
-    <AppContext.Provider
-      value={{
-        user,
-        isAuthenticated,
-        isLoading,
-        login,
-        logout,
-        children,
-        setChildren,
-        filterMode,
-        setFilterMode,
-        selectedChildId,
-        setSelectedChildId,
-        unreadCounts,
-        setUnreadCounts,
-      }}
-    >
+    <AppContext.Provider value={contextValue}>
       {childrenProp}
     </AppContext.Provider>
   );
 }
 
+/**
+ * AppProvider - Main provider that wraps all contexts
+ */
+export function AppProvider({ children }: { children: ReactNode }) {
+  return (
+    <AuthProvider>
+      <ChildrenProvider>
+        <UIProvider>
+          <AppContextBridge>
+            {children}
+          </AppContextBridge>
+        </UIProvider>
+      </ChildrenProvider>
+    </AuthProvider>
+  );
+}
+
+/**
+ * @deprecated Prefer using specific hooks: useAuth, useChildren, useUI
+ */
 export function useAppContext() {
   const context = useContext(AppContext);
   if (context === undefined) {
@@ -222,18 +135,28 @@ export function useAppContext() {
   return context;
 }
 
-// Auth hook
-export function useAuth() {
+// Legacy convenience hooks - these now delegate to split contexts
+// Kept for backwards compatibility
+
+/**
+ * @deprecated Use useAuth from AuthContext instead
+ */
+export function useAuthLegacy() {
   const { user, isAuthenticated, isLoading, login, logout } = useAppContext();
   return { user, isAuthenticated, isLoading, login, logout };
 }
 
-// Convenience hooks
+/**
+ * @deprecated Use useUI from UIContext instead
+ */
 export function useFilters() {
   const { filterMode, setFilterMode, selectedChildId, setSelectedChildId, children } = useAppContext();
   return { filterMode, setFilterMode, selectedChildId, setSelectedChildId, children };
 }
 
+/**
+ * @deprecated Use useUnreadCounts from UIContext instead
+ */
 export function useUnreadCounts() {
   const { unreadCounts, setUnreadCounts } = useAppContext();
   return { unreadCounts, setUnreadCounts };

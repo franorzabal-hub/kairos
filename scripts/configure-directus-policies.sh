@@ -196,6 +196,30 @@ create_permission "$PARENT_ROLE" "content_reads" "update" '{
   "_and": [{"user_id": {"_eq": "$CURRENT_USER.id"}}]
 }'
 
+# Parents: Manage pinned announcements (own only)
+create_permission "$PARENT_ROLE" "user_pinned_announcements" "read" '{
+  "_and": [{"user_id": {"_eq": "$CURRENT_USER.id"}}]
+}'
+create_permission "$PARENT_ROLE" "user_pinned_announcements" "create" '{}'
+create_permission "$PARENT_ROLE" "user_pinned_announcements" "delete" '{
+  "_and": [{"user_id": {"_eq": "$CURRENT_USER.id"}}]
+}'
+
+# Parents: Manage archived announcements (own only)
+create_permission "$PARENT_ROLE" "user_archived_announcements" "read" '{
+  "_and": [{"user_id": {"_eq": "$CURRENT_USER.id"}}]
+}'
+create_permission "$PARENT_ROLE" "user_archived_announcements" "create" '{}'
+create_permission "$PARENT_ROLE" "user_archived_announcements" "delete" '{
+  "_and": [{"user_id": {"_eq": "$CURRENT_USER.id"}}]
+}'
+
+# Parents: Read/Create acknowledgments (own only)
+create_permission "$PARENT_ROLE" "announcement_acknowledgments" "read" '{
+  "_and": [{"user_id": {"_eq": "$CURRENT_USER.id"}}]
+}'
+create_permission "$PARENT_ROLE" "announcement_acknowledgments" "create" '{}'
+
 echo ""
 echo "=== Configuring Teacher Permissions ==="
 
@@ -320,6 +344,21 @@ for collection in "${admin_collections[@]}"; do
   create_permission "$ADMIN_ROLE" "$collection" "create" '{}'
   create_permission "$ADMIN_ROLE" "$collection" "update" "$org_permission"
   create_permission "$ADMIN_ROLE" "$collection" "delete" "$org_permission"
+done
+
+# Admin: User action collections (no organization_id field, filter by user's org through relation)
+user_action_collections=(
+  "user_pinned_announcements"
+  "user_archived_announcements"
+  "announcement_acknowledgments"
+)
+
+for collection in "${user_action_collections[@]}"; do
+  # Admins can read/manage all user actions (for analytics/support)
+  create_permission "$ADMIN_ROLE" "$collection" "read" '{}'
+  create_permission "$ADMIN_ROLE" "$collection" "create" '{}'
+  create_permission "$ADMIN_ROLE" "$collection" "update" '{}'
+  create_permission "$ADMIN_ROLE" "$collection" "delete" '{}'
 done
 
 # Admin: Read organization (own only)

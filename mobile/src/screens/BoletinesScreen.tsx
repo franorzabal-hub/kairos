@@ -7,8 +7,7 @@ import { useNetInfo } from '@react-native-community/netinfo';
 import ScreenHeader from '../components/ScreenHeader';
 import FilterBar from '../components/FilterBar';
 import { useFilters, useUnreadCounts } from '../context/AppContext';
-import { useReports, useChildren } from '../api/hooks';
-import { useReadStatus } from '../hooks';
+import { useReports, useChildren, useContentReadStatus } from '../api/hooks';
 import { Report } from '../api/directus';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY, UNREAD_STYLES, BADGE_STYLES, SHADOWS } from '../theme';
 
@@ -19,7 +18,7 @@ type ReportListItem =
 export default function BoletinesScreen() {
   const { children, filterMode } = useFilters();
   const { unreadCounts } = useUnreadCounts();
-  const { isRead, filterUnread, markAsRead } = useReadStatus('boletines');
+  const { isRead, filterUnread, markAsRead } = useContentReadStatus('boletines');
   const netInfo = useNetInfo();
   const isOffline = netInfo.isConnected === false;
 

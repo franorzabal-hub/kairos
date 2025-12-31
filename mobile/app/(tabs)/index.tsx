@@ -1,6 +1,6 @@
 import { Redirect } from 'expo-router';
 
 export default function TabsIndex() {
-  // Use path-based redirect (not route name)
-  return <Redirect href="/novedades" />;
+  // Redirect to Inicio (Home) as the default tab
+  return <Redirect href="/inicio" />;
 }

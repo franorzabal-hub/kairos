@@ -10,7 +10,27 @@ export interface Organization {
   name: string;
   slug: string;
   logo?: string;
+  primary_color?: string; // Hex color for header/branding (e.g., "#1E40AF")
   settings?: Record<string, any>;
+  // O2M relation to campuses
+  campuses?: Campus[];
+}
+
+export interface Campus {
+  id: string;
+  organization_id: string;
+  name: string;
+  code?: string; // Short identifier (e.g., "NORTH", "CENTRAL")
+  address?: string;
+  phone?: string;
+  email?: string;
+  is_primary: boolean;
+  logo?: string;
+  primary_color?: string; // Override org color for this campus
+  settings?: Record<string, any>;
+  status: 'active' | 'inactive';
+  date_created?: string;
+  date_updated?: string;
 }
 
 export interface AppUser {
@@ -24,6 +44,8 @@ export interface AppUser {
   phone?: string;
   avatar?: string;
   status: 'active' | 'inactive' | 'pending';
+  // Direct M2M relationship to students (for parents)
+  children?: string[];
 }
 
 export interface Student {
@@ -52,6 +74,12 @@ export interface Announcement {
   // Note: Schema uses publish_at, client uses published_at (both supported via setup-schema-v2.sh)
   published_at?: string;
   publish_at?: string;
+  // Novedades V2 fields
+  is_pinned?: boolean;           // Global admin pinning (for all users)
+  requires_acknowledgment?: boolean;  // Requires explicit user confirmation
+  video_url?: string;            // YouTube/Vimeo embed URL
+  // Attachments (populated via M2M or fetched separately)
+  attachments?: AnnouncementAttachment[];
 }
 
 export interface Location {
@@ -196,7 +224,7 @@ export interface Report {
 export interface StudentGuardian {
   id: string;
   student_id: string;
-  user_id: string;
+  user_id: string; // References app_users.id (the guardian/parent)
   relationship: string;
   is_primary: boolean;
   can_pickup: boolean;
@@ -219,9 +247,40 @@ export interface ContentRead {
   read_at: string;
 }
 
+// Novedades V2 - User-specific announcement actions
+export interface UserPinnedAnnouncement {
+  id: string;
+  user_id: string;
+  announcement_id: string;
+  created_at: string;  // Directus auto-generated timestamp
+}
+
+export interface UserArchivedAnnouncement {
+  id: string;
+  user_id: string;
+  announcement_id: string;
+  created_at: string;  // Directus auto-generated timestamp
+}
+
+export interface AnnouncementAcknowledgment {
+  id: string;
+  user_id: string;
+  announcement_id: string;
+  acknowledged_at: string;
+}
+
+export interface AnnouncementAttachment {
+  id: string;
+  announcement_id: string;
+  file: string;  // directus_files ID
+  title?: string;
+  sort?: number;
+}
+
 // Schema definition for Directus SDK
 interface Schema {
   organizations: Organization[];
+  campuses: Campus[];
   app_users: AppUser[];
   students: Student[];
   student_guardians: StudentGuardian[];
@@ -237,6 +296,11 @@ interface Schema {
   push_tokens: PushToken[];
   content_reads: ContentRead[];
   directus_users: DirectusUser[];
+  // Novedades V2 collections
+  user_pinned_announcements: UserPinnedAnnouncement[];
+  user_archived_announcements: UserArchivedAnnouncement[];
+  announcement_acknowledgments: AnnouncementAcknowledgment[];
+  announcement_attachments: AnnouncementAttachment[];
 }
 
 // Token storage helpers

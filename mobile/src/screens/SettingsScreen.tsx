@@ -13,7 +13,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as LocalAuthentication from 'expo-local-authentication';
-import { useAuth, useAppContext } from '../context/AppContext';
+import { useAuth } from '../context/AppContext';
+import { useSession } from '../hooks';
 import { clearAllReadStatus } from '../services/readStatusService';
 import { isBiometricEnabled, setBiometricEnabled } from '../api/directus';
 import Constants from 'expo-constants';
@@ -93,8 +94,9 @@ const ToggleRow = ({ icon, label, description, value, onValueChange }: ToggleRow
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { user, logout } = useAuth();
-  const { children } = useAppContext();
+  // Centralized session state - user, children, permissions
+  const { user, children } = useSession();
+  const { logout } = useAuth();
 
   const appVersion = Constants.expoConfig?.version || '1.0.0';
 

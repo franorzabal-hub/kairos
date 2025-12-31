@@ -195,6 +195,7 @@ kairos/
 │   │   ├── components/       # Reusable UI
 │   │   ├── navigation/       # React Navigation
 │   │   ├── context/          # App state
+│   │   ├── hooks/            # Custom hooks (useSession, etc.)
 │   │   └── services/         # Business logic
 │   └── app.json
 ├── directus/                  # Directus config (optional)
@@ -203,9 +204,37 @@ kairos/
 │   ├── DATA_MODEL.md         # Database schema
 │   ├── DEPLOYMENT.md         # Deploy guide
 │   ├── MOBILE_APP_SPEC.md    # Mobile app specification
+│   ├── MOBILE_ARCHITECTURE.md # Mobile app patterns
 │   └── DIRECTUS_MANUAL_CONFIG.md  # Manual config guide
 └── docker/                    # Local development
 ```
+
+## Mobile Architecture: Session Management
+
+Use `useSession()` hook for centralized user/children/permissions. See `docs/MOBILE_ARCHITECTURE.md` for full details.
+
+```typescript
+// DO THIS - centralized session state
+import { useSession } from '../hooks';
+
+function MyScreen() {
+  const { user, children, canViewReports, isLoading } = useSession();
+  // user.id is guaranteed to be app_user.id (correct for relations)
+}
+
+// DON'T DO THIS - scattered state prone to bugs
+function MyScreen() {
+  const { user } = useAuth();           // user.id might be wrong!
+  const { data: children } = useChildren();
+  const canViewReports = children.length > 0;  // duplicated logic
+}
+```
+
+**Key insight**: Directus has TWO user IDs:
+- `directus_users.id` - for authentication
+- `app_users.id` - for business relations (student_guardians, etc.)
+
+`useSession()` ensures you always use the correct `app_users.id`.
 
 ## Key Collections (Directus)
 

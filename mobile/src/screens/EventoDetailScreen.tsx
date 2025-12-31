@@ -21,7 +21,7 @@ import DirectusImage from '../components/DirectusImage';
 import Toast from '../components/Toast';
 import { useEvent } from '../api/hooks';
 import { Location } from '../api/directus';
-import { useReadStatus } from '../hooks/useReadStatus';
+import { useContentReadStatus } from '../api/hooks';
 import { COLORS, SPACING, BORDERS } from '../theme';
 import { stripHtml } from '../utils';
 
@@ -61,7 +61,7 @@ export default function EventoDetailScreen() {
   const eventId = typeof id === 'string' ? id : '';
   const { data: event } = useEvent(eventId);
   const { width } = useWindowDimensions();
-  const { markAsRead } = useReadStatus('events');
+  const { markAsRead } = useContentReadStatus('events');
 
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [showToast, setShowToast] = useState(false);
@@ -159,7 +159,7 @@ export default function EventoDetailScreen() {
   if (!event) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
-        <ScreenHeader title="Evento" showBackButton />
+        <ScreenHeader showBackButton backTitle="Evento" />
         <View style={styles.emptyState}>
           <Text style={styles.emptyText}>No se encontró el evento</Text>
         </View>
@@ -169,7 +169,7 @@ export default function EventoDetailScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <ScreenHeader title={event.title} showBackButton />
+      <ScreenHeader showBackButton backTitle={event.title} />
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Event Image */}
