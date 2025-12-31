@@ -12,9 +12,9 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { View, Text, Pressable, ActivityIndicator, Platform, TextInput, ScrollView, PressableStateCallbackType } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { WebLayout, MasterDetailLayout, WebConversationCard, WebMessageInput, ResponsiveCardList } from '../../components/web';
+import { WebLayout, MasterDetailLayout, WebConversationCard, ResponsiveCardList } from '../../components/web';
 import SegmentedControl from '../../components/SegmentedControl';
-import { ChatBubble, FirstMessageCard, DateSeparator } from '../../components/chat';
+import { ChatBubble, FirstMessageCard, DateSeparator, MessageInput } from '../../components/chat';
 import {
   useConversations,
   useConversation,
@@ -49,7 +49,7 @@ const CONTACT_CHANNELS: ContactChannel[] = [
 ];
 
 export default function WebMensajesScreen() {
-  const { user } = useSession();
+  const { user, children } = useSession();
   const directusUserId = user?.directus_user_id;
 
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
@@ -129,8 +129,8 @@ export default function WebMensajesScreen() {
   }, [participantId, selectedConversationId, markAsRead]);
 
   // Handle conversation selection
-  const handleSelectConversation = useCallback((conversationId: string) => {
-    setSelectedConversationId(conversationId);
+  const handleSelectConversation = useCallback((conversation: Conversation) => {
+    setSelectedConversationId(conversation.id);
     setViewMode('chat');
     setNewConversationChannel(null);
   }, []);
@@ -298,9 +298,10 @@ export default function WebMensajesScreen() {
               <WebConversationCard
                 key={conversation.id}
                 conversation={conversation}
+                children={children}
+                currentUserId={user?.id}
                 isSelected={conversation.id === selectedConversationId}
-                isUnread={conversation.unreadCount > 0}
-                onPress={() => handleSelectConversation(conversation.id)}
+                onPress={handleSelectConversation}
               />
             ))}
           </ResponsiveCardList>
@@ -639,7 +640,7 @@ export default function WebMensajesScreen() {
 
         {/* Message Input */}
         {canReply && !isClosed ? (
-          <WebMessageInput
+          <MessageInput
             value={inputText}
             onChangeText={setInputText}
             onSend={handleSendMessage}

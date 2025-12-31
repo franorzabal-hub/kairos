@@ -24,4 +24,6 @@ export {
 export type { EventStatus } from './cards';
 
 // Chat components (web-optimized)
-export { WebMessageInput, WebConversationCard } from './chat';
+// Note: ConversationCard and MessageInput are now unified and handle both mobile and web
+// WebConversationCard is re-exported for backwards compatibility
+export { WebConversationCard } from './chat';

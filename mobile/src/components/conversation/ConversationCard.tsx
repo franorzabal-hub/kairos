@@ -1,20 +1,11 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, Pressable, Platform, PressableStateCallbackType } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ConversationWithMeta } from '../../api/hooks';
-import { COLORS, CHILD_COLORS, SPACING, BORDERS, TYPOGRAPHY, SHADOWS, UNREAD_STYLES } from '../../theme';
+import { COLORS, CHILD_COLORS, AVATAR_COLORS, SPACING, BORDERS, TYPOGRAPHY, SHADOWS, UNREAD_STYLES } from '../../theme';
 
-// Screen-specific colors for conversation list
-const LIST_COLORS = {
-  urgent: '#D32F2F',
-  urgentLight: '#FFEBEE',
-};
-
-// Avatar colors palette
-const AVATAR_COLORS = [
-  '#6366F1', '#8B5CF6', '#EC4899', '#F59E0B',
-  '#10B981', '#3B82F6', '#EF4444', '#14B8A6',
-];
+// Web-specific pressable state type
+type WebPressableState = PressableStateCallbackType & { hovered?: boolean };
 
 // Get a consistent color based on user ID hash
 function getAvatarColor(userId: string): string {
@@ -37,6 +28,11 @@ export interface ConversationCardProps {
   children: Child[];
   currentUserId?: string;
   onPress: (conversation: ConversationWithMeta) => void;
+  // Web-specific props
+  isSelected?: boolean;
+  onArchive?: () => void;
+  onPin?: () => void;
+  isPinned?: boolean;
 }
 
 const ConversationCard = React.memo(({
@@ -44,7 +40,13 @@ const ConversationCard = React.memo(({
   children,
   currentUserId,
   onPress,
+  // Web-specific props
+  isSelected = false,
+  onArchive,
+  onPin,
+  isPinned = false,
 }: ConversationCardProps) => {
+  const [isHovered, setIsHovered] = useState(false);
   const hasUnread = conversation.unreadCount > 0;
   const isUrgent = conversation.lastMessage?.is_urgent;
   const isClosed = conversation.status === 'closed';
@@ -124,21 +126,69 @@ const ConversationCard = React.memo(({
   const relatedChildName = getRelatedChildName();
   const childColor = getChildColor(relatedChildName);
 
+  // Handle action click (for web hover actions)
+  const handleActionClick = (e: any, action?: () => void) => {
+    e.stopPropagation();
+    action?.();
+  };
+
+  // Platform-specific styles
+  const isWeb = Platform.OS === 'web';
+  const getCardStyle = (state: PressableStateCallbackType) => {
+    const baseStyle: any = {
+      flexDirection: 'row',
+      backgroundColor: COLORS.white,
+      borderRadius: isWeb ? 0 : BORDERS.radius.lg,
+      marginBottom: isWeb ? 0 : SPACING.lg,
+      marginHorizontal: isWeb ? 0 : SPACING.screenPadding,
+      padding: SPACING.cardPadding,
+      overflow: 'hidden',
+      ...(isWeb ? {} : SHADOWS.card),
+    };
+
+    // Web-specific styles
+    if (isWeb) {
+      baseStyle.borderBottomWidth = 1;
+      baseStyle.borderBottomColor = COLORS.border;
+      baseStyle.cursor = 'pointer';
+      baseStyle.transition = 'background-color 0.15s ease';
+
+      if (isSelected) {
+        baseStyle.backgroundColor = COLORS.primaryLight;
+      } else if ((state as WebPressableState).hovered) {
+        baseStyle.backgroundColor = COLORS.lightGray;
+      }
+    }
+
+    // Unread indicator
+    if (hasUnread) {
+      baseStyle.borderLeftWidth = isWeb ? 3 : UNREAD_STYLES.borderLeft.borderLeftWidth;
+      baseStyle.borderLeftColor = COLORS.primary;
+    }
+
+    return baseStyle;
+  };
+
   return (
-    <TouchableOpacity
-      style={[styles.conversationCard, hasUnread && styles.conversationCardUnread]}
+    <Pressable
+      style={getCardStyle}
       onPress={() => onPress(conversation)}
       disabled={conversation.isBlocked}
+      onHoverIn={isWeb ? () => setIsHovered(true) : undefined}
+      onHoverOut={isWeb ? () => setIsHovered(false) : undefined}
+      accessibilityRole="button"
+      accessibilityLabel={`Conversacion con ${participantInfo.name}, ${conversation.subject}`}
+      accessibilityHint="Toca para abrir la conversacion"
     >
       {/* Avatar with Initials */}
       <View style={styles.avatarContainer}>
         <View
           style={[
             styles.avatar,
-            { backgroundColor: isUrgent ? LIST_COLORS.urgentLight : `${participantInfo.color}20` },
+            { backgroundColor: isUrgent ? COLORS.errorLight : `${participantInfo.color}20` },
           ]}
         >
-          <Text style={[styles.avatarText, { color: isUrgent ? LIST_COLORS.urgent : participantInfo.color }]}>
+          <Text style={[styles.avatarText, { color: isUrgent ? COLORS.error : participantInfo.color }]}>
             {participantInfo.initials}
           </Text>
         </View>
@@ -170,14 +220,15 @@ const ConversationCard = React.memo(({
           )}
         </View>
 
-        {/* Row 3: Preview + Child indicator + Unread count */}
+        {/* Row 3: Preview + Child indicator + Unread count + Web actions */}
         <View style={styles.previewRow}>
           <Text style={[styles.preview, hasUnread && styles.previewUnread]} numberOfLines={1}>
             {getLastMessagePreview()}
           </Text>
 
           <View style={styles.rowIndicators}>
-            {relatedChildName && children.length > 1 && (
+            {/* Mobile: Child indicator */}
+            {!isWeb && relatedChildName && children.length > 1 && (
               <View style={[styles.childIndicator, { backgroundColor: childColor || COLORS.gray }]}>
                 <Text style={styles.childIndicatorText}>
                   {relatedChildName.charAt(0)}
@@ -185,7 +236,52 @@ const ConversationCard = React.memo(({
               </View>
             )}
 
-            {hasUnread && (
+            {/* Web: Hover actions or unread dot */}
+            {isWeb && isHovered ? (
+              <View style={{ flexDirection: 'row', gap: SPACING.xs }}>
+                {onPin && (
+                  <Pressable
+                    onPress={(e) => handleActionClick(e, onPin)}
+                    style={(state) => ({
+                      width: 24,
+                      height: 24,
+                      borderRadius: 12,
+                      backgroundColor: isPinned ? COLORS.primaryLight : COLORS.lightGray,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      opacity: (state as WebPressableState).hovered ? 0.7 : 1,
+                    })}
+                  >
+                    <Ionicons
+                      name={isPinned ? 'pin' : 'pin-outline'}
+                      size={12}
+                      color={isPinned ? COLORS.primary : COLORS.gray}
+                    />
+                  </Pressable>
+                )}
+                {onArchive && (
+                  <Pressable
+                    onPress={(e) => handleActionClick(e, onArchive)}
+                    style={(state) => ({
+                      width: 24,
+                      height: 24,
+                      borderRadius: 12,
+                      backgroundColor: COLORS.lightGray,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      opacity: (state as WebPressableState).hovered ? 0.7 : 1,
+                    })}
+                  >
+                    <Ionicons name="archive-outline" size={12} color={COLORS.gray} />
+                  </Pressable>
+                )}
+              </View>
+            ) : isWeb && hasUnread ? (
+              <View style={styles.unreadDot} />
+            ) : null}
+
+            {/* Mobile: Unread badge with count */}
+            {!isWeb && hasUnread && (
               <View style={styles.unreadBadge}>
                 <Text style={styles.unreadBadgeText}>
                   {conversation.unreadCount > 99 ? '99+' : conversation.unreadCount}
@@ -195,8 +291,8 @@ const ConversationCard = React.memo(({
           </View>
         </View>
 
-        {/* Status indicators */}
-        {(!conversation.canReply || conversation.isBlocked) && (
+        {/* Status indicators (mobile only) */}
+        {!isWeb && (!conversation.canReply || conversation.isBlocked) && (
           <View style={styles.statusRow}>
             {!conversation.canReply && !isClosed && (
               <View style={styles.statusIndicator}>
@@ -206,14 +302,14 @@ const ConversationCard = React.memo(({
             )}
             {conversation.isBlocked && (
               <View style={styles.statusIndicator}>
-                <Ionicons name="ban-outline" size={10} color={LIST_COLORS.urgent} />
-                <Text style={[styles.statusText, { color: LIST_COLORS.urgent }]}>Bloqueado</Text>
+                <Ionicons name="ban-outline" size={10} color={COLORS.error} />
+                <Text style={[styles.statusText, { color: COLORS.error }]}>Bloqueado</Text>
               </View>
             )}
           </View>
         )}
       </View>
-    </TouchableOpacity>
+    </Pressable>
   );
 });
 
@@ -222,19 +318,7 @@ ConversationCard.displayName = 'ConversationCard';
 export default ConversationCard;
 
 const styles = StyleSheet.create({
-  conversationCard: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.white,
-    borderRadius: BORDERS.radius.lg,
-    marginBottom: SPACING.lg,
-    marginHorizontal: SPACING.screenPadding,
-    padding: SPACING.cardPadding,
-    overflow: 'hidden',
-    ...SHADOWS.card,
-  },
-  conversationCardUnread: {
-    ...UNREAD_STYLES.borderLeft,
-  },
+  // Note: Main card styles are computed dynamically in getCardStyle
   avatarContainer: {
     position: 'relative',
     marginRight: SPACING.md,
@@ -259,7 +343,7 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: LIST_COLORS.urgent,
+    backgroundColor: COLORS.error,
     borderWidth: 2,
     borderColor: COLORS.white,
   },
@@ -374,5 +458,12 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.badgeSmall,
     color: COLORS.gray,
     marginLeft: SPACING.xs,
+  },
+  // Web-specific: small unread dot (when not hovered)
+  unreadDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: COLORS.primary,
   },
 });

@@ -8,8 +8,9 @@
  * - Optimized for master-detail layouts
  */
 
-export { WebMessageInput } from './WebMessageInput';
-export { WebConversationCard } from './WebConversationCard';
+// ConversationCard is now unified - re-export from conversation module for backwards compatibility
+export { ConversationCard as WebConversationCard } from '../../conversation';
 
-// Re-export mobile components that work on web
-// ChatBubble, DateSeparator, and FirstMessageCard are cross-platform
+// MessageInput is now unified and exported from the main chat components
+// Re-export for backwards compatibility
+export { default as MessageInput } from '../../chat/MessageInput';
