@@ -7,6 +7,7 @@ import {
   ScrollView,
   Alert,
   Linking,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -71,6 +72,12 @@ export default function SettingsScreen() {
   }, []);
 
   const checkBiometricStatus = async () => {
+    // Biometric auth is only available on native platforms
+    if (Platform.OS === 'web') {
+      setBiometricAvailable(false);
+      return;
+    }
+
     try {
       const hasHardware = await LocalAuthentication.hasHardwareAsync();
       const isEnrolled = await LocalAuthentication.isEnrolledAsync();
@@ -94,6 +101,9 @@ export default function SettingsScreen() {
   };
 
   const handleToggleBiometric = async (newValue: boolean) => {
+    // Guard against web platform (should never be called, but defensive)
+    if (Platform.OS === 'web') return;
+
     if (newValue) {
       // Activating - verify biometric first
       const result = await LocalAuthentication.authenticateAsync({

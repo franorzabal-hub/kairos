@@ -8,6 +8,7 @@
  * - AppUser fetching
  */
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
+import { Platform } from 'react-native';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { AppUser, directus, saveTokens, getTokens, clearTokens, isBiometricEnabled, setBiometricEnabled } from '../api/directus';
 import { readMe, readItems } from '@directus/sdk';
@@ -109,7 +110,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (accessToken && refreshToken) {
         const biometricEnabled = await isBiometricEnabled();
 
-        if (biometricEnabled) {
+        // Biometric auth is only available on native platforms
+        if (biometricEnabled && Platform.OS !== 'web') {
           // Check lockout status
           if (isLocked) {
             setIsLoading(false);
