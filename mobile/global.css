@@ -1,0 +1,20 @@
+/**
+ * Global CSS for NativeWind
+ *
+ * This file enables Tailwind CSS utility classes in React Native.
+ * Import this in your app entry point (index.ts or App.tsx).
+ *
+ * Usage:
+ *   <View className="flex-1 bg-primary p-4">
+ *     <Text className="text-white text-lg font-bold">Hello</Text>
+ *   </View>
+ *
+ * Custom colors from tailwind.config.js are available:
+ *   - bg-primary, text-primary (school brand color #8B1538)
+ *   - bg-primaryLight (#F5E6EA)
+ *   - text-gray, bg-lightGray, etc.
+ */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

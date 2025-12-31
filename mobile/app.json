@@ -57,11 +57,27 @@
       ]
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro",
+      "output": "single",
+      "name": "Kairos"
     },
     "plugins": [
       "expo-router",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-ssl-pinning",
+        {
+          "sslPinning": {
+            "hosts": {
+              "kairos-directus-684614817316.us-central1.run.app": [
+                "4zBK9qiBSbUuV4JCJBd2PnBKkSzrxP7q21YNOeOoK7c=",
+                "YPtHaftLw6/0vnc2BnNKGF54xiCA28WFcccjkA4ypCM="
+              ]
+            }
+          }
+        }
+      ]
     ]
   }
 }
