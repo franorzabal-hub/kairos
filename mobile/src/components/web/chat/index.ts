@@ -8,8 +8,8 @@
  * - Optimized for master-detail layouts
  */
 
-// ConversationCard is now unified - re-export from conversation module for backwards compatibility
-export { ConversationCard as WebConversationCard } from '../../conversation';
+// Export the new web-specific conversation card
+export { WebConversationCard } from './WebConversationCard';
 
 // MessageInput is now unified and exported from the main chat components
 // Re-export for backwards compatibility

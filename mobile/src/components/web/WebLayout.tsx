@@ -14,7 +14,6 @@ import React, { ReactNode } from 'react';
 import { Platform, View } from 'react-native';
 import { WebSidebar } from './WebSidebar';
 import { WebHeader } from './WebHeader';
-import { WebFooter } from './WebFooter';
 
 interface WebLayoutProps {
   children: ReactNode;
@@ -26,8 +25,6 @@ interface WebLayoutProps {
   hideSidebar?: boolean;
   /** Hide header */
   hideHeader?: boolean;
-  /** Hide footer */
-  hideFooter?: boolean;
 }
 
 export function WebLayout({
@@ -36,7 +33,6 @@ export function WebLayout({
   breadcrumbs,
   hideSidebar = false,
   hideHeader = false,
-  hideFooter = false,
 }: WebLayoutProps) {
   // On mobile, just render children without the layout wrapper
   if (Platform.OS !== 'web') {
@@ -80,9 +76,6 @@ export function WebLayout({
             {children}
           </View>
         </View>
-
-        {/* Footer - Status bar (Optional/Hidden for now to match cleaner SaaS look) */}
-        {!hideFooter && <WebFooter />}
       </View>
     </View>
   );

@@ -179,34 +179,33 @@ export function WebSidebar() {
 
       {/* My Children Section - Accordion */}
       {children && children.length > 0 && (
-        <View style={{ paddingHorizontal: 8, flex: 1 }}>
+        <View style={{ paddingHorizontal: 8, flex: 1, marginTop: 16 }}>
           <Pressable
             onPress={() => setIsChildrenExpanded(!isChildrenExpanded)}
             style={(state) => ({
               flexDirection: 'row',
               alignItems: 'center',
-              paddingHorizontal: 8,
+              paddingHorizontal: 12,
               paddingVertical: 8,
-              marginTop: 8,
               opacity: (state as WebPressableState).hovered ? 1 : 0.8,
             })}
           >
             <Text
               style={{
                 flex: 1,
-                fontSize: 11,
-                fontWeight: '600',
+                fontSize: 10, // text-xs
+                fontWeight: '700',
                 textTransform: 'uppercase',
-                letterSpacing: 0.8,
+                letterSpacing: 1, // tracking-wider
+                color: '#64748B', // slate-500
               }}
-              className="text-sidebar-textMuted"
             >
               Mis Hijos
             </Text>
             <Ionicons
               name={isChildrenExpanded ? 'chevron-down' : 'add'}
               size={12}
-              color="#94A3B8"
+              color="#64748B"
             />
           </Pressable>
 
@@ -214,7 +213,7 @@ export function WebSidebar() {
             children.map((child, index) => {
               const isExpanded = expandedChildId === child.id;
               return (
-                <View key={child.id} style={{ marginBottom: 4 }}>
+                <View key={child.id} style={{ marginBottom: 2 }}>
                   <Pressable
                     onPress={() => toggleChildExpanded(child.id)}
                     style={(state) => ({
@@ -222,9 +221,10 @@ export function WebSidebar() {
                       alignItems: 'center',
                       paddingVertical: 6,
                       paddingHorizontal: 8,
+                      marginLeft: 8, // Indent children
                       borderRadius: 6,
                       backgroundColor: isExpanded
-                        ? 'rgba(255, 255, 255, 0.05)'
+                        ? 'rgba(255, 255, 255, 0.1)'
                         : (state as WebPressableState).hovered
                           ? 'rgba(255, 255, 255, 0.05)'
                           : 'transparent',
@@ -232,16 +232,16 @@ export function WebSidebar() {
                   >
                     <View
                       style={{
-                        width: 18,
-                        height: 18,
+                        width: 16,
+                        height: 16,
                         borderRadius: 4,
                         alignItems: 'center',
                         justifyContent: 'center',
-                        marginRight: 10,
+                        marginRight: 8,
                         backgroundColor: getChildColor(index),
                       }}
                     >
-                      <Text style={{ color: COLORS.white, fontSize: 10, fontWeight: '700' }}>
+                      <Text style={{ color: COLORS.white, fontSize: 9, fontWeight: '700' }}>
                         {getChildInitial(child.first_name || 'H')}
                       </Text>
                     </View>
@@ -259,7 +259,7 @@ export function WebSidebar() {
 
                   {/* Child sub-navigation - Indented */}
                   {isExpanded && (
-                    <View style={{ marginLeft: 36, marginTop: 2, borderLeftWidth: 1, borderColor: '#334155' }}>
+                    <View style={{ marginLeft: 24, marginTop: 1, borderLeftWidth: 1, borderColor: '#334155' }}>
                       {childNavItems.map((navItem) => (
                         <Pressable
                           key={navItem.suffix}
@@ -269,9 +269,9 @@ export function WebSidebar() {
                           style={(state) => ({
                             flexDirection: 'row',
                             alignItems: 'center',
-                            paddingVertical: 5,
+                            paddingVertical: 4,
                             paddingHorizontal: 8,
-                            marginLeft: 4,
+                            marginLeft: 8,
                             borderRadius: 4,
                             backgroundColor: (state as WebPressableState).hovered
                               ? 'rgba(255, 255, 255, 0.05)'
@@ -292,7 +292,7 @@ export function WebSidebar() {
       )}
 
       {/* User Profile / Settings - Fixed at bottom */}
-      <View style={{ padding: 8, borderTopWidth: 1 }} className="border-sidebar-border bg-sidebar-bg">
+      <View style={{ padding: 8, marginBottom: 8 }}>
         <Pressable
           onPress={() => handleNavigation('/settings')}
           style={(state) => ({
@@ -300,33 +300,28 @@ export function WebSidebar() {
             alignItems: 'center',
             padding: 8,
             borderRadius: 6,
-            backgroundColor: (state as WebPressableState).hovered ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
+            backgroundColor: (state as WebPressableState).hovered ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
           })}
         >
           <View
             style={{
-              width: 28,
-              height: 28,
-              borderRadius: 14,
+              width: 24,
+              height: 24,
+              borderRadius: 4,
               alignItems: 'center',
               justifyContent: 'center',
               marginRight: 10,
               backgroundColor: COLORS.primary,
             }}
           >
-            <Text style={{ fontSize: 12, color: 'white', fontWeight: '600' }}>
+            <Text style={{ fontSize: 10, color: 'white', fontWeight: '600' }}>
               {user?.first_name?.charAt(0)}
             </Text>
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 13, fontWeight: '500' }} className="text-sidebar-textActive" numberOfLines={1}>
-              {user?.first_name} {user?.last_name}
-            </Text>
-            <Text style={{ fontSize: 11 }} className="text-sidebar-textMuted" numberOfLines={1}>
-              {user?.email}
-            </Text>
-          </View>
-          <Ionicons name="settings-sharp" size={16} color="#94A3B8" />
+          <Text style={{ flex: 1, fontSize: 13, fontWeight: '500' }} className="text-sidebar-textActive" numberOfLines={1}>
+            {user?.first_name} {user?.last_name}
+          </Text>
+          <Ionicons name="settings-sharp" size={14} color="#64748B" />
         </Pressable>
       </View>
     </View>

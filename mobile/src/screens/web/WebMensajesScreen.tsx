@@ -231,9 +231,16 @@ export default function WebMensajesScreen() {
         {/* New Conversation Button */}
         <Pressable
           onPress={() => setViewMode(viewMode === 'new' ? 'list' : 'new')}
-          className="w-8 h-8 rounded-full bg-primary items-center justify-center hover:opacity-90 transition-opacity"
+          style={(state) => ({
+            opacity: (state as WebPressableState).hovered ? 0.9 : 1,
+            transform: [{ scale: (state as WebPressableState).pressed ? 0.98 : 1 }],
+          })}
+          className="flex-row items-center bg-primary px-3 py-1.5 rounded-md shadow-sm transition-all"
         >
-          <Ionicons name="add" size={20} color={COLORS.white} />
+          <Ionicons name="add" size={16} color={COLORS.white} style={{ marginRight: 4 }} />
+          <Text className="text-white text-xs font-bold uppercase tracking-wide">
+            Nuevo
+          </Text>
         </Pressable>
       </View>
 
