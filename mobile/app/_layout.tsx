@@ -14,7 +14,11 @@ import { AppProvider, useAuth } from '../src/context/AppContext';
 import { ThemeProvider } from '../src/context/ThemeContext';
 import LoginScreen from '../src/screens/LoginScreen';
 import { ErrorBoundary } from '../src/components/ErrorBoundary';
-import { registerForPushNotifications, savePushToken } from '../src/services/notifications';
+import {
+  registerForPushNotifications,
+  savePushToken,
+  addNotificationResponseListener,
+} from '../src/services/notifications';
 import {
   savePendingDeepLink,
   consumePendingDeepLink,
@@ -48,6 +52,45 @@ function RootContent() {
       });
     }
   }, [isAuthenticated, user?.id]);
+
+  // Handle notification tap - navigate to deep link
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const subscription = addNotificationResponseListener((response) => {
+      // Extract deep link from notification data
+      const data = response.notification.request.content.data;
+
+      // Support multiple data formats:
+      // { url: 'kairos://novedades/123' }
+      // { type: 'announcement', id: '123' }
+      // { path: '/novedades/123' }
+      let deepLinkUrl: string | null = null;
+
+      if (data?.url && typeof data.url === 'string') {
+        deepLinkUrl = data.url;
+      } else if (data?.path && typeof data.path === 'string') {
+        deepLinkUrl = `kairos:/${data.path}`;
+      } else if (data?.type && data?.id) {
+        // Map notification types to routes
+        const typeToRoute: Record<string, string> = {
+          announcement: 'novedades',
+          event: 'agenda',
+          message: 'mensajes',
+        };
+        const route = typeToRoute[data.type as string];
+        if (route) {
+          deepLinkUrl = `kairos://${route}/${data.id}`;
+        }
+      }
+
+      if (deepLinkUrl) {
+        navigateFromDeepLink(deepLinkUrl);
+      }
+    });
+
+    return () => subscription.remove();
+  }, [isAuthenticated]);
 
   // Handle deep links when not authenticated - save for later
   useEffect(() => {
