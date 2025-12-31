@@ -122,7 +122,6 @@ export default function NovedadesScreen() {
         <FlashList
           data={filteredAnnouncements}
           keyExtractor={(item) => item.id}
-          estimatedItemSize={150}
           refreshControl={
             <RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />
           }

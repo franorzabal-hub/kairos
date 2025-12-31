@@ -404,7 +404,6 @@ export default function CambiosScreen() {
         <FlashList
           data={filteredPickupRequests}
           keyExtractor={(item) => item.id}
-          estimatedItemSize={120}
           refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />}
           ListHeaderComponent={ListHeader}
           contentContainerStyle={styles.historyContent}

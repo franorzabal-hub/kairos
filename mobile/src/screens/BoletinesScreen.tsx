@@ -163,7 +163,6 @@ export default function BoletinesScreen() {
         <FlashList
           data={listData}
           keyExtractor={(item) => item.id}
-          estimatedItemSize={80}
           refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />}
           ListHeaderComponent={ListHeader}
           contentContainerStyle={styles.listContent}

@@ -396,7 +396,6 @@ export default function ConversationListScreen() {
         <FlashList
           data={filteredConversations}
           keyExtractor={(item) => item.id}
-          estimatedItemSize={100}
           refreshControl={
             <RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />
           }
