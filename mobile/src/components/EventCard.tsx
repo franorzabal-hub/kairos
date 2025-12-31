@@ -168,7 +168,7 @@ function EventCard({
           {event.title}
         </Text>
 
-        {/* Meta row: time, location, child */}
+        {/* Meta row: time and location only */}
         <View style={styles.metaRow}>
           <Ionicons
             name="time-outline"
@@ -192,19 +192,21 @@ function EventCard({
               </Text>
             </>
           )}
-
-          {/* Child indicator (when viewing "Todos") - avatar only, name is redundant */}
-          {childName && (
-            <>
-              <Text style={styles.metaSeparator}>•</Text>
-              <View style={[styles.childAvatar, { backgroundColor: childColor || COLORS.primary }]}>
-                <Text style={styles.childInitial}>
-                  {childName.charAt(0).toUpperCase()}
-                </Text>
-              </View>
-            </>
-          )}
         </View>
+
+        {/* Child row: avatar + full name (when viewing "Todos") */}
+        {childName && (
+          <View style={styles.childRow}>
+            <View style={[styles.childAvatar, { backgroundColor: childColor || COLORS.primary }]}>
+              <Text style={styles.childInitial}>
+                {childName.charAt(0).toUpperCase()}
+              </Text>
+            </View>
+            <Text style={[styles.childName, { color: childColor || COLORS.primary }]}>
+              {childName}
+            </Text>
+          </View>
+        )}
       </View>
 
       {/* Right: CTA Button or Chevron */}
@@ -313,6 +315,13 @@ const styles = StyleSheet.create({
     color: COLORS.border,
     marginHorizontal: 2,
   },
+  // Child row (separate line for avatar + name)
+  childRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6,
+    gap: 6,
+  },
   // Child avatar (mini circle with initial)
   childAvatar: {
     width: 16,
@@ -320,12 +329,15 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 4,  // Breathing room from location text
   },
   childInitial: {
     fontSize: 9,
     fontWeight: '700',
     color: COLORS.white,
+  },
+  childName: {
+    ...TYPOGRAPHY.caption,
+    fontWeight: '600',
   },
   // Right column
   rightColumn: {
