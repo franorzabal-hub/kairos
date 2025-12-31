@@ -16,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import DirectusImage from '../DirectusImage';
 import { useSession } from '../../hooks';
 import { useOrganization } from '../../api/hooks';
-import { CHILD_COLORS } from '../../theme';
+import { CHILD_COLORS, COLORS } from '../../theme';
 
 // Web-specific pressable state type (hovered is only available on web)
 type WebPressableState = PressableStateCallbackType & { hovered?: boolean };
@@ -114,7 +114,7 @@ export function WebSidebar() {
         >
           {organization?.name || 'Kairos'}
         </Text>
-        <Ionicons name="chevron-down" size={16} color="#6C7086" />
+        <Ionicons name="chevron-down" size={16} color={COLORS.sidebarMuted} />
       </Pressable>
 
       {/* Main Navigation */}
@@ -156,7 +156,7 @@ export function WebSidebar() {
               <Ionicons
                 name={item.icon}
                 size={18}
-                color={active ? '#8B1538' : '#CDD6F4'}
+                color={active ? COLORS.primary : COLORS.sidebarText}
                 style={{ marginRight: 12 }}
               />
               <Text
@@ -172,7 +172,7 @@ export function WebSidebar() {
               {item.badge && item.badge > 0 && (
                 <View
                   style={{
-                    backgroundColor: '#FF3B30',
+                    backgroundColor: COLORS.tabBadge,
                     borderRadius: 10,
                     minWidth: 20,
                     height: 20,
@@ -181,7 +181,7 @@ export function WebSidebar() {
                     paddingHorizontal: 6,
                   }}
                 >
-                  <Text style={{ color: '#fff', fontSize: 11, fontWeight: '600' }}>
+                  <Text style={{ color: COLORS.white, fontSize: 11, fontWeight: '600' }}>
                     {item.badge > 99 ? '99+' : item.badge}
                   </Text>
                 </View>
@@ -206,7 +206,7 @@ export function WebSidebar() {
             <Ionicons
               name={isChildrenExpanded ? 'chevron-down' : 'chevron-forward'}
               size={12}
-              color="#6C7086"
+              color={COLORS.sidebarMuted}
               style={{ marginRight: 4 }}
             />
             <Text
@@ -250,7 +250,7 @@ export function WebSidebar() {
                         backgroundColor: getChildColor(index),
                       }}
                     >
-                      <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>
+                      <Text style={{ color: COLORS.white, fontSize: 12, fontWeight: '600' }}>
                         {getChildInitial(child.first_name || 'H')}
                       </Text>
                     </View>
@@ -260,7 +260,7 @@ export function WebSidebar() {
                     <Ionicons
                       name={isExpanded ? 'chevron-down' : 'chevron-forward'}
                       size={14}
-                      color="#6C7086"
+                      color={COLORS.sidebarMuted}
                     />
                   </Pressable>
 
@@ -286,7 +286,7 @@ export function WebSidebar() {
                           <Ionicons
                             name={navItem.icon}
                             size={14}
-                            color="#6C7086"
+                            color={COLORS.sidebarMuted}
                             style={{ marginRight: 10 }}
                           />
                           <Text style={{ fontSize: 13 }} className="text-sidebar-textMuted">
@@ -328,7 +328,7 @@ export function WebSidebar() {
             }}
             className="bg-sidebar-bgActive"
           >
-            <Ionicons name="person" size={18} color="#CDD6F4" />
+            <Ionicons name="person" size={18} color={COLORS.sidebarText} />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={{ fontSize: 14, fontWeight: '500' }} className="text-sidebar-text">
@@ -338,7 +338,7 @@ export function WebSidebar() {
               {user?.email}
             </Text>
           </View>
-          <Ionicons name="settings-outline" size={18} color="#6C7086" />
+          <Ionicons name="settings-outline" size={18} color={COLORS.sidebarMuted} />
         </Pressable>
       </View>
     </View>

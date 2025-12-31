@@ -14,6 +14,7 @@ import { View, Text, Pressable, PressableStateCallbackType } from 'react-native'
 import { Ionicons } from '@expo/vector-icons';
 import { useSession } from '../../hooks';
 import { useOrganization } from '../../api/hooks';
+import { COLORS } from '../../theme';
 
 // Web-specific pressable state type (hovered is only available on web)
 type WebPressableState = PressableStateCallbackType & { hovered?: boolean };
@@ -43,15 +44,15 @@ export function WebFooter() {
               width: 8,
               height: 8,
               borderRadius: 4,
-              backgroundColor: '#22C55E', // green for connected
+              backgroundColor: COLORS.successBright,
             }}
           />
-          <Text style={{ fontSize: 12, color: '#9CA3AF' }}>Conectado</Text>
+          <Text style={{ fontSize: 12, color: COLORS.gray400 }}>Conectado</Text>
         </View>
 
         {/* Organization */}
         {organization?.name && (
-          <Text style={{ fontSize: 12, color: '#6B7280' }}>
+          <Text style={{ fontSize: 12, color: COLORS.gray500 }}>
             {organization.name}
           </Text>
         )}
@@ -61,7 +62,7 @@ export function WebFooter() {
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
         {/* User info */}
         {user && (
-          <Text style={{ fontSize: 12, color: '#6B7280' }}>
+          <Text style={{ fontSize: 12, color: COLORS.gray500 }}>
             {user.first_name} {user.last_name}
           </Text>
         )}
@@ -75,12 +76,12 @@ export function WebFooter() {
             opacity: (state as WebPressableState).hovered ? 0.8 : 1,
           })}
         >
-          <Ionicons name="help-circle-outline" size={14} color="#6B7280" />
-          <Text style={{ fontSize: 12, color: '#6B7280' }}>Ayuda</Text>
+          <Ionicons name="help-circle-outline" size={14} color={COLORS.gray500} />
+          <Text style={{ fontSize: 12, color: COLORS.gray500 }}>Ayuda</Text>
         </Pressable>
 
         {/* Version */}
-        <Text style={{ fontSize: 12, color: '#4B5563' }}>v1.0.0</Text>
+        <Text style={{ fontSize: 12, color: COLORS.gray600 }}>v1.0.0</Text>
       </View>
     </View>
   );

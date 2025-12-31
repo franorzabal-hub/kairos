@@ -14,17 +14,13 @@ import { useRouter } from 'expo-router';
 import { Event } from '../../../api/directus';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY, SHADOWS } from '../../../theme';
 import { getPastelColor } from '../../../utils';
+import { EventStatus, EVENT_CTA_CONFIG } from '../../../types/events';
+
+// Re-export EventStatus for consumers that import from this file
+export type { EventStatus } from '../../../types/events';
 
 // Web-specific pressable state type
 type WebPressableState = PressableStateCallbackType & { hovered?: boolean };
-
-export type EventStatus =
-  | 'pending'
-  | 'confirmed'
-  | 'declined'
-  | 'info'
-  | 'cancelled'
-  | 'past';
 
 interface WebEventCardProps {
   event: Event;
@@ -35,16 +31,6 @@ interface WebEventCardProps {
   onPress?: () => void;
   onActionPress?: () => void;
 }
-
-const CTA_CONFIG: Partial<Record<EventStatus, {
-  label: string;
-  bgColor: string;
-  textColor: string;
-}>> = {
-  pending: { label: 'Responder', bgColor: COLORS.warningLight, textColor: COLORS.warning },
-  confirmed: { label: '✓ Confirmado', bgColor: COLORS.successLight, textColor: COLORS.success },
-  declined: { label: 'Declinado', bgColor: COLORS.errorLight, textColor: COLORS.error },
-};
 
 export function WebEventCard({
   event,
@@ -59,7 +45,7 @@ export function WebEventCard({
   const isPast = status === 'past';
   const isCancelled = status === 'cancelled';
   const isPending = status === 'pending';
-  const ctaConfig = CTA_CONFIG[status];
+  const ctaConfig = EVENT_CTA_CONFIG[status];
 
   const handlePress = () => {
     onPress?.();

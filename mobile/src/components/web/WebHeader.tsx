@@ -12,6 +12,7 @@ import React from 'react';
 import { View, Text, Pressable, PressableStateCallbackType } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { COLORS } from '../../theme';
 
 // Web-specific pressable state type (hovered is only available on web)
 type WebPressableState = PressableStateCallbackType & { hovered?: boolean };
@@ -61,7 +62,7 @@ export function WebHeader({ title, breadcrumbs }: WebHeaderProps) {
                   <Ionicons
                     name="chevron-forward"
                     size={12}
-                    color="#9CA3AF"
+                    color={COLORS.gray400}
                     style={{ marginHorizontal: 8 }}
                   />
                 )}
@@ -75,7 +76,7 @@ export function WebHeader({ title, breadcrumbs }: WebHeaderProps) {
                   <Text
                     style={{
                       fontSize: 13,
-                      color: crumb.href ? '#6B7280' : '#9CA3AF',
+                      color: crumb.href ? COLORS.gray500 : COLORS.gray400,
                     }}
                   >
                     {crumb.label}
@@ -92,7 +93,7 @@ export function WebHeader({ title, breadcrumbs }: WebHeaderProps) {
             style={{
               fontSize: 24,
               fontWeight: '700',
-              color: '#1F2937',
+              color: COLORS.gray800,
             }}
           >
             {title}
@@ -110,10 +111,10 @@ export function WebHeader({ title, breadcrumbs }: WebHeaderProps) {
             borderRadius: 8,
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: (state as WebPressableState).hovered ? '#F3F4F6' : 'transparent',
+            backgroundColor: (state as WebPressableState).hovered ? COLORS.gray100 : 'transparent',
           })}
         >
-          <Ionicons name="search" size={20} color="#6B7280" />
+          <Ionicons name="search" size={20} color={COLORS.gray500} />
         </Pressable>
 
         {/* Notifications button */}
@@ -124,11 +125,11 @@ export function WebHeader({ title, breadcrumbs }: WebHeaderProps) {
             borderRadius: 8,
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: (state as WebPressableState).hovered ? '#F3F4F6' : 'transparent',
+            backgroundColor: (state as WebPressableState).hovered ? COLORS.gray100 : 'transparent',
           })}
         >
           <View>
-            <Ionicons name="notifications-outline" size={20} color="#6B7280" />
+            <Ionicons name="notifications-outline" size={20} color={COLORS.gray500} />
             {/* Notification badge - uncomment when needed */}
             {/* <View
               style={{
@@ -138,7 +139,7 @@ export function WebHeader({ title, breadcrumbs }: WebHeaderProps) {
                 width: 8,
                 height: 8,
                 borderRadius: 4,
-                backgroundColor: '#EF4444',
+                backgroundColor: COLORS.red,
               }}
             /> */}
           </View>
@@ -152,10 +153,10 @@ export function WebHeader({ title, breadcrumbs }: WebHeaderProps) {
             borderRadius: 8,
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: (state as WebPressableState).hovered ? '#F3F4F6' : 'transparent',
+            backgroundColor: (state as WebPressableState).hovered ? COLORS.gray100 : 'transparent',
           })}
         >
-          <Ionicons name="help-circle-outline" size={20} color="#6B7280" />
+          <Ionicons name="help-circle-outline" size={20} color={COLORS.gray500} />
         </Pressable>
       </View>
     </View>

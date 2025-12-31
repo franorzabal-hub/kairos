@@ -5,15 +5,10 @@ import { useRouter } from 'expo-router';
 import { Event } from '../api/directus';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY, SHADOWS, SIZES, FONT_SIZES } from '../theme';
 import { getPastelColor } from '../utils';
+import { EventStatus, EVENT_CTA_CONFIG } from '../types/events';
 
-// Event status types
-export type EventStatus =
-  | 'pending'      // Requires confirmation, not yet confirmed
-  | 'confirmed'    // Confirmed attendance
-  | 'declined'     // Declined attendance
-  | 'info'         // Informational only, no action needed
-  | 'cancelled'    // Event cancelled by school
-  | 'past';        // Past event
+// Re-export EventStatus for consumers that import from this file
+export type { EventStatus } from '../types/events';
 
 interface EventCardProps {
   event: Event;
@@ -24,29 +19,6 @@ interface EventCardProps {
   onPress?: () => void;
   onActionPress?: () => void;
 }
-
-// CTA button configuration by status
-const CTA_CONFIG: Partial<Record<EventStatus, {
-  label: string;
-  bgColor: string;
-  textColor: string;
-}>> = {
-  pending: {
-    label: 'Responder',
-    bgColor: COLORS.warningLight,
-    textColor: COLORS.warning,
-  },
-  confirmed: {
-    label: '✓ Confirmado',
-    bgColor: COLORS.successLight,
-    textColor: COLORS.success,
-  },
-  declined: {
-    label: 'Declinado',
-    bgColor: COLORS.errorLight,
-    textColor: COLORS.error,
-  },
-};
 
 function EventCard({
   event,
@@ -61,7 +33,7 @@ function EventCard({
   const isPast = status === 'past';
   const isCancelled = status === 'cancelled';
   const isPending = status === 'pending';
-  const ctaConfig = CTA_CONFIG[status];
+  const ctaConfig = EVENT_CTA_CONFIG[status];
 
   const handlePress = () => {
     if (onPress) {

@@ -94,7 +94,7 @@ export default function MisHijosScreen() {
       title: 'Boletines',
       description: 'Calificaciones e informes',
       icon: 'document-text-outline',
-      iconColor: '#6366F1',
+      iconColor: COLORS.indigo,
       route: '/boletines',
       badge: unreadReportsCount,
     },
@@ -103,7 +103,7 @@ export default function MisHijosScreen() {
       title: 'Asistencia',
       description: 'Historial de asistencia',
       icon: 'calendar-outline',
-      iconColor: '#10B981',
+      iconColor: COLORS.emerald,
       onPress: () => {
         // TODO: Navigate to attendance screen when implemented
         logger.debug('Attendance not implemented yet');
@@ -114,7 +114,7 @@ export default function MisHijosScreen() {
       title: 'Legajo',
       description: 'Datos y documentos',
       icon: 'folder-outline',
-      iconColor: '#F59E0B',
+      iconColor: COLORS.amber,
       onPress: () => {
         // TODO: Navigate to student record screen when implemented
         logger.debug('Student record not implemented yet');
@@ -125,7 +125,7 @@ export default function MisHijosScreen() {
       title: 'Cambios de Salida',
       description: 'Solicitar retiro anticipado',
       icon: 'time-outline',
-      iconColor: '#EF4444',
+      iconColor: COLORS.red,
       route: '/cambios',
       badge: pendingPickupCount,
     },
