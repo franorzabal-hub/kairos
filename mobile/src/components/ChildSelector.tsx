@@ -4,7 +4,27 @@ import { Ionicons } from '@expo/vector-icons';
 import DirectusImage from './DirectusImage';
 import { Student } from '../api/directus';
 import { useFilters } from '../context/AppContext';
-import { COLORS, SPACING, BORDERS, TYPOGRAPHY, SHADOWS } from '../theme';
+import { COLORS, CHILD_COLORS, SPACING, BORDERS, TYPOGRAPHY, SHADOWS } from '../theme';
+
+/**
+ * Creates a pastel/light version of a hex color by blending with white
+ */
+function getPastelColor(hexColor: string, intensity: number = 0.15): string {
+  const r = parseInt(hexColor.slice(1, 3), 16);
+  const g = parseInt(hexColor.slice(3, 5), 16);
+  const b = parseInt(hexColor.slice(5, 7), 16);
+  const blendedR = Math.round(r * intensity + 255 * (1 - intensity));
+  const blendedG = Math.round(g * intensity + 255 * (1 - intensity));
+  const blendedB = Math.round(b * intensity + 255 * (1 - intensity));
+  return `#${blendedR.toString(16).padStart(2, '0')}${blendedG.toString(16).padStart(2, '0')}${blendedB.toString(16).padStart(2, '0')}`;
+}
+
+/**
+ * Get child color by index in children array
+ */
+function getChildColor(index: number): string {
+  return CHILD_COLORS[index % CHILD_COLORS.length];
+}
 
 interface ChildSelectorProps {
   children?: Student[];
@@ -116,11 +136,14 @@ function ChildSelector({
           <TouchableOpacity
             style={[
               styles.childChip,
-              !selectedChildId && styles.childChipSelected,
+              { backgroundColor: !selectedChildId ? COLORS.primaryLight : COLORS.lightGray },
             ]}
             onPress={onSelectAll}
           >
-            <View style={[styles.avatarSmall, !selectedChildId && styles.avatarSmallSelected]}>
+            <View style={[
+              styles.avatarSmall,
+              { backgroundColor: !selectedChildId ? COLORS.primary : COLORS.border },
+            ]}>
               <Ionicons
                 name="people"
                 size={20}
@@ -129,29 +152,35 @@ function ChildSelector({
             </View>
             <Text style={[
               styles.chipText,
-              !selectedChildId && styles.chipTextSelected,
+              { color: !selectedChildId ? COLORS.primary : COLORS.darkGray },
+              !selectedChildId && styles.chipTextSelectedWeight,
             ]}>
               Todos
             </Text>
           </TouchableOpacity>
         )}
-        {children.map((child) => {
+        {children.map((child, index) => {
           const isSelected = selectedChildId === child.id;
+          const childColor = getChildColor(index);
+          const chipBgColor = isSelected ? getPastelColor(childColor) : COLORS.lightGray;
+          const avatarBgColor = isSelected ? childColor : COLORS.border;
+          const textColor = isSelected ? childColor : COLORS.darkGray;
+
           return (
             <TouchableOpacity
               key={child.id}
               style={[
                 styles.childChip,
-                isSelected && styles.childChipSelected,
+                { backgroundColor: chipBgColor },
               ]}
               onPress={() => onSelectChild(child.id)}
             >
               <DirectusImage
                 fileId={child.photo}
-                style={[styles.avatarSmall, isSelected && styles.avatarSmallSelected]}
+                style={[styles.avatarSmall, { backgroundColor: avatarBgColor }]}
                 resizeMode="cover"
                 fallback={
-                  <View style={[styles.avatarSmall, isSelected && styles.avatarSmallSelected]}>
+                  <View style={[styles.avatarSmall, { backgroundColor: avatarBgColor }]}>
                     <Text style={[styles.avatarInitialsSmall, isSelected && styles.avatarInitialsSmallSelected]}>
                       {child.first_name.charAt(0)}
                     </Text>
@@ -160,7 +189,8 @@ function ChildSelector({
               />
               <Text style={[
                 styles.chipText,
-                isSelected && styles.chipTextSelected,
+                { color: textColor },
+                isSelected && styles.chipTextSelectedWeight,
               ]}>
                 {child.first_name}
               </Text>
@@ -193,9 +223,6 @@ const styles = StyleSheet.create({
     borderRadius: BORDERS.radius.full,
     gap: SPACING.sm,
   },
-  childChipSelected: {
-    backgroundColor: COLORS.primaryLight,
-  },
   avatarSmall: {
     width: 32,
     height: 32,
@@ -203,9 +230,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.border,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  avatarSmallSelected: {
-    backgroundColor: COLORS.primary,
   },
   avatarInitialsSmall: {
     ...TYPOGRAPHY.caption,
@@ -220,8 +244,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: COLORS.darkGray,
   },
-  chipTextSelected: {
-    color: COLORS.primary,
+  chipTextSelectedWeight: {
     fontWeight: '600',
   },
   // Single child display
