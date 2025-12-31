@@ -207,12 +207,14 @@ export function WebAnnouncementCard({
         
         {/* Thumbnail Image (Restored) */}
         {item.image && (
-          <DirectusImage
-            fileId={item.image}
-            style={{ width: 80, height: 80, borderRadius: 8 }}
-            className="bg-gray-100 border border-gray-100"
-            contentFit="cover"
-          />
+          <View style={{ width: 80, height: 80 }}>
+            <DirectusImage
+              fileId={item.image}
+              style={{ width: '100%', height: '100%', borderRadius: 8 }}
+              className="bg-gray-100 border border-gray-100"
+              contentFit="cover"
+            />
+          </View>
         )}
       </View>
 

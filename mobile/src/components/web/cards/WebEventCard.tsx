@@ -130,12 +130,14 @@ export function WebEventCard({
 
           {/* Thumbnail Image (New) */}
           {event.image && (
-            <DirectusImage
-              fileId={event.image}
-              style={{ width: 64, height: 64, borderRadius: 8 }}
-              className="bg-gray-100 border border-gray-100 mb-4"
-              contentFit="cover"
-            />
+            <View style={{ width: 64, height: 64, marginBottom: 16 }}>
+              <DirectusImage
+                fileId={event.image}
+                style={{ width: '100%', height: '100%', borderRadius: 8 }}
+                className="bg-gray-100 border border-gray-100"
+                contentFit="cover"
+              />
+            </View>
           )}
         </View>
       </View>
