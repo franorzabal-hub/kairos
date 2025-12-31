@@ -190,13 +190,16 @@ export default function WebInicioScreen() {
           </Text>
         </View>
 
-        {/* Quick Access - Horizontal Grid */}
+        {/* Quick Access - Matching mobile pattern */}
         <View className="mb-12">
-           <WebQuickActions
-             onReportAbsence={handleReportAbsence}
-             onPickupChange={handlePickupChange}
-             onContactSchool={handleContactSchool}
-           />
+          <Text className="text-lg font-bold text-gray-800 mb-4">
+            Acciones Rápidas
+          </Text>
+          <WebQuickActions
+            onReportAbsence={handleReportAbsence}
+            onPickupChange={handlePickupChange}
+            onContactSchool={handleContactSchool}
+          />
         </View>
 
         {/* Upcoming Events Section */}

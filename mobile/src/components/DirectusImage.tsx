@@ -130,7 +130,7 @@ function DirectusImage({
 
   if (!imageUrl) {
     return (
-      <View style={[styles.loadingContainer, style]}>
+      <View style={[styles.loadingContainer, { position: 'relative' }, style]}>
         <ActivityIndicator color="#8B1538" />
         <DebugOverlay />
       </View>
@@ -140,11 +140,13 @@ function DirectusImage({
   // Map our cache policy to expo-image's cachePolicy
   const expoCachePolicy = cachePolicy === 'none' ? 'none' : cachePolicy;
 
+  // On web, percentage dimensions (100%) don't work well with position:relative wrapper
+  // Pass the style to the wrapper to ensure proper dimensions
   return (
-    <View style={{ position: 'relative' }}>
+    <View style={[{ position: 'relative' }, style]}>
       <Image
         source={{ uri: imageUrl }}
-        style={style}
+        style={{ width: '100%', height: '100%' }}
         contentFit={contentFit}
         placeholder={showPlaceholder ? { blurhash } : undefined}
         transition={300}

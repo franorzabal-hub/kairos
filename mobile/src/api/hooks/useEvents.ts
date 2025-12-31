@@ -27,6 +27,7 @@ export function useEvents() {
 
       const items = await directus.request(
         readItems('events', {
+          fields: ['*'],
           filter,
           sort: ['start_date'],
           limit: 50,

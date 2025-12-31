@@ -30,6 +30,7 @@ export function useAnnouncements() {
 
       const items = await directus.request(
         readItems('announcements', {
+          fields: ['*'],
           filter,
           sort: ['-created_at'],
           limit: 50,

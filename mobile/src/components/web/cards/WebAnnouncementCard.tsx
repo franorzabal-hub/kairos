@@ -1,23 +1,21 @@
 /**
- * WebAnnouncementCard - Announcement card for web without swipe gestures
+ * WebAnnouncementCard - Web-optimized announcement card following mobile pattern
  *
- * Features:
- * - Hover-revealed action buttons (pin, archive, mark read)
- * - Fixed height for grid consistency
- * - Uses Pressable for hover states
- * - Works well in 2-3 column grids
+ * Design Pattern (matching mobile SwipeableAnnouncementCard):
+ * - Prominent 160px image at top with overlay badges
+ * - Date badge overlay on image (bottom-left)
+ * - Priority badges absolutely positioned (top-left)
+ * - Clean content section with title and excerpt
+ * - Hover-revealed action buttons for web
  */
-import React, { useState } from 'react';
-import { View, Text, Pressable, Platform, PressableStateCallbackType } from 'react-native';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import React from 'react';
+import { View, Text, Pressable, Platform } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import DirectusImage from '../../DirectusImage';
 import { Announcement } from '../../../api/directus';
-import { COLORS, SPACING, BORDERS, TYPOGRAPHY, UNREAD_STYLES } from '../../../theme';
+import { COLORS } from '../../../theme';
 import { stripHtml } from '../../../utils';
-
-// Web-specific pressable state type
-type WebPressableState = PressableStateCallbackType & { hovered?: boolean };
 
 interface WebAnnouncementCardProps {
   item: Announcement;
@@ -38,7 +36,6 @@ export function WebAnnouncementCard({
   isUnread,
   isPinned,
   isArchived,
-  isAcknowledged = false,
   childName,
   childColor,
   onMarkAsRead,
@@ -47,11 +44,15 @@ export function WebAnnouncementCard({
   onUnarchive,
 }: WebAnnouncementCardProps) {
   const router = useRouter();
-  const [isHovered, setIsHovered] = useState(false);
 
-  const formatDate = (dateStr: string) => {
+  const formatMonth = (dateStr: string) => {
     const date = new Date(dateStr);
-    return date.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' }).toUpperCase().replace('.', '');
+    return date.toLocaleDateString('es-AR', { month: 'short' }).toUpperCase().replace('.', '');
+  };
+
+  const formatDay = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.getDate().toString();
   };
 
   const handlePress = () => {
@@ -66,39 +67,7 @@ export function WebAnnouncementCard({
     action();
   };
 
-  // Format full date for accessibility
-  const formatFullDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('es-AR', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-    });
-  };
-
-  // Determine card accent color and icon based on content heuristics
-  const getCategoryInfo = () => {
-    const text = (item.title + ' ' + item.content).toLowerCase();
-    
-    if (item.priority === 'urgent') return { color: COLORS.error, icon: 'alert-circle-outline' };
-    if (item.priority === 'important') return { color: COLORS.warning, icon: 'alert-outline' };
-    
-    if (text.includes('deporte') || text.includes('partido') || text.includes('torneo')) {
-      return { color: COLORS.success, icon: 'trophy-outline' }; // Green/Sports
-    }
-    if (text.includes('examen') || text.includes('prueba') || text.includes('nota')) {
-      return { color: '#8B5CF6', icon: 'school-outline' }; // Violet/Academic
-    }
-    if (text.includes('arte') || text.includes('música') || text.includes('teatro')) {
-      return { color: '#EC4899', icon: 'palette-outline' }; // Pink/Arts
-    }
-    
-    return { color: COLORS.primary, icon: 'bullhorn-outline' }; // Default Blue
-  };
-
-  const { color: accentColor, icon: categoryIcon } = getCategoryInfo();
-
-  // Re-declare accessibility label logic
+  // Accessibility label
   const formatDateForA11y = (dateStr: string) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' });
@@ -113,139 +82,165 @@ export function WebAnnouncementCard({
     isPinned ? 'fijado' : null,
   ].filter(Boolean).join(', ');
 
+  const dateStr = item.published_at || item.created_at;
+
   return (
     <Pressable
       onPress={handlePress}
-      onHoverIn={() => setIsHovered(true)}
-      onHoverOut={() => setIsHovered(false)}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
-      style={(state) => ({
-        backgroundColor: COLORS.white,
-        borderRadius: BORDERS.radius.lg,
-        overflow: 'hidden',
-        borderLeftWidth: 4,
-        borderLeftColor: accentColor,
-        borderWidth: 1,
-        borderTopWidth: 1, // Reset top width to 1
-        borderRightWidth: 1,
-        borderBottomWidth: 1,
-        borderColor: COLORS.border,
-        ...(Platform.OS === 'web' ? {
-          boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-          transition: 'all 0.2s ease',
-          transform: (state as WebPressableState).hovered ? 'translateY(-2px)' : 'none',
-          cursor: 'pointer',
-        } as any : {}),
-        ...(isUnread && { borderColor: COLORS.primaryLight }),
-      })}
-      className="h-full flex-col p-5 group hover:shadow-md"
+      className="bg-white rounded-xl overflow-hidden border border-gray-200 hover:border-primary/30 hover:shadow-lg transition-all cursor-pointer h-full group"
+      style={Platform.OS === 'web' ? { transition: 'all 0.2s ease' } as any : {}}
     >
-      {/* Header: Icon + Title + Date */}
-      <View className="flex-row items-start gap-3 mb-3">
-        {/* Category Icon */}
-        <View 
-          className="w-8 h-8 rounded-lg items-center justify-center bg-gray-50 mt-0.5"
-        >
-           <MaterialCommunityIcons 
-             name={categoryIcon as any} 
-             size={18} 
-             color={COLORS.gray600} 
-           />
-        </View>
-
-        <View className="flex-1">
-          <View className="flex-row justify-between items-start">
-             {/* Title */}
-             <Text 
-               className={`text-base font-bold text-gray-900 leading-snug flex-1 mr-4 ${isUnread ? 'text-black' : 'text-gray-800'}`}
-             >
-               {item.title}
-             </Text>
-             
-             {/* Date */}
-             <Text className="text-xs font-medium text-gray-400 whitespace-nowrap">
-               {formatDate(item.published_at || item.created_at)}
-             </Text>
+      {/* Image Section - Full width at top like mobile cards */}
+      {item.image ? (
+        <View className="relative">
+          <DirectusImage
+            fileId={item.image}
+            style={{ width: '100%', height: 160 }}
+            contentFit="cover"
+          />
+          {/* Date Badge Overlay (matching mobile pattern) */}
+          <View
+            className="absolute bottom-2 left-2 px-2.5 py-1 rounded-md flex-row items-center"
+            style={{ backgroundColor: 'rgba(0,0,0,0.65)' }}
+          >
+            <Ionicons name="calendar-outline" size={12} color={COLORS.white} style={{ marginRight: 4 }} />
+            <Text className="text-white text-xs font-semibold">
+              {formatDay(dateStr)} {formatMonth(dateStr)}
+            </Text>
           </View>
-
-          {/* Badges Row */}
-          <View className="flex-row flex-wrap gap-2 mt-2">
+          {/* Priority Badges */}
+          <View className="absolute top-2 left-2 flex-col gap-1">
             {item.priority === 'urgent' && (
-              <View className="bg-red-50 px-2 py-0.5 rounded-full border border-red-100">
-                <Text className="text-[10px] font-bold text-red-600 uppercase">Urgente</Text>
+              <View className="bg-red-500 px-2 py-0.5 rounded">
+                <Text className="text-[10px] font-bold text-white uppercase">URGENTE</Text>
               </View>
             )}
             {item.priority === 'important' && (
-              <View className="bg-orange-50 px-2 py-0.5 rounded-full border border-orange-100">
-                <Text className="text-[10px] font-bold text-orange-600 uppercase">Importante</Text>
+              <View className="bg-orange-500 px-2 py-0.5 rounded">
+                <Text className="text-[10px] font-bold text-white uppercase">IMPORTANTE</Text>
               </View>
             )}
-            {childName && (
-               <View className="flex-row items-center gap-1 bg-gray-50 px-2 py-0.5 rounded-full border border-gray-100">
-                  <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: childColor || COLORS.primary }} />
-                  <Text className="text-[10px] font-medium text-gray-500">{childName}</Text>
-               </View>
+          </View>
+          {/* Unread Badge */}
+          {isUnread && (
+            <View className="absolute top-2 right-2 bg-orange-500 px-2 py-0.5 rounded">
+              <Text className="text-[10px] font-bold text-white uppercase">NUEVO</Text>
+            </View>
+          )}
+          {/* Pin indicator */}
+          {isPinned && (
+            <View className="absolute top-2 right-2 bg-white/90 p-1 rounded">
+              <Ionicons name="pin" size={12} color={COLORS.primary} />
+            </View>
+          )}
+        </View>
+      ) : (
+        /* Fallback: Date Block Style (matching mobile InicioScreen) */
+        <View className="p-4 pb-2">
+          <View
+            className="w-14 h-14 rounded-xl items-center justify-center mb-3"
+            style={{ backgroundColor: COLORS.primaryLight }}
+          >
+            <Text
+              className="text-xs font-semibold uppercase"
+              style={{ color: COLORS.primary, letterSpacing: 0.5, marginBottom: -2 }}
+            >
+              {formatMonth(dateStr)}
+            </Text>
+            <Text
+              className="text-2xl font-bold"
+              style={{ color: COLORS.primary, letterSpacing: -0.5 }}
+            >
+              {formatDay(dateStr)}
+            </Text>
+          </View>
+
+          {/* Badges for no-image cards */}
+          <View className="absolute top-2 right-2 flex-row gap-2">
+            {item.priority === 'urgent' && (
+              <View className="bg-red-100 px-2 py-0.5 rounded">
+                <Text className="text-[10px] font-bold text-red-600 uppercase">URGENTE</Text>
+              </View>
+            )}
+            {item.priority === 'important' && (
+              <View className="bg-orange-100 px-2 py-0.5 rounded">
+                <Text className="text-[10px] font-bold text-orange-600 uppercase">IMPORTANTE</Text>
+              </View>
+            )}
+            {isUnread && (
+              <View className="bg-orange-100 px-2 py-0.5 rounded">
+                <Text className="text-[10px] font-bold text-orange-700 uppercase">NUEVO</Text>
+              </View>
             )}
             {isPinned && (
-              <View className="bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
+              <View className="bg-blue-100 px-2 py-0.5 rounded">
                 <Ionicons name="pin" size={10} color={COLORS.primary} />
               </View>
             )}
           </View>
         </View>
-      </View>
+      )}
 
-      {/* Content Body: Text + Thumbnail */}
-      <View className="flex-row gap-4 mb-4">
+      {/* Content Section */}
+      <View className={`px-4 ${item.image ? 'pt-3' : 'pt-0'} pb-3 flex-1`}>
+        {/* Title */}
         <Text
-          className="text-sm text-gray-500 leading-relaxed flex-1 line-clamp-3"
-          numberOfLines={3}
+          className={`text-base font-bold leading-snug mb-2 ${isUnread ? 'text-gray-900' : 'text-gray-800'}`}
+          numberOfLines={2}
+        >
+          {item.title}
+        </Text>
+
+        {/* Content excerpt */}
+        <Text
+          className="text-sm text-gray-500 leading-relaxed"
+          numberOfLines={2}
         >
           {stripHtml(item.content)}
         </Text>
-        
-        {/* Thumbnail Image (Restored) */}
-        {item.image && (
-          <View style={{ width: 80, height: 80 }}>
-            <DirectusImage
-              fileId={item.image}
-              style={{ width: '100%', height: '100%', borderRadius: 8 }}
-              className="bg-gray-100 border border-gray-100"
-              contentFit="cover"
-            />
-          </View>
-        )}
       </View>
 
-      {/* Footer Actions (Visible on Hover or if relevant) */}
-      <View className="mt-auto pt-3 border-t border-gray-50 flex-row justify-between items-center opacity-0 group-hover:opacity-100 transition-opacity">
-         <View className="flex-row gap-1">
-            <Pressable
-              onPress={(e) => handleActionClick(e as any, onTogglePin)}
-              className="p-1.5 rounded-md hover:bg-gray-100"
-              accessibilityLabel="Fijar"
+      {/* Footer */}
+      <View className="mt-auto border-t border-gray-100 px-4 py-2.5 flex-row items-center justify-between bg-gray-50/50">
+        {childName ? (
+          <View className="flex-row items-center gap-2">
+            <View
+              className="w-5 h-5 rounded-full items-center justify-center"
+              style={{ backgroundColor: childColor || COLORS.primary }}
             >
-              <Ionicons name={isPinned ? 'pin' : 'pin-outline'} size={16} color={COLORS.gray500} />
-            </Pressable>
-            <Pressable
-              onPress={(e) => handleActionClick(e as any, isArchived ? onUnarchive : onArchive)}
-              className="p-1.5 rounded-md hover:bg-gray-100"
-              accessibilityLabel="Archivar"
-            >
-               <Ionicons name="archive-outline" size={16} color={COLORS.gray500} />
-            </Pressable>
-         </View>
-         
-         {isUnread && (
-            <Pressable
-               onPress={(e) => handleActionClick(e as any, onMarkAsRead)}
-               className="flex-row items-center gap-1 px-2 py-1 rounded-md bg-gray-50 hover:bg-green-50 hover:text-green-600 transition-colors"
-            >
-               <Ionicons name="checkmark-done" size={14} color={COLORS.gray400} />
-               <Text className="text-xs font-medium text-gray-500">Marcar leído</Text>
-            </Pressable>
-         )}
+              <Text className="text-[9px] font-bold text-white">
+                {childName.charAt(0).toUpperCase()}
+              </Text>
+            </View>
+            <Text className="text-xs text-gray-500">{childName}</Text>
+          </View>
+        ) : (
+          <Text className="text-xs text-gray-400">General</Text>
+        )}
+
+        {/* Hover Actions */}
+        <View className="flex-row items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <Pressable
+            onPress={(e) => handleActionClick(e as any, onTogglePin)}
+            className="p-1.5 rounded-md hover:bg-gray-100"
+            accessibilityLabel="Fijar"
+          >
+            <Ionicons name={isPinned ? 'pin' : 'pin-outline'} size={14} color={COLORS.gray400} />
+          </Pressable>
+          <Pressable
+            onPress={(e) => handleActionClick(e as any, isArchived ? onUnarchive : onArchive)}
+            className="p-1.5 rounded-md hover:bg-gray-100"
+            accessibilityLabel="Archivar"
+          >
+            <Ionicons name="archive-outline" size={14} color={COLORS.gray400} />
+          </Pressable>
+          <View className="flex-row items-center gap-1">
+            <Text className="text-xs font-medium text-gray-500">Ver más</Text>
+            <Ionicons name="chevron-forward" size={12} color={COLORS.gray400} />
+          </View>
+        </View>
       </View>
     </Pressable>
   );

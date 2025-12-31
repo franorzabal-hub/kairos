@@ -27,3 +27,4 @@ export type { EventStatus } from './cards';
 // WebConversationCard is re-exported for backwards compatibility
 export { WebConversationCard } from './chat';
 export { WebFooter } from './WebFooter';
+export { WebQuickActions } from './WebQuickActions';
