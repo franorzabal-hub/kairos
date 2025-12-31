@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  TextInput,
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
@@ -26,15 +25,13 @@ import {
   useArchiveConversation,
   useToggleParticipantBlocked,
 } from '../api/hooks';
-import { ConversationMessage } from '../api/directus';
-import { COLORS } from '../theme';
+import { ConversationMessage, DirectusUser } from '../api/directus';
+import { COLORS, SPACING, BORDERS, TYPOGRAPHY, SIZES } from '../theme';
+import { ChatBubble, FirstMessageCard, MessageInput, DateSeparator } from '../components/chat';
 
-// Screen-specific colors for chat bubbles and urgent indicators
+// Screen-specific colors
 const CHAT_COLORS = {
-  myBubble: '#DCF8C6',      // WhatsApp-style green for sent messages
-  theirBubble: '#FFFFFF',   // White for received messages
-  urgent: '#D32F2F',        // Urgent message indicator
-  urgentLight: '#FFEBEE',   // Light red background for urgent toggle
+  closedBanner: '#F5F5F5',  // Gray background for closed conversation
 };
 
 export default function ConversationChatScreen() {
@@ -69,9 +66,28 @@ export default function ConversationChatScreen() {
     return participantUserId === directusUserId;
   });
 
+  // Get other participants (teachers/staff)
+  const otherParticipants = (conversation?.participants ?? []).filter((participant) => {
+    const participantUserId = typeof participant.user_id === 'string'
+      ? participant.user_id
+      : participant.user_id?.id;
+    return participantUserId !== directusUserId;
+  });
+
+  // Get primary other participant for header display
+  const primaryParticipant = otherParticipants[0];
+  const primaryParticipantUser = primaryParticipant?.user_id as DirectusUser | undefined;
+  const participantName = primaryParticipantUser
+    ? [primaryParticipantUser.first_name, primaryParticipantUser.last_name?.charAt(0)].filter(Boolean).join(' ')
+    : 'Participante';
+  const participantInitials = primaryParticipantUser
+    ? `${primaryParticipantUser.first_name?.charAt(0) ?? ''}${primaryParticipantUser.last_name?.charAt(0) ?? ''}`
+    : '?';
+
   const participantId = currentParticipant?.id ?? '';
   const canReply = currentParticipant?.can_reply ?? true;
   const subject = conversation?.subject ?? 'Conversación';
+  const isClosed = conversation?.status === 'closed';
 
   useEffect(() => {
     if (currentParticipant) {
@@ -255,11 +271,6 @@ export default function ConversationChatScreen() {
     }
   };
 
-  const formatTime = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
-  };
-
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     const today = new Date();
@@ -279,50 +290,27 @@ export default function ConversationChatScreen() {
     }
   };
 
-  const shouldShowDateSeparator = (index: number, messages: ConversationMessage[]) => {
+  const shouldShowDateSeparator = (index: number, msgs: ConversationMessage[]) => {
     if (index === 0) return true;
-    const currentDate = new Date(messages[index].date_created).toDateString();
-    const prevDate = new Date(messages[index - 1].date_created).toDateString();
+    const currentDate = new Date(msgs[index].date_created).toDateString();
+    const prevDate = new Date(msgs[index - 1].date_created).toDateString();
     return currentDate !== prevDate;
   };
 
   const renderMessage = ({ item, index }: { item: ConversationMessage; index: number }) => {
     const senderId = typeof item.sender_id === 'string' ? item.sender_id : item.sender_id?.id;
     const isMyMessage = senderId === directusUserId;
-    const sender = typeof item.sender_id === 'object' ? item.sender_id : null;
-    const senderName = sender ? [sender.first_name, sender.last_name].filter(Boolean).join(' ') : 'Usuario';
     const showDate = shouldShowDateSeparator(index, messages);
+    const isFirstMessage = index === 0;
 
     return (
       <View>
-        {showDate && (
-          <View style={styles.dateSeparator}>
-            <Text style={styles.dateSeparatorText}>{formatDate(item.date_created)}</Text>
-          </View>
+        {showDate && <DateSeparator date={formatDate(item.date_created)} />}
+        {isFirstMessage ? (
+          <FirstMessageCard message={item} />
+        ) : (
+          <ChatBubble message={item} isMyMessage={isMyMessage} />
         )}
-        <View style={[styles.messageRow, isMyMessage && styles.messageRowMine]}>
-          <View
-            style={[
-              styles.messageBubble,
-              isMyMessage ? styles.myBubble : styles.theirBubble,
-              item.is_urgent && styles.urgentBubble,
-            ]}
-          >
-            {!isMyMessage && (
-              <Text style={styles.senderName}>{senderName}</Text>
-            )}
-            {item.is_urgent && (
-              <View style={styles.urgentBadge}>
-                <Ionicons name="alert-circle" size={14} color={CHAT_COLORS.urgent} />
-                <Text style={styles.urgentText}>Urgente</Text>
-              </View>
-            )}
-            <Text style={styles.messageText}>{item.content}</Text>
-            <Text style={[styles.messageTime, isMyMessage && styles.messageTimeMine]}>
-              {formatTime(item.date_created)}
-            </Text>
-          </View>
-        </View>
       </View>
     );
   };
@@ -344,32 +332,49 @@ export default function ConversationChatScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
-        {/* Header */}
+        {/* Gmail-style Header with Subject + Context */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color={COLORS.primary} />
           </TouchableOpacity>
           <View style={styles.headerContent}>
-            <Text style={styles.headerTitle} numberOfLines={1}>
+            <Text style={styles.headerTitle} numberOfLines={2}>
               {subject}
             </Text>
-            <View style={styles.headerIndicators}>
-              {!canReply && (
-                <View style={styles.readOnlyIndicator}>
-                  <Ionicons name="lock-closed" size={12} color={COLORS.gray} />
-                  <Text style={styles.readOnlyText}>Solo lectura</Text>
-                </View>
-              )}
-              {isMuted && (
-                <View style={styles.mutedIndicator}>
-                  <Ionicons name="notifications-off" size={12} color={COLORS.gray} />
-                  <Text style={styles.readOnlyText}>Silenciada</Text>
+            <View style={styles.headerContext}>
+              <Text style={styles.headerContextText} numberOfLines={1}>
+                {participantName}
+                {otherParticipants.length > 1 && ` +${otherParticipants.length - 1}`}
+              </Text>
+              {(isMuted || !canReply || isClosed) && (
+                <View style={styles.headerIndicators}>
+                  {isClosed && (
+                    <View style={styles.closedIndicator}>
+                      <Ionicons name="lock-closed" size={10} color={COLORS.gray} />
+                      <Text style={styles.indicatorText}>Cerrado</Text>
+                    </View>
+                  )}
+                  {!canReply && !isClosed && (
+                    <View style={styles.readOnlyIndicator}>
+                      <Ionicons name="eye" size={10} color={COLORS.gray} />
+                      <Text style={styles.indicatorText}>Lectura</Text>
+                    </View>
+                  )}
+                  {isMuted && (
+                    <View style={styles.mutedIndicator}>
+                      <Ionicons name="notifications-off" size={10} color={COLORS.gray} />
+                    </View>
+                  )}
                 </View>
               )}
             </View>
           </View>
+          {/* Avatar */}
+          <View style={styles.headerAvatar}>
+            <Text style={styles.headerAvatarText}>{participantInitials}</Text>
+          </View>
           <TouchableOpacity style={styles.menuButton} onPress={handleMenuPress}>
-            <Ionicons name="ellipsis-vertical" size={24} color={COLORS.primary} />
+            <Ionicons name="ellipsis-vertical" size={20} color={COLORS.gray} />
           </TouchableOpacity>
         </View>
 
@@ -395,38 +400,22 @@ export default function ConversationChatScreen() {
         )}
 
         {/* Input */}
-        {canReply ? (
-          <View style={styles.inputContainer}>
-            <TouchableOpacity
-              style={[styles.urgentToggle, isUrgent && styles.urgentToggleActive]}
-              onPress={() => setIsUrgent(!isUrgent)}
-            >
-              <Ionicons
-                name="alert-circle"
-                size={24}
-                color={isUrgent ? CHAT_COLORS.urgent : COLORS.gray}
-              />
-            </TouchableOpacity>
-            <TextInput
-              style={styles.input}
-              placeholder="Escribe un mensaje..."
-              placeholderTextColor={COLORS.gray}
-              value={inputText}
-              onChangeText={setInputText}
-              multiline
-              maxLength={2000}
-            />
-            <TouchableOpacity
-              style={[styles.sendButton, !inputText.trim() && styles.sendButtonDisabled]}
-              onPress={handleSend}
-              disabled={!inputText.trim() || sendMessage.isPending}
-            >
-              {sendMessage.isPending ? (
-                <ActivityIndicator size="small" color={COLORS.white} />
-              ) : (
-                <Ionicons name="send" size={20} color={COLORS.white} />
-              )}
-            </TouchableOpacity>
+        {canReply && !isClosed ? (
+          <MessageInput
+            value={inputText}
+            onChangeText={setInputText}
+            onSend={handleSend}
+            isSending={sendMessage.isPending}
+            isTeacher={isTeacher}
+            isUrgent={isUrgent}
+            onToggleUrgent={() => setIsUrgent(!isUrgent)}
+          />
+        ) : isClosed ? (
+          <View style={styles.closedBanner}>
+            <Ionicons name="lock-closed" size={18} color={COLORS.gray} />
+            <Text style={styles.closedBannerText}>
+              Esta conversación está cerrada
+            </Text>
           </View>
         ) : (
           <View style={styles.readOnlyBanner}>
@@ -452,45 +441,73 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 12,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.md,
     backgroundColor: COLORS.white,
-    borderBottomWidth: 1,
+    borderBottomWidth: BORDERS.width.thin,
     borderBottomColor: COLORS.border,
   },
   backButton: {
-    padding: 8,
+    padding: SPACING.sm,
   },
   headerContent: {
     flex: 1,
-    marginHorizontal: 8,
+    marginHorizontal: SPACING.sm,
   },
   headerTitle: {
-    fontSize: 18,
+    ...TYPOGRAPHY.sectionTitle,
+    color: COLORS.black,
+  },
+  headerContext: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: SPACING.xxs,
+  },
+  headerContextText: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.gray,
+    flex: 1,
+  },
+  headerAvatar: {
+    width: SIZES.avatarMd,
+    height: SIZES.avatarMd,
+    borderRadius: BORDERS.radius.full,
+    backgroundColor: COLORS.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: SPACING.xs,
+  },
+  headerAvatarText: {
+    ...TYPOGRAPHY.body,
     fontWeight: '600',
-    color: '#000',
+    color: COLORS.primary,
   },
   headerIndicators: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 2,
-    gap: 12,
+    marginTop: SPACING.xxs,
+    gap: SPACING.md,
   },
   readOnlyIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: SPACING.xxs,
+  },
+  closedIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xxs,
   },
   mutedIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  readOnlyText: {
-    fontSize: 12,
+  indicatorText: {
+    ...TYPOGRAPHY.badgeSmall,
     color: COLORS.gray,
-    marginLeft: 4,
   },
   menuButton: {
-    padding: 8,
+    padding: SPACING.sm,
   },
   loadingContainer: {
     flex: 1,
@@ -498,77 +515,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   messagesList: {
-    paddingVertical: 16,
-    paddingHorizontal: 12,
-  },
-  dateSeparator: {
-    alignItems: 'center',
-    marginVertical: 16,
-  },
-  dateSeparatorText: {
-    backgroundColor: COLORS.white,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-    fontSize: 12,
-    color: COLORS.gray,
-    overflow: 'hidden',
-  },
-  messageRow: {
-    flexDirection: 'row',
-    marginBottom: 8,
-  },
-  messageRowMine: {
-    justifyContent: 'flex-end',
-  },
-  messageBubble: {
-    maxWidth: '80%',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 16,
-  },
-  myBubble: {
-    backgroundColor: CHAT_COLORS.myBubble,
-    borderBottomRightRadius: 4,
-  },
-  theirBubble: {
-    backgroundColor: CHAT_COLORS.theirBubble,
-    borderBottomLeftRadius: 4,
-  },
-  urgentBubble: {
-    borderWidth: 1,
-    borderColor: CHAT_COLORS.urgent,
-  },
-  senderName: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.primary,
-    marginBottom: 4,
-  },
-  urgentBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  urgentText: {
-    fontSize: 11,
-    color: CHAT_COLORS.urgent,
-    fontWeight: '600',
-    marginLeft: 4,
-  },
-  messageText: {
-    fontSize: 15,
-    color: '#000',
-    lineHeight: 20,
-  },
-  messageTime: {
-    fontSize: 11,
-    color: COLORS.gray,
-    marginTop: 4,
-    alignSelf: 'flex-start',
-  },
-  messageTimeMine: {
-    alignSelf: 'flex-end',
+    paddingVertical: SPACING.lg,
+    paddingHorizontal: SPACING.md,
   },
   emptyState: {
     alignItems: 'center',
@@ -576,64 +524,40 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
   },
   emptyText: {
-    fontSize: 16,
+    ...TYPOGRAPHY.listItemTitle,
     color: COLORS.gray,
-    fontWeight: '500',
   },
   emptySubtext: {
-    fontSize: 14,
+    ...TYPOGRAPHY.body,
     color: COLORS.gray,
-    marginTop: 4,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    paddingHorizontal: 8,
-    paddingVertical: 8,
-    backgroundColor: COLORS.white,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-  },
-  urgentToggle: {
-    padding: 8,
-  },
-  urgentToggleActive: {
-    backgroundColor: CHAT_COLORS.urgentLight,
-    borderRadius: 20,
-  },
-  input: {
-    flex: 1,
-    backgroundColor: COLORS.lightGray,
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    fontSize: 15,
-    maxHeight: 100,
-    marginHorizontal: 8,
-  },
-  sendButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: COLORS.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sendButtonDisabled: {
-    backgroundColor: COLORS.gray,
+    marginTop: SPACING.xs,
   },
   readOnlyBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
+    paddingVertical: SPACING.md,
     backgroundColor: COLORS.lightGray,
-    borderTopWidth: 1,
+    borderTopWidth: BORDERS.width.thin,
     borderTopColor: COLORS.border,
   },
   readOnlyBannerText: {
-    fontSize: 14,
+    ...TYPOGRAPHY.body,
     color: COLORS.gray,
-    marginLeft: 8,
+    marginLeft: SPACING.sm,
+  },
+  closedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: SPACING.md,
+    backgroundColor: CHAT_COLORS.closedBanner,
+    borderTopWidth: BORDERS.width.thin,
+    borderTopColor: COLORS.border,
+    gap: SPACING.sm,
+  },
+  closedBannerText: {
+    ...TYPOGRAPHY.body,
+    color: COLORS.gray,
   },
 });

@@ -19,7 +19,7 @@ interface QuickAccessProps {
   onContactSchool?: () => void;
 }
 
-export default function QuickAccess({
+function QuickAccess({
   onReportAbsence,
   onPickupChange,
   onContactSchool
@@ -114,3 +114,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 });
+
+// Memoize to prevent unnecessary re-renders
+export default React.memo(QuickAccess);

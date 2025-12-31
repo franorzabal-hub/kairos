@@ -111,6 +111,7 @@ export const TYPOGRAPHY = {
 } as const;
 
 export const SPACING = {
+  xxs: 2,
   xs: 4,
   sm: 8,
   md: 12,
@@ -132,6 +133,8 @@ export const BORDERS = {
     sm: 4,
     md: 8,
     lg: 12,
+    xl: 16,
+    xxl: 20,
     full: 9999,
   },
   width: {
@@ -139,6 +142,27 @@ export const BORDERS = {
     medium: 2,
     thick: 4,
   },
+} as const;
+
+export const SIZES = {
+  // Icons
+  iconSm: 16,
+  iconMd: 20,
+  iconLg: 24,
+  iconXl: 32,
+
+  // Avatars
+  avatarSm: 32,
+  avatarMd: 40,
+  avatarLg: 48,
+  avatarXl: 64,
+
+  // Buttons
+  buttonHeight: 44,
+  buttonHeightSm: 36,
+
+  // Touch targets (minimum 44pt for accessibility)
+  touchTarget: 44,
 } as const;
 
 export const SHADOWS = {
@@ -235,6 +259,7 @@ export default {
   TYPOGRAPHY,
   SPACING,
   BORDERS,
+  SIZES,
   SHADOWS,
   UNREAD_STYLES,
   BADGE_STYLES,

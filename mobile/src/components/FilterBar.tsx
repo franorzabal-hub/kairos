@@ -30,7 +30,7 @@ interface FilterBarProps {
   showArchivedFilter?: boolean;
 }
 
-export default function FilterBar({
+function FilterBar({
   unreadCount = 0,
   showUnreadFilter = true,
   pinnedCount = 0,
@@ -280,3 +280,6 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.listItemTitle,
   },
 });
+
+// Memoize to prevent unnecessary re-renders when parent state changes
+export default React.memo(FilterBar);

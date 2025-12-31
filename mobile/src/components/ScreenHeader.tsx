@@ -25,7 +25,7 @@ function isLightColor(hexColor: string): boolean {
   return luminance > 0.5;
 }
 
-export default function ScreenHeader({ title, showBackButton = false, backTitle, rightAccessory }: ScreenHeaderProps) {
+function ScreenHeader({ title, showBackButton = false, backTitle, rightAccessory }: ScreenHeaderProps) {
   const { user } = useAuth();
   const { data: organization } = useOrganization();
   const router = useRouter();
@@ -200,3 +200,6 @@ const styles = StyleSheet.create({
     width: 40,
   },
 });
+
+// Memoize to prevent unnecessary re-renders
+export default React.memo(ScreenHeader);

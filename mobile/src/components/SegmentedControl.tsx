@@ -28,7 +28,7 @@ interface SegmentedControlProps {
   accentColor?: string; // Dynamic color for badge (follows child color)
 }
 
-export default function SegmentedControl({ segments, selectedKey, onSelect, accentColor }: SegmentedControlProps) {
+function SegmentedControl({ segments, selectedKey, onSelect, accentColor }: SegmentedControlProps) {
   return (
     <View style={styles.container}>
       <View style={styles.segmentWrapper}>
@@ -143,3 +143,6 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
   },
 });
+
+// Memoize to prevent unnecessary re-renders when parent state changes
+export default React.memo(SegmentedControl);
