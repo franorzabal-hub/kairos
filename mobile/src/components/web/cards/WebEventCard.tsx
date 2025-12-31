@@ -12,6 +12,7 @@ import React from 'react';
 import { View, Text, Pressable, Platform, PressableStateCallbackType } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import DirectusImage from '../../DirectusImage';
 import { Event } from '../../../api/directus';
 import { useEventCardLogic } from '../../../hooks';
 import { COLORS } from '../../../theme';
@@ -112,18 +113,30 @@ export function WebEventCard({
           {event.title}
         </Text>
 
-        {/* Details */}
-        <View className="gap-1 mb-4">
-           <View className="flex-row items-center gap-1.5">
-             <Ionicons name="time-outline" size={14} color={COLORS.gray500} />
-             <Text className="text-sm text-gray-600">{formatTime(event.start_date)}</Text>
-           </View>
-           {event.location_external && (
-            <View className="flex-row items-center gap-1.5">
-              <Ionicons name="location-outline" size={14} color={COLORS.gray500} />
-              <Text className="text-sm text-gray-600" numberOfLines={1}>{event.location_external}</Text>
-            </View>
-           )}
+        <View className="flex-row gap-3">
+          {/* Details Column */}
+          <View className="flex-1 gap-1 mb-4">
+             <View className="flex-row items-center gap-1.5">
+               <Ionicons name="time-outline" size={14} color={COLORS.gray500} />
+               <Text className="text-sm text-gray-600">{formatTime(event.start_date)}</Text>
+             </View>
+             {event.location_external && (
+              <View className="flex-row items-center gap-1.5">
+                <Ionicons name="location-outline" size={14} color={COLORS.gray500} />
+                <Text className="text-sm text-gray-600" numberOfLines={1}>{event.location_external}</Text>
+              </View>
+             )}
+          </View>
+
+          {/* Thumbnail Image (New) */}
+          {event.image && (
+            <DirectusImage
+              fileId={event.image}
+              style={{ width: 64, height: 64, borderRadius: 8 }}
+              className="bg-gray-100 border border-gray-100 mb-4"
+              contentFit="cover"
+            />
+          )}
         </View>
       </View>
 

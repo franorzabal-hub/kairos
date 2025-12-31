@@ -11,6 +11,7 @@ import React, { useState } from 'react';
 import { View, Text, Pressable, Platform, PressableStateCallbackType } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import DirectusImage from '../../DirectusImage';
 import { Announcement } from '../../../api/directus';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY, UNREAD_STYLES } from '../../../theme';
 import { stripHtml } from '../../../utils';
@@ -195,13 +196,25 @@ export function WebAnnouncementCard({
         </View>
       </View>
 
-      {/* Content Preview */}
-      <Text
-        className="text-sm text-gray-500 leading-relaxed mb-4 line-clamp-3"
-        numberOfLines={3}
-      >
-        {stripHtml(item.content)}
-      </Text>
+      {/* Content Body: Text + Thumbnail */}
+      <View className="flex-row gap-4 mb-4">
+        <Text
+          className="text-sm text-gray-500 leading-relaxed flex-1 line-clamp-3"
+          numberOfLines={3}
+        >
+          {stripHtml(item.content)}
+        </Text>
+        
+        {/* Thumbnail Image (Restored) */}
+        {item.image && (
+          <DirectusImage
+            fileId={item.image}
+            style={{ width: 80, height: 80, borderRadius: 8 }}
+            className="bg-gray-100 border border-gray-100"
+            contentFit="cover"
+          />
+        )}
+      </View>
 
       {/* Footer Actions (Visible on Hover or if relevant) */}
       <View className="mt-auto pt-3 border-t border-gray-50 flex-row justify-between items-center opacity-0 group-hover:opacity-100 transition-opacity">
