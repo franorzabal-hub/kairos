@@ -1,9 +1,11 @@
 /**
  * DateSeparator - Date label between messages
+ *
+ * Migrated to NativeWind (Tailwind CSS) for styling consistency.
+ * Uses custom theme colors defined in tailwind.config.js.
  */
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { COLORS } from '../../theme';
+import { View, Text } from 'react-native';
 
 interface DateSeparatorProps {
   date: string; // Formatted date string
@@ -11,26 +13,12 @@ interface DateSeparatorProps {
 
 function DateSeparator({ date }: DateSeparatorProps) {
   return (
-    <View style={styles.container}>
-      <Text style={styles.text}>{date}</Text>
+    <View className="items-center my-4">
+      <Text className="bg-white px-3 py-1 rounded-xl text-xs text-gray overflow-hidden">
+        {date}
+      </Text>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    alignItems: 'center',
-    marginVertical: 16,
-  },
-  text: {
-    backgroundColor: COLORS.white,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-    fontSize: 12,
-    color: COLORS.gray,
-    overflow: 'hidden',
-  },
-});
 
 export default React.memo(DateSeparator);

@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 40,
+    paddingVertical: SPACING.xxxl + SPACING.sm,
     marginHorizontal: SPACING.screenPadding,
   },
   emptyText: {

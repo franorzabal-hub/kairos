@@ -1,8 +1,14 @@
+/**
+ * QuickAccess - Quick action buttons for common tasks
+ *
+ * Migrated to NativeWind (Tailwind CSS) for styling consistency.
+ * Uses custom theme colors defined in tailwind.config.js.
+ */
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { COLORS, SPACING, BORDERS, TYPOGRAPHY } from '../theme';
+import { COLORS } from '../theme';
 
 interface QuickAction {
   id: string;
@@ -51,24 +57,29 @@ function QuickAccess({
   ];
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Acciones Rápidas</Text>
+    <View className="bg-white py-3 mb-6">
+      <Text className="text-xl font-bold text-darkGray px-4 mb-2">
+        Acciones Rápidas
+      </Text>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}
       >
         {actions.map((action) => (
           <TouchableOpacity
             key={action.id}
-            style={styles.actionButton}
+            className="items-center w-20"
             onPress={action.onPress}
             activeOpacity={0.7}
           >
-            <View style={styles.iconContainer}>
+            <View className="w-14 h-14 rounded-xl items-center justify-center mb-1 bg-lightGray">
               <Ionicons name={action.icon} size={24} color={action.color} />
             </View>
-            <Text style={styles.actionLabel} numberOfLines={2}>
+            <Text
+              className="text-xs text-darkGray text-center font-medium"
+              numberOfLines={2}
+            >
               {action.label}
             </Text>
           </TouchableOpacity>
@@ -77,43 +88,6 @@ function QuickAccess({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: COLORS.white,
-    paddingVertical: SPACING.md,
-    marginBottom: SPACING.xxl, // 24px gap before next section
-  },
-  title: {
-    ...TYPOGRAPHY.sectionTitle,
-    color: COLORS.darkGray,
-    paddingHorizontal: SPACING.screenPadding,
-    marginBottom: SPACING.sm,
-  },
-  scrollContent: {
-    paddingHorizontal: SPACING.screenPadding,
-    gap: SPACING.md,
-  },
-  actionButton: {
-    alignItems: 'center',
-    width: 80,
-  },
-  iconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: BORDERS.radius.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: SPACING.xs,
-    backgroundColor: COLORS.lightGray,
-  },
-  actionLabel: {
-    ...TYPOGRAPHY.caption,
-    color: COLORS.darkGray,
-    textAlign: 'center',
-    fontWeight: '500',
-  },
-});
 
 // Memoize to prevent unnecessary re-renders
 export default React.memo(QuickAccess);

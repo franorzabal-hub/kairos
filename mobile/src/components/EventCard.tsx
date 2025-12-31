@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Event } from '../api/directus';
-import { COLORS, SPACING, BORDERS, TYPOGRAPHY, SHADOWS } from '../theme';
+import { COLORS, SPACING, BORDERS, TYPOGRAPHY, SHADOWS, SIZES, FONT_SIZES } from '../theme';
 import { getPastelColor } from '../utils';
 
 // Event status types
@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
     ...SHADOWS.card,
   },
   cardPending: {
-    borderLeftWidth: 4,
+    borderLeftWidth: BORDERS.width.thick,
     borderLeftColor: COLORS.warning,
   },
   cardPast: {
@@ -260,8 +260,8 @@ const styles = StyleSheet.create({
   },
   // Date Block (Squircle) - Left-aligned for professional look
   dateBlock: {
-    width: 56,
-    height: 56,
+    width: SIZES.avatarXl,
+    height: SIZES.avatarXl,
     borderRadius: BORDERS.radius.lg,
     alignItems: 'flex-start',  // Left align content
     justifyContent: 'center',
@@ -271,16 +271,16 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   dateMonth: {
-    fontSize: 10,
+    fontSize: FONT_SIZES.xs,
     fontWeight: '600',
     letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
   dateDay: {
-    fontSize: 24,
+    fontSize: FONT_SIZES['6xl'],
     fontWeight: '700',
     letterSpacing: -0.5,
-    marginTop: -2,
+    marginTop: -SPACING.xxs,
   },
   // Content
   content: {
@@ -306,8 +306,8 @@ const styles = StyleSheet.create({
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 6,
-    gap: 4,
+    marginTop: SPACING.xs + SPACING.xxs,
+    gap: SPACING.xs,
   },
   metaText: {
     ...TYPOGRAPHY.caption,
@@ -320,25 +320,25 @@ const styles = StyleSheet.create({
   metaSeparator: {
     ...TYPOGRAPHY.caption,
     color: COLORS.border,
-    marginHorizontal: 2,
+    marginHorizontal: SPACING.xxs,
   },
   // Child row (separate line for avatar + name)
   childRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 6,
-    gap: 6,
+    marginTop: SPACING.xs + SPACING.xxs,
+    gap: SPACING.xs + SPACING.xxs,
   },
   // Child avatar (mini circle with initial)
   childAvatar: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+    width: SIZES.avatarXs,
+    height: SIZES.avatarXs,
+    borderRadius: BORDERS.radius.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
   childInitial: {
-    fontSize: 9,
+    fontSize: FONT_SIZES.xxs,
     fontWeight: '700',
     color: COLORS.white,
   },

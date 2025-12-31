@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
-import { COLORS, SPACING, BORDERS, TYPOGRAPHY } from '../theme';
+import { COLORS, SPACING, BORDERS, TYPOGRAPHY, SHADOWS } from '../theme';
 import { getPastelColor } from '../utils';
 
 interface Segment {
@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: COLORS.lightGray,
     borderRadius: BORDERS.radius.md,
-    padding: 2,
+    padding: SPACING.xxs,
   },
   segment: {
     flex: 1,
@@ -86,21 +86,17 @@ const styles = StyleSheet.create({
     gap: SPACING.xs,
   },
   segmentFirst: {
-    borderTopLeftRadius: BORDERS.radius.md - 2,
-    borderBottomLeftRadius: BORDERS.radius.md - 2,
+    borderTopLeftRadius: BORDERS.radius.md - SPACING.xxs,
+    borderBottomLeftRadius: BORDERS.radius.md - SPACING.xxs,
   },
   segmentLast: {
-    borderTopRightRadius: BORDERS.radius.md - 2,
-    borderBottomRightRadius: BORDERS.radius.md - 2,
+    borderTopRightRadius: BORDERS.radius.md - SPACING.xxs,
+    borderBottomRightRadius: BORDERS.radius.md - SPACING.xxs,
   },
   segmentSelected: {
     backgroundColor: COLORS.white,
-    borderRadius: BORDERS.radius.md - 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 1,
+    borderRadius: BORDERS.radius.md - SPACING.xxs,
+    ...SHADOWS.small,
   },
   segmentText: {
     ...TYPOGRAPHY.body,
@@ -113,10 +109,10 @@ const styles = StyleSheet.create({
   },
   countBadge: {
     backgroundColor: COLORS.border,
-    paddingHorizontal: 6,
+    paddingHorizontal: SPACING.sm - SPACING.xxs,
     paddingVertical: 1,
     borderRadius: BORDERS.radius.full,
-    minWidth: 20,
+    minWidth: SPACING.xl,
     alignItems: 'center',
   },
   countBadgeSelected: {

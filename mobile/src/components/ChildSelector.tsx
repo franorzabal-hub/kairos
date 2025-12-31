@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import DirectusImage from './DirectusImage';
 import { Student } from '../api/directus';
 import { useChildren } from '../context/ChildrenContext';
-import { COLORS, SPACING, BORDERS, TYPOGRAPHY, SHADOWS } from '../theme';
+import { COLORS, SPACING, BORDERS, TYPOGRAPHY, SHADOWS, SIZES, FONT_SIZES } from '../theme';
 import { getPastelColor, getChildColor } from '../utils';
 
 interface ChildSelectorProps {
@@ -205,8 +205,8 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   avatarSmall: {
-    width: 32,
-    height: 32,
+    width: SIZES.avatarSm,
+    height: SIZES.avatarSm,
     borderRadius: BORDERS.radius.full,
     backgroundColor: COLORS.border,
     alignItems: 'center',
@@ -245,20 +245,20 @@ const styles = StyleSheet.create({
     ...SHADOWS.card,
   },
   singleChildAvatar: {
-    width: 56,
-    height: 56,
+    width: SIZES.avatarXl,
+    height: SIZES.avatarXl,
     borderRadius: BORDERS.radius.full,
   },
   avatarPlaceholder: {
-    width: 56,
-    height: 56,
+    width: SIZES.avatarXl,
+    height: SIZES.avatarXl,
     borderRadius: BORDERS.radius.full,
     backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarInitials: {
-    fontSize: 20,
+    fontSize: FONT_SIZES['5xl'],
     fontWeight: '600',
     color: COLORS.white,
   },
@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
   singleChildMeta: {
     ...TYPOGRAPHY.caption,
     color: COLORS.gray,
-    marginTop: 2,
+    marginTop: SPACING.xxs,
   },
   // Compact mode styles
   compactChip: {
@@ -284,7 +284,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.sm,
     paddingVertical: SPACING.xs,
     borderRadius: BORDERS.radius.md,
-    gap: 4,
+    gap: SPACING.xs,
   },
   compactText: {
     ...TYPOGRAPHY.caption,

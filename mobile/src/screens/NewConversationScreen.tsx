@@ -15,7 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCreateConversation } from '../api/hooks';
-import { COLORS, SPACING, BORDERS, TYPOGRAPHY, SHADOWS } from '../theme';
+import { COLORS, SPACING, BORDERS, TYPOGRAPHY, SHADOWS, SIZES, FONT_SIZES } from '../theme';
 
 // Channel definitions - same as ConversationListScreen
 // TODO: Move to shared constants file
@@ -227,14 +227,14 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.sectionTitle,
     color: COLORS.black,
     textAlign: 'center',
-    marginRight: 40, // Balance with back button
+    marginRight: SIZES.avatarMd, // Balance with back button
   },
   sendButton: {
     backgroundColor: COLORS.primary,
     paddingVertical: SPACING.sm,
     paddingHorizontal: SPACING.lg,
     borderRadius: BORDERS.radius.full,
-    minWidth: 80,
+    minWidth: SPACING.xxxl + SPACING.xxxl + SPACING.lg,
     alignItems: 'center',
   },
   sendButtonDisabled: {
@@ -265,8 +265,8 @@ const styles = StyleSheet.create({
     ...SHADOWS.card,
   },
   channelIcon: {
-    width: 56,
-    height: 56,
+    width: SIZES.fabSize,
+    height: SIZES.fabSize,
     borderRadius: BORDERS.radius.md,
     alignItems: 'center',
     justifyContent: 'center',
@@ -277,7 +277,7 @@ const styles = StyleSheet.create({
   channelLabel: {
     ...TYPOGRAPHY.caption,
     color: COLORS.gray,
-    marginBottom: 2,
+    marginBottom: SPACING.xxs,
   },
   channelName: {
     ...TYPOGRAPHY.sectionTitle,
@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
   channelDescription: {
     ...TYPOGRAPHY.caption,
     color: COLORS.gray,
-    marginTop: 2,
+    marginTop: SPACING.xxs,
   },
   inputGroup: {
     backgroundColor: COLORS.white,
@@ -312,7 +312,7 @@ const styles = StyleSheet.create({
   messageInput: {
     ...TYPOGRAPHY.body,
     color: COLORS.black,
-    minHeight: 120,
+    minHeight: SPACING.tabBarOffset + SPACING.xl,
     paddingTop: SPACING.sm,
   },
   charCount: {
@@ -342,6 +342,6 @@ const styles = StyleSheet.create({
   tipsText: {
     ...TYPOGRAPHY.body,
     color: COLORS.gray,
-    lineHeight: 22,
+    lineHeight: FONT_SIZES['5xl'] + SPACING.xxs,
   },
 });

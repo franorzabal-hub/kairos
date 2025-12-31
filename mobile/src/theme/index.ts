@@ -118,6 +118,7 @@ export const SPACING = {
   lg: 16,
   xl: 20,
   xxl: 24,
+  xxxl: 32,
 
   // Specific spacings
   screenPadding: 16,
@@ -128,13 +129,35 @@ export const SPACING = {
   tabBarOffset: 100,
 } as const;
 
+// Font sizes for direct use (matches TYPOGRAPHY values)
+export const FONT_SIZES = {
+  xxs: 9,
+  xs: 10,
+  sm: 11,
+  md: 12,
+  base: 13,
+  lg: 14,
+  xl: 15,
+  '2xl': 16,
+  '3xl': 17,
+  '4xl': 18,
+  '5xl': 20,
+  '6xl': 24,
+  '7xl': 28,
+  '8xl': 32,
+  '9xl': 36,
+  '10xl': 64,
+} as const;
+
 export const BORDERS = {
   radius: {
+    xs: 2,
     sm: 4,
     md: 8,
     lg: 12,
     xl: 16,
     xxl: 20,
+    pill: 18,
     full: 9999,
   },
   width: {
@@ -146,23 +169,36 @@ export const BORDERS = {
 
 export const SIZES = {
   // Icons
+  iconXs: 14,
   iconSm: 16,
   iconMd: 20,
   iconLg: 24,
   iconXl: 32,
 
   // Avatars
+  avatarXs: 16,
   avatarSm: 32,
   avatarMd: 40,
   avatarLg: 48,
-  avatarXl: 64,
+  avatarXl: 56,
+  avatarXxl: 64,
 
   // Buttons
   buttonHeight: 44,
   buttonHeightSm: 36,
 
+  // FAB (Floating Action Button)
+  fabSize: 56,
+
+  // Modal handle (bottom sheet drag indicator)
+  modalHandleWidth: 36,
+  modalHandleHeight: 4,
+
   // Touch targets (minimum 44pt for accessibility)
   touchTarget: 44,
+
+  // Card images
+  cardImageHeight: 160,
 } as const;
 
 export const SHADOWS = {
@@ -258,6 +294,7 @@ export default {
   CHILD_COLORS,
   TYPOGRAPHY,
   SPACING,
+  FONT_SIZES,
   BORDERS,
   SIZES,
   SHADOWS,

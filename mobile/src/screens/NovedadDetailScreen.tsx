@@ -18,7 +18,7 @@ import AttachmentsList from '../components/AttachmentsList';
 import VideoEmbed from '../components/VideoEmbed';
 import AcknowledgmentBanner from '../components/AcknowledgmentBanner';
 import { useAnnouncement, useAnnouncementAttachments, useContentReadStatus, useAnnouncementStates, useAnnouncementPin, useAnnouncementAcknowledge } from '../api/hooks';
-import { COLORS, SPACING, BORDERS } from '../theme';
+import { COLORS, SPACING, BORDERS, FONT_SIZES } from '../theme';
 
 // Decode HTML entities
 const decodeHtmlEntities = (text: string) => {
@@ -226,7 +226,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 100,
+    paddingBottom: SPACING.tabBarOffset,
   },
   imageContainer: {
     position: 'relative',
@@ -238,91 +238,91 @@ const styles = StyleSheet.create({
   imagePlaceholder: {
     width: '100%',
     height: 220,
-    backgroundColor: '#E8D5D9',
+    backgroundColor: COLORS.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
   schoolName: {
-    fontSize: 28,
+    fontSize: FONT_SIZES['7xl'],
     color: COLORS.primary,
-    marginTop: 8,
+    marginTop: SPACING.sm,
   },
   urgentBadge: {
     position: 'absolute',
-    top: 16,
-    left: 16,
+    top: SPACING.lg,
+    left: SPACING.lg,
     backgroundColor: COLORS.primary,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 4,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm - SPACING.xxs,
+    borderRadius: BORDERS.radius.sm,
   },
   importantBadge: {
     backgroundColor: COLORS.warning,
   },
   badgeText: {
     color: COLORS.white,
-    fontSize: 12,
+    fontSize: FONT_SIZES.md,
     fontWeight: '700',
   },
   content: {
-    padding: 20,
+    padding: SPACING.xl,
   },
   title: {
-    fontSize: 24,
+    fontSize: FONT_SIZES['6xl'],
     fontWeight: '700',
-    color: '#1A1A1A',
-    marginBottom: 16,
-    lineHeight: 32,
+    color: COLORS.darkGray,
+    marginBottom: SPACING.lg,
+    lineHeight: FONT_SIZES['8xl'],
   },
   metaRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 16,
-    marginBottom: 16,
+    gap: SPACING.lg,
+    marginBottom: SPACING.lg,
   },
   metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: SPACING.sm - SPACING.xxs,
   },
   metaText: {
-    fontSize: 14,
+    fontSize: FONT_SIZES.lg,
     color: COLORS.gray,
   },
   targetBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: SPACING.sm - SPACING.xxs,
     backgroundColor: COLORS.primaryLight,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm - SPACING.xxs,
+    borderRadius: BORDERS.radius.xl,
     alignSelf: 'flex-start',
-    marginBottom: 16,
+    marginBottom: SPACING.lg,
   },
   targetText: {
-    fontSize: 13,
+    fontSize: FONT_SIZES.base,
     color: COLORS.primary,
     fontWeight: '500',
   },
   divider: {
-    height: 1,
+    height: BORDERS.width.thin,
     backgroundColor: COLORS.border,
-    marginBottom: 20,
+    marginBottom: SPACING.xl,
   },
   bodyText: {
-    fontSize: 16,
-    color: '#333',
-    lineHeight: 26,
+    fontSize: FONT_SIZES['2xl'],
+    color: COLORS.darkGray,
+    lineHeight: FONT_SIZES['6xl'] + SPACING.xxs,
   },
   bottomBar: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    padding: 16,
+    padding: SPACING.lg,
     backgroundColor: COLORS.white,
-    borderTopWidth: 1,
+    borderTopWidth: BORDERS.width.thin,
     borderTopColor: COLORS.border,
   },
   pinButton: {
@@ -330,16 +330,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: COLORS.primaryLight,
-    paddingVertical: 14,
-    borderRadius: 30,
-    gap: 8,
+    paddingVertical: SPACING.listItemPadding,
+    borderRadius: BORDERS.radius.full,
+    gap: SPACING.sm,
   },
   pinButtonActive: {
     backgroundColor: COLORS.primary,
   },
   pinButtonText: {
     color: COLORS.primary,
-    fontSize: 16,
+    fontSize: FONT_SIZES['2xl'],
     fontWeight: '600',
   },
   pinButtonTextActive: {
@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.xxl,
   },
   emptyText: {
-    fontSize: 16,
+    fontSize: FONT_SIZES['2xl'],
     color: COLORS.gray,
   },
 });

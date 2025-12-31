@@ -16,7 +16,7 @@ const MAX_LOGIN_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 30000; // 30 seconds
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AppContext';
-import { COLORS, SPACING, BORDERS } from '../theme';
+import { COLORS, SPACING, BORDERS, FONT_SIZES } from '../theme';
 
 export default function LoginScreen() {
   const { login } = useAuth();
@@ -215,44 +215,44 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: 24,
+    paddingHorizontal: SPACING.xxl,
     justifyContent: 'center',
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: 48,
+    marginBottom: SPACING.xxxl + SPACING.lg,
   },
   logoIcon: {
-    fontSize: 64,
-    marginBottom: 8,
+    fontSize: FONT_SIZES['10xl'],
+    marginBottom: SPACING.sm,
   },
   logoText: {
-    fontSize: 36,
+    fontSize: FONT_SIZES['9xl'],
     fontWeight: '700',
     color: COLORS.primary,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: FONT_SIZES['2xl'],
     color: COLORS.gray,
-    marginTop: 4,
+    marginTop: SPACING.xs,
   },
   form: {
-    marginBottom: 24,
+    marginBottom: SPACING.xxl,
   },
   label: {
-    fontSize: 14,
+    fontSize: FONT_SIZES.lg,
     fontWeight: '600',
     color: COLORS.gray,
-    marginBottom: 8,
-    marginTop: 16,
+    marginBottom: SPACING.sm,
+    marginTop: SPACING.lg,
   },
   input: {
     borderWidth: 1,
     borderColor: COLORS.border,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
+    borderRadius: BORDERS.radius.lg,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.listItemPadding,
+    fontSize: FONT_SIZES['2xl'],
     backgroundColor: COLORS.lightGray,
   },
   inputDisabled: {
@@ -261,51 +261,51 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: COLORS.error,
-    fontSize: 14,
-    marginTop: 12,
+    fontSize: FONT_SIZES.lg,
+    marginTop: SPACING.md,
     textAlign: 'center',
   },
   loginButton: {
     backgroundColor: COLORS.primary,
-    paddingVertical: 16,
-    borderRadius: 30,
+    paddingVertical: SPACING.lg,
+    borderRadius: BORDERS.radius.xxl + BORDERS.radius.sm + BORDERS.radius.sm,
     alignItems: 'center',
-    marginTop: 24,
+    marginTop: SPACING.xxl,
   },
   loginButtonDisabled: {
     opacity: 0.7,
   },
   loginButtonText: {
     color: COLORS.white,
-    fontSize: 16,
+    fontSize: FONT_SIZES['2xl'],
     fontWeight: '600',
   },
   forgotPassword: {
     alignItems: 'center',
-    marginTop: 16,
+    marginTop: SPACING.lg,
   },
   forgotPasswordText: {
     color: COLORS.primary,
-    fontSize: 14,
+    fontSize: FONT_SIZES.lg,
   },
   lockoutContainer: {
     backgroundColor: COLORS.error + '15',
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 16,
+    borderRadius: BORDERS.radius.lg,
+    padding: SPACING.lg,
+    marginTop: SPACING.lg,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: COLORS.error + '30',
   },
   lockoutText: {
     color: COLORS.error,
-    fontSize: 14,
+    fontSize: FONT_SIZES.lg,
     fontWeight: '600',
-    marginBottom: 4,
+    marginBottom: SPACING.xs,
   },
   lockoutTimer: {
     color: COLORS.error,
-    fontSize: 20,
+    fontSize: FONT_SIZES['5xl'],
     fontWeight: '700',
   },
   footer: {
@@ -313,6 +313,6 @@ const styles = StyleSheet.create({
   },
   footerText: {
     color: COLORS.gray,
-    fontSize: 14,
+    fontSize: FONT_SIZES.lg,
   },
 });

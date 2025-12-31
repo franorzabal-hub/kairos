@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import DirectusImage from './DirectusImage';
 import { useAuth } from '../context/AuthContext';
 import { useOrganization } from '../api/hooks';
-import { COLORS, SPACING, BORDERS, TYPOGRAPHY } from '../theme';
+import { COLORS, SPACING, BORDERS, TYPOGRAPHY, SIZES, FONT_SIZES } from '../theme';
 
 interface ScreenHeaderProps {
   title?: string; // Tab/section title (e.g., "Mensajes", "Agenda") - shows org branding if not provided
@@ -128,19 +128,19 @@ const styles = StyleSheet.create({
     marginRight: SPACING.md,
   },
   orgLogo: {
-    width: 36,
-    height: 36,
+    width: SIZES.buttonHeightSm,
+    height: SIZES.buttonHeightSm,
     borderRadius: BORDERS.radius.md,
   },
   orgLogoPlaceholder: {
-    width: 36,
-    height: 36,
+    width: SIZES.buttonHeightSm,
+    height: SIZES.buttonHeightSm,
     borderRadius: BORDERS.radius.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
   orgLogoInitial: {
-    fontSize: 18,
+    fontSize: FONT_SIZES['4xl'],
     fontWeight: '700',
   },
   orgName: {
@@ -161,14 +161,14 @@ const styles = StyleSheet.create({
   },
   // Avatar (right side)
   avatarButton: {
-    width: 36,
-    height: 36,
+    width: SIZES.buttonHeightSm,
+    height: SIZES.buttonHeightSm,
     borderRadius: BORDERS.radius.full,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
-    fontSize: 14,
+    fontSize: FONT_SIZES.lg,
     fontWeight: '600',
   },
   // Detail header styles
@@ -183,21 +183,21 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.border,
   },
   backButton: {
-    width: 40,
-    height: 40,
+    width: SIZES.avatarMd,
+    height: SIZES.avatarMd,
     alignItems: 'center',
     justifyContent: 'center',
   },
   detailTitle: {
     flex: 1,
-    fontSize: 18,
+    fontSize: FONT_SIZES['4xl'],
     fontWeight: '600',
     color: COLORS.primary,
     textAlign: 'center',
     marginHorizontal: SPACING.sm,
   },
   headerSpacer: {
-    width: 40,
+    width: SIZES.avatarMd,
   },
 });
 

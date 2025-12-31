@@ -4,6 +4,9 @@
  * Shows a nice lock icon with a message when the user
  * doesn't have access to a feature.
  *
+ * Migrated to NativeWind (Tailwind CSS) for styling consistency.
+ * Uses custom theme colors defined in tailwind.config.js.
+ *
  * @example
  * ```tsx
  * <LockedFeature nombre="Boletines" />
@@ -12,9 +15,9 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, SPACING, TYPOGRAPHY, BORDERS } from '../theme';
+import { COLORS } from '../theme';
 
 // Map collection names to friendly Spanish names
 const COLLECTION_NAMES: Record<string, string> = {
@@ -54,20 +57,24 @@ export default function LockedFeature({
 
   if (compact) {
     return (
-      <View style={styles.compactContainer}>
+      <View className="flex-row items-center gap-1 py-1 px-2 bg-lightGray rounded-lg">
         <Ionicons name="lock-closed" size={16} color={COLORS.gray} />
-        <Text style={styles.compactText}>{displayName}</Text>
+        <Text className="text-xs text-gray">{displayName}</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.iconContainer}>
+    <View className="p-4 items-center bg-lightGray rounded-xl m-3">
+      <View className="w-16 h-16 rounded-full bg-white items-center justify-center mb-3">
         <Ionicons name="lock-closed" size={32} color={COLORS.gray} />
       </View>
-      <Text style={styles.title}>{displayName}</Text>
-      <Text style={styles.subtitle}>{subtitle}</Text>
+      <Text className="text-base font-medium text-darkGray text-center">
+        {displayName}
+      </Text>
+      <Text className="text-sm text-gray mt-1 text-center">
+        {subtitle}
+      </Text>
     </View>
   );
 }
@@ -89,96 +96,21 @@ export function LockedSection({
   const displayName = nombre || (collection ? COLLECTION_NAMES[collection] || collection : 'Esta sección');
 
   return (
-    <View style={styles.sectionContainer}>
-      <View style={styles.sectionIcon}>
+    <View className="flex-1 items-center justify-center px-5 py-6">
+      <View className="w-20 h-20 rounded-full bg-lightGray items-center justify-center mb-4">
         <Ionicons name="lock-closed-outline" size={48} color={COLORS.gray} />
       </View>
-      <Text style={styles.sectionTitle}>{displayName}</Text>
-      <Text style={styles.sectionSubtitle}>No tienes acceso a esta sección</Text>
+      <Text className="text-xl font-bold text-darkGray text-center">
+        {displayName}
+      </Text>
+      <Text className="text-sm text-gray mt-2 text-center">
+        No tienes acceso a esta sección
+      </Text>
       {description && (
-        <Text style={styles.sectionDescription}>{description}</Text>
+        <Text className="text-xs text-gray mt-3 text-center">
+          {description}
+        </Text>
       )}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  // Standard locked feature
-  container: {
-    padding: SPACING.lg,
-    alignItems: 'center',
-    backgroundColor: COLORS.lightGray,
-    borderRadius: BORDERS.radius.lg,
-    margin: SPACING.md,
-  },
-  iconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: COLORS.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: SPACING.md,
-  },
-  title: {
-    ...TYPOGRAPHY.listItemTitle,
-    color: COLORS.darkGray,
-    textAlign: 'center',
-  },
-  subtitle: {
-    ...TYPOGRAPHY.body,
-    color: COLORS.gray,
-    marginTop: SPACING.xs,
-    textAlign: 'center',
-  },
-
-  // Compact inline version
-  compactContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.xs,
-    paddingVertical: SPACING.xs,
-    paddingHorizontal: SPACING.sm,
-    backgroundColor: COLORS.lightGray,
-    borderRadius: BORDERS.radius.md,
-  },
-  compactText: {
-    ...TYPOGRAPHY.caption,
-    color: COLORS.gray,
-  },
-
-  // Full section version
-  sectionContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: SPACING.xl,
-    paddingVertical: SPACING.xxl,
-  },
-  sectionIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: COLORS.lightGray,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: SPACING.lg,
-  },
-  sectionTitle: {
-    ...TYPOGRAPHY.sectionTitle,
-    color: COLORS.darkGray,
-    textAlign: 'center',
-  },
-  sectionSubtitle: {
-    ...TYPOGRAPHY.body,
-    color: COLORS.gray,
-    marginTop: SPACING.sm,
-    textAlign: 'center',
-  },
-  sectionDescription: {
-    ...TYPOGRAPHY.caption,
-    color: COLORS.gray,
-    marginTop: SPACING.md,
-    textAlign: 'center',
-  },
-});

@@ -16,7 +16,7 @@ import ChildSelector from '../components/ChildSelector';
 import DirectusImage from '../components/DirectusImage';
 import { useChildren, useReports, usePickupRequests } from '../api/hooks';
 import { Report, PickupRequest } from '../api/directus';
-import { COLORS, SPACING, BORDERS, TYPOGRAPHY, SHADOWS, BADGE_STYLES, UNREAD_STYLES } from '../theme';
+import { COLORS, SPACING, BORDERS, TYPOGRAPHY, SHADOWS, BADGE_STYLES, UNREAD_STYLES, FONT_SIZES, SIZES } from '../theme';
 import { useSession } from '../hooks';
 import { useContentReadStatus } from '../api/hooks';
 import { logger } from '../utils';
@@ -300,12 +300,12 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 60,
+    paddingVertical: SPACING.xxxl + SPACING.xxl + SPACING.xs,
   },
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 80,
+    paddingVertical: SPACING.xxxl + SPACING.xxxl + SPACING.lg,
     paddingHorizontal: SPACING.screenPadding,
   },
   emptyTitle: {
@@ -335,8 +335,8 @@ const styles = StyleSheet.create({
     padding: SPACING.md,
   },
   quickActionIcon: {
-    width: 48,
-    height: 48,
+    width: SIZES.avatarLg,
+    height: SIZES.avatarLg,
     borderRadius: BORDERS.radius.md,
     backgroundColor: COLORS.primary,
     alignItems: 'center',
@@ -354,7 +354,7 @@ const styles = StyleSheet.create({
   quickActionDescription: {
     ...TYPOGRAPHY.caption,
     color: COLORS.gray,
-    marginTop: 2,
+    marginTop: SPACING.xxs,
   },
 
   // Menu Grid
@@ -378,8 +378,8 @@ const styles = StyleSheet.create({
     padding: SPACING.xs,
   },
   menuIconContainer: {
-    width: 56,
-    height: 56,
+    width: SIZES.fabSize,
+    height: SIZES.fabSize,
     borderRadius: BORDERS.radius.lg,
     alignItems: 'center',
     justifyContent: 'center',
@@ -387,15 +387,15 @@ const styles = StyleSheet.create({
   },
   menuBadge: {
     position: 'absolute',
-    top: -4,
-    right: -4,
+    top: -SPACING.xs,
+    right: -SPACING.xs,
     backgroundColor: COLORS.primary,
     borderRadius: BORDERS.radius.full,
-    minWidth: 20,
-    height: 20,
+    minWidth: SIZES.iconMd,
+    height: SIZES.iconMd,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 6,
+    paddingHorizontal: SPACING.xs + SPACING.xxs,
   },
   menuBadgeText: {
     ...TYPOGRAPHY.badge,
@@ -409,7 +409,7 @@ const styles = StyleSheet.create({
   menuDescription: {
     ...TYPOGRAPHY.caption,
     color: COLORS.gray,
-    marginTop: 2,
+    marginTop: SPACING.xxs,
   },
 
   // Preview Sections
@@ -447,13 +447,13 @@ const styles = StyleSheet.create({
   unreadDot: {
     ...UNREAD_STYLES.dotSmall,
     position: 'absolute',
-    left: -12,
+    left: -SPACING.md,
     top: '50%',
-    marginTop: -4,
+    marginTop: -SPACING.xs,
   },
   reportIconContainer: {
-    width: 40,
-    height: 40,
+    width: SIZES.avatarMd,
+    height: SIZES.avatarMd,
     borderRadius: BORDERS.radius.md,
     backgroundColor: COLORS.primaryLight,
     alignItems: 'center',
@@ -470,7 +470,7 @@ const styles = StyleSheet.create({
   reportMeta: {
     ...TYPOGRAPHY.caption,
     color: COLORS.gray,
-    marginTop: 2,
+    marginTop: SPACING.xxs,
   },
   reportDate: {
     ...TYPOGRAPHY.caption,

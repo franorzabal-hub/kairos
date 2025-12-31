@@ -5,7 +5,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import DirectusImage from './DirectusImage';
 import { Announcement } from '../api/directus';
-import { COLORS, SPACING, BORDERS, TYPOGRAPHY, UNREAD_STYLES, SHADOWS, BADGE_STYLES } from '../theme';
+import { COLORS, SPACING, BORDERS, TYPOGRAPHY, UNREAD_STYLES, SHADOWS, BADGE_STYLES, SIZES, FONT_SIZES } from '../theme';
 import { stripHtml } from '../utils';
 
 interface SwipeableAnnouncementCardProps {
@@ -269,19 +269,19 @@ const styles = StyleSheet.create({
   pinnedIndicator: {
     position: 'absolute',
     top: SPACING.md,
-    right: SPACING.md + 20,
+    right: SPACING.md + SPACING.xl,
     backgroundColor: COLORS.primaryLight,
     borderRadius: BORDERS.radius.full,
-    padding: 4,
+    padding: SPACING.xs,
     zIndex: 2,
   },
   acknowledgmentIndicator: {
     position: 'absolute',
     top: SPACING.md,
-    right: SPACING.md + 44,
+    right: SPACING.md + SIZES.touchTarget,
     backgroundColor: '#FEF3C7',
     borderRadius: BORDERS.radius.full,
-    padding: 4,
+    padding: SPACING.xs,
     zIndex: 2,
   },
   priorityBadge: {
@@ -299,25 +299,25 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.warning,
   },
   cardImage: {
-    height: 160,
+    height: SIZES.cardImageHeight,
     width: '100%',
   },
   cardImagePlaceholder: {
-    height: 160,
+    height: SIZES.cardImageHeight,
     backgroundColor: COLORS.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
   schoolName: {
-    fontSize: 24,
+    fontSize: FONT_SIZES['6xl'],
     color: COLORS.primary,
   },
   categoryBadge: {
     position: 'absolute',
-    top: 130,
+    top: SIZES.cardImageHeight - SPACING.xxxl + SPACING.xxs,
     left: SPACING.md,
     backgroundColor: 'rgba(0,0,0,0.6)',
-    paddingHorizontal: 10,
+    paddingHorizontal: SPACING.md - SPACING.xxs,
     paddingVertical: SPACING.xs,
     borderRadius: BORDERS.radius.sm,
     flexDirection: 'row',
@@ -353,14 +353,14 @@ const styles = StyleSheet.create({
     gap: SPACING.xs,
   },
   childAvatar: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+    width: SPACING.lg + SPACING.xxs,
+    height: SPACING.lg + SPACING.xxs,
+    borderRadius: BORDERS.radius.md + 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   childInitial: {
-    fontSize: 10,
+    fontSize: FONT_SIZES.xs,
     fontWeight: '700',
     color: COLORS.white,
   },
@@ -371,7 +371,7 @@ const styles = StyleSheet.create({
 
   // Swipe action styles
   leftActionsContainer: {
-    width: 80,
+    width: SIZES.avatarXxl + SPACING.lg,
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: SPACING.lg,
@@ -384,7 +384,7 @@ const styles = StyleSheet.create({
     marginRight: SPACING.screenPadding,
   },
   actionButton: {
-    width: 80,
+    width: SIZES.avatarXxl + SPACING.lg,
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
@@ -404,9 +404,9 @@ const styles = StyleSheet.create({
   },
   actionText: {
     color: COLORS.white,
-    fontSize: 12,
+    fontSize: FONT_SIZES.md,
     fontWeight: '600',
-    marginTop: 4,
+    marginTop: SPACING.xs,
   },
 });
 

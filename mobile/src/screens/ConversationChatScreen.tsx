@@ -525,7 +525,7 @@ const styles = StyleSheet.create({
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 60,
+    paddingVertical: SPACING.xxxl + SPACING.xxl + SPACING.xs,
   },
   emptyText: {
     ...TYPOGRAPHY.listItemTitle,

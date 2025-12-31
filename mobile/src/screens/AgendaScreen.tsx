@@ -9,7 +9,7 @@ import EventCard, { EventStatus } from '../components/EventCard';
 import { useEvents, useContentReadStatus } from '../api/hooks';
 import { useSession } from '../hooks';
 import { Event } from '../api/directus';
-import { COLORS, CHILD_COLORS, SPACING, TYPOGRAPHY, BORDERS } from '../theme';
+import { COLORS, CHILD_COLORS, SPACING, TYPOGRAPHY, BORDERS, SIZES } from '../theme';
 
 type TimeFilter = 'upcoming' | 'past';
 
@@ -266,7 +266,7 @@ export default function AgendaScreen() {
     <View style={styles.emptyState}>
       <Ionicons
         name={timeFilter === 'upcoming' ? 'calendar-outline' : 'time-outline'}
-        size={48}
+        size={SIZES.avatarLg}
         color={COLORS.gray}
       />
       <Text style={styles.emptyText}>
@@ -334,8 +334,8 @@ const styles = StyleSheet.create({
   },
   sectionBadge: {
     backgroundColor: COLORS.border,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xxs,
     borderRadius: BORDERS.radius.full,
   },
   sectionBadgeText: {
@@ -356,7 +356,7 @@ const styles = StyleSheet.create({
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 80,
+    paddingVertical: SPACING.xxxl + SPACING.xxxl + SPACING.lg,
     gap: SPACING.md,
     marginHorizontal: SPACING.screenPadding,
   },

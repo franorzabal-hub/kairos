@@ -5,7 +5,7 @@ import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSegments } from 'expo-router';
-import { COLORS, SPACING, TYPOGRAPHY } from '../theme';
+import { COLORS, SPACING, TYPOGRAPHY, SIZES } from '../theme';
 
 interface BlurTabBarProps extends BottomTabBarProps {
   unreadCounts: {
@@ -191,12 +191,12 @@ const styles = StyleSheet.create({
   },
   badge: {
     position: 'absolute',
-    top: -4,
-    right: -10,
+    top: -SPACING.xs,
+    right: -SPACING.md + SPACING.xxs,
     backgroundColor: COLORS.tabBadge,
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
+    minWidth: SPACING.lg + SPACING.xxs,
+    height: SPACING.lg + SPACING.xxs,
+    borderRadius: (SPACING.lg + SPACING.xxs) / 2,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: SPACING.xs,
@@ -208,6 +208,6 @@ const styles = StyleSheet.create({
   label: {
     ...TYPOGRAPHY.badgeSmall,
     fontWeight: '500',
-    marginTop: SPACING.xs / 2,
+    marginTop: SPACING.xxs,
   },
 });

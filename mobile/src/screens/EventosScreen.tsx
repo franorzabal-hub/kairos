@@ -11,7 +11,7 @@ import DirectusImage from '../components/DirectusImage';
 import { useFilters, useUnreadCounts } from '../context/UIContext';
 import { useEvents, useContentReadStatus } from '../api/hooks';
 import { Event } from '../api/directus';
-import { COLORS, SPACING, BORDERS, TYPOGRAPHY, UNREAD_STYLES, SHADOWS, BADGE_STYLES } from '../theme';
+import { COLORS, SPACING, BORDERS, TYPOGRAPHY, UNREAD_STYLES, SHADOWS, BADGE_STYLES, FONT_SIZES, SIZES } from '../theme';
 import { stripHtml } from '../utils';
 
 const formatDateKey = (date: Date) => {
@@ -161,14 +161,14 @@ export default function EventosScreen() {
           resizeMode="cover"
           fallback={
             <View style={styles.cardImagePlaceholder}>
-              <MaterialCommunityIcons name="school-outline" size={48} color={COLORS.primary} />
+              <MaterialCommunityIcons name="school-outline" size={SIZES.avatarLg} color={COLORS.primary} />
               <Text style={styles.schoolName}>Colegio</Text>
             </View>
           }
         />
 
         <View style={styles.dateBadge}>
-          <Ionicons name="calendar-outline" size={12} color={COLORS.white} style={styles.dateIcon} />
+          <Ionicons name="calendar-outline" size={FONT_SIZES.md} color={COLORS.white} style={styles.dateIcon} />
           <Text style={styles.dateText}>{formatDate(item.start_date)}</Text>
         </View>
 
@@ -323,7 +323,7 @@ const styles = StyleSheet.create({
   loadingState: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 24,
+    paddingVertical: SPACING.xxl,
   },
   listContent: {
     paddingBottom: SPACING.tabBarOffset,
@@ -358,25 +358,25 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.badge,
   },
   cardImage: {
-    height: 160,
+    height: SIZES.cardImageHeight,
     width: '100%',
   },
   cardImagePlaceholder: {
-    height: 160,
+    height: SIZES.cardImageHeight,
     backgroundColor: COLORS.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
   schoolName: {
-    fontSize: 24,
+    fontSize: FONT_SIZES['6xl'],
     color: COLORS.primary,
   },
   dateBadge: {
     position: 'absolute',
-    top: 130,
+    top: SIZES.cardImageHeight - SPACING.xxl - SPACING.xxs,
     left: SPACING.md,
     backgroundColor: 'rgba(0,0,0,0.6)',
-    paddingHorizontal: 10,
+    paddingHorizontal: SPACING.md - SPACING.xxs,
     paddingVertical: SPACING.xs,
     borderRadius: BORDERS.radius.sm,
     flexDirection: 'row',
@@ -409,7 +409,7 @@ const styles = StyleSheet.create({
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 40,
+    paddingVertical: SPACING.xxxl + SPACING.sm,
     marginHorizontal: SPACING.screenPadding,
   },
   emptyText: {

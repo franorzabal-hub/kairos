@@ -22,7 +22,7 @@ import { useFilters } from '../context/AppContext';
 import { useSession } from '../hooks';
 import { usePickupRequests, useCreatePickupRequest, useUpdatePickupRequest, useChildren } from '../api/hooks';
 import { PickupRequest } from '../api/directus';
-import { COLORS, SPACING, BORDERS, TYPOGRAPHY } from '../theme';
+import { COLORS, SPACING, BORDERS, TYPOGRAPHY, SIZES } from '../theme';
 
 const MOTIVO_OPTIONS = [
   'Turno medico',
@@ -299,7 +299,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
   },
   formContent: {
-    paddingBottom: SPACING.tabBarOffset + 20,
+    paddingBottom: SPACING.tabBarOffset + SPACING.xl,
   },
   historyContent: {
     paddingBottom: SPACING.tabBarOffset,
@@ -313,7 +313,7 @@ const styles = StyleSheet.create({
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 40,
+    paddingVertical: SPACING.xxxl + SPACING.sm,
   },
   emptyText: {
     ...TYPOGRAPHY.listItemTitle,

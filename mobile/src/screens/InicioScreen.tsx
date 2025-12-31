@@ -25,7 +25,7 @@ import {
 } from '../api/hooks';
 import { useSession } from '../hooks';
 import { Announcement, Event } from '../api/directus';
-import { COLORS, CHILD_COLORS, SPACING, BORDERS, TYPOGRAPHY } from '../theme';
+import { COLORS, CHILD_COLORS, SPACING, BORDERS, TYPOGRAPHY, FONT_SIZES, SIZES } from '../theme';
 import { stripHtml, logger } from '../utils';
 
 export default function InicioScreen() {
@@ -386,14 +386,14 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     borderRadius: BORDERS.radius.lg,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#E5E7EB', // Subtle border instead of shadow
+    borderWidth: BORDERS.width.thin,
+    borderColor: COLORS.border,
     padding: SPACING.md,
     alignItems: 'flex-start', // Left align content
   },
   eventDateBlock: {
-    width: 64,
-    height: 64,
+    width: SIZES.avatarXl,
+    height: SIZES.avatarXl,
     backgroundColor: COLORS.primaryLight,
     borderRadius: BORDERS.radius.lg,
     alignItems: 'center',
@@ -401,14 +401,14 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.sm,
   },
   eventDateMonth: {
-    fontSize: 11,
+    fontSize: FONT_SIZES.sm,
     fontWeight: '600',
     color: COLORS.primary,
     letterSpacing: 0.5,
-    marginBottom: -2,
+    marginBottom: -SPACING.xxs,
   },
   eventDateDay: {
-    fontSize: 26,
+    fontSize: FONT_SIZES['7xl'] - SPACING.xxs,
     fontWeight: '700',
     color: COLORS.primary,
     letterSpacing: -0.5,
@@ -419,7 +419,7 @@ const styles = StyleSheet.create({
   },
   eventTitle: {
     ...TYPOGRAPHY.listItemTitle,
-    fontSize: 13,
+    fontSize: FONT_SIZES.base,
     textAlign: 'left',
     color: COLORS.darkGray,
   },
@@ -437,7 +437,7 @@ const styles = StyleSheet.create({
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 60,
+    paddingVertical: SPACING.xxxl + SPACING.xxl,
     gap: SPACING.md,
   },
   emptyText: {

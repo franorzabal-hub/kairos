@@ -9,7 +9,7 @@ import FilterBar from '../components/FilterBar';
 import { useFilters, useUnreadCounts } from '../context/AppContext';
 import { useReports, useChildren, useContentReadStatus } from '../api/hooks';
 import { Report, DIRECTUS_URL } from '../api/directus';
-import { COLORS, SPACING, BORDERS, TYPOGRAPHY, UNREAD_STYLES, BADGE_STYLES, SHADOWS } from '../theme';
+import { COLORS, SPACING, BORDERS, TYPOGRAPHY, UNREAD_STYLES, BADGE_STYLES, SHADOWS, FONT_SIZES, SIZES } from '../theme';
 
 type ReportListItem =
   | { type: 'header'; id: string; title: string }
@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
     flex: 1,
     ...TYPOGRAPHY.listItemTitle,
     color: COLORS.darkGray,
-    lineHeight: 22,
+    lineHeight: FONT_SIZES['5xl'] + SPACING.xxs,
   },
   reportTitleUnread: {
     fontWeight: '600',
@@ -245,9 +245,9 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.badgeSmall,
   },
   downloadButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: SIZES.buttonHeight,
+    height: SIZES.buttonHeight,
+    borderRadius: SIZES.buttonHeight / 2,
     backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 40,
+    paddingVertical: SPACING.xxxl + SPACING.sm,
   },
   emptyText: {
     ...TYPOGRAPHY.listItemTitle,
@@ -283,7 +283,7 @@ const styles = StyleSheet.create({
   },
   offlineText: {
     color: COLORS.white,
-    fontSize: 12,
+    fontSize: FONT_SIZES.md,
     fontWeight: '500',
   },
 });

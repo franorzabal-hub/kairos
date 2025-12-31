@@ -1,14 +1,26 @@
 import { createDirectus, rest, authentication } from '@directus/sdk';
 import { Platform } from 'react-native';
 import * as Storage from '../utils/storage';
+import {
+  API_CONFIG,
+  isSecureUrl,
+  createSecureHeaders,
+  logSecurityEvent,
+} from '../config/security';
 
 // Directus API URL - uses environment variable or fallback for web production builds
 const DIRECTUS_URL =
   process.env.EXPO_PUBLIC_DIRECTUS_URL ||
-  (Platform.OS === 'web' ? 'https://kairos-directus-684614817316.us-central1.run.app' : null);
+  (Platform.OS === 'web' ? API_CONFIG.DIRECTUS_URL : null);
 
 if (!DIRECTUS_URL) {
   throw new Error('EXPO_PUBLIC_DIRECTUS_URL environment variable is required');
+}
+
+// Security: Enforce HTTPS - reject any HTTP URLs
+if (!isSecureUrl(DIRECTUS_URL)) {
+  logSecurityEvent('invalid_url', { url: DIRECTUS_URL, reason: 'HTTP not allowed' });
+  throw new Error('DIRECTUS_URL must use HTTPS for security');
 }
 
 export { DIRECTUS_URL };
@@ -356,9 +368,25 @@ export async function clearBiometricSetting(): Promise<void> {
   await Storage.deleteItemAsync(BIOMETRIC_ENABLED_KEY);
 }
 
-// Create Directus client
+// Create Directus client with security headers
+// Note: Certificate pinning is handled at the native level by expo-ssl-pinning
+// See app.json for the SSL pinning configuration and src/config/security.ts for docs
 export const directus = createDirectus<Schema>(DIRECTUS_URL)
-  .with(rest())
+  .with(
+    rest({
+      onRequest: (options) => {
+        // Add security headers to all requests
+        const secureHeaders = createSecureHeaders();
+        return {
+          ...options,
+          headers: {
+            ...options.headers,
+            ...secureHeaders,
+          },
+        };
+      },
+    })
+  )
   .with(authentication('json'));
 
 export default directus;

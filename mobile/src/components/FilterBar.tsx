@@ -12,7 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { FlashList } from '@shopify/flash-list';
 import { useUI, FilterMode } from '../context/UIContext';
 import { useChildren } from '../context/ChildrenContext';
-import { COLORS, SPACING, BORDERS, TYPOGRAPHY } from '../theme';
+import { COLORS, SPACING, BORDERS, TYPOGRAPHY, SIZES, FONT_SIZES } from '../theme';
 
 interface FilterOption {
   mode: FilterMode;
@@ -207,14 +207,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: SPACING.listItemPadding,
     paddingVertical: SPACING.sm,
-    borderRadius: 18,
+    borderRadius: BORDERS.radius.pill,
     backgroundColor: COLORS.pillBackground,
   },
   pillActive: {
     backgroundColor: COLORS.pillActive,
   },
   pillText: {
-    fontSize: 15,
+    fontSize: FONT_SIZES.xl,
     color: COLORS.gray,
     fontWeight: '500',
   },
@@ -226,7 +226,7 @@ const styles = StyleSheet.create({
     marginRight: SPACING.xs,
   },
   pillChevron: {
-    marginLeft: 2,
+    marginLeft: SPACING.xxs,
   },
   divider: {
     width: 1,
@@ -263,8 +263,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primaryLight,
   },
   childAvatar: {
-    width: 40,
-    height: 40,
+    width: SIZES.avatarMd,
+    height: SIZES.avatarMd,
     borderRadius: BORDERS.radius.full,
     backgroundColor: COLORS.primary,
     alignItems: 'center',
