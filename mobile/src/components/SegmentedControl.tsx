@@ -1,19 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY } from '../theme';
-
-/**
- * Creates a pastel/light version of a hex color by blending with white
- */
-function getPastelColor(hexColor: string, intensity: number = 0.15): string {
-  const r = parseInt(hexColor.slice(1, 3), 16);
-  const g = parseInt(hexColor.slice(3, 5), 16);
-  const b = parseInt(hexColor.slice(5, 7), 16);
-  const blendedR = Math.round(r * intensity + 255 * (1 - intensity));
-  const blendedG = Math.round(g * intensity + 255 * (1 - intensity));
-  const blendedB = Math.round(b * intensity + 255 * (1 - intensity));
-  return `#${blendedR.toString(16).padStart(2, '0')}${blendedG.toString(16).padStart(2, '0')}${blendedB.toString(16).padStart(2, '0')}`;
-}
+import { getPastelColor } from '../utils';
 
 interface Segment {
   key: string;

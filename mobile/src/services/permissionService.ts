@@ -13,7 +13,7 @@
  */
 
 import { readMe } from '@directus/sdk';
-import { directus, getTokens } from '../api/directus';
+import { directus, getTokens, DIRECTUS_URL } from '../api/directus';
 
 // Directus permission structure
 interface DirectusPermission {
@@ -76,7 +76,7 @@ class PermissionService {
         throw new Error('No access token available');
       }
 
-      const baseUrl = process.env.EXPO_PUBLIC_DIRECTUS_URL || 'https://kairos-directus-684614817316.us-central1.run.app';
+      const baseUrl = DIRECTUS_URL;
 
       // Step 1: Get the policy ID for this role from the access table
       const accessResponse = await fetch(

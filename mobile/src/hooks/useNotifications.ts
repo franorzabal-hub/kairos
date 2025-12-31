@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
-import { useAuth } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import {
   registerForPushNotifications,
   savePushToken,

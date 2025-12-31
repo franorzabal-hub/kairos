@@ -29,6 +29,7 @@ import {
 import { useSession } from '../../hooks';
 import { Announcement, Event } from '../../api/directus';
 import { COLORS, CHILD_COLORS, SPACING, BORDERS, TYPOGRAPHY } from '../../theme';
+import { logger } from '../../utils';
 
 // Web-specific pressable state type
 type WebPressableState = PressableStateCallbackType & { hovered?: boolean };
@@ -141,7 +142,7 @@ export default function WebInicioScreen() {
 
   // Navigation handlers
   const handleReportAbsence = useCallback(() => {
-    console.log('Report absence');
+    logger.debug('Report absence');
   }, []);
 
   const handlePickupChange = useCallback(() => {

@@ -19,6 +19,7 @@ import { clearAllReadStatus } from '../services/readStatusService';
 import { isBiometricEnabled, setBiometricEnabled } from '../api/directus';
 import Constants from 'expo-constants';
 import { COLORS, SPACING, BORDERS } from '../theme';
+import { logger } from '../utils';
 
 // Screen-specific semantic colors
 const SETTINGS_COLORS = {
@@ -145,7 +146,7 @@ export default function SettingsScreen() {
       const enabled = await isBiometricEnabled();
       setBiometricState(enabled);
     } catch (error) {
-      console.log('Error checking biometric status:', error);
+      logger.error('Error checking biometric status:', error);
     }
   };
 

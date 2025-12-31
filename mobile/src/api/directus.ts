@@ -1,8 +1,13 @@
 import { createDirectus, rest, authentication } from '@directus/sdk';
 import * as SecureStore from 'expo-secure-store';
 
-// Use environment variable with fallback to production URL
-const DIRECTUS_URL = process.env.EXPO_PUBLIC_DIRECTUS_URL || 'https://kairos-directus-684614817316.us-central1.run.app';
+// Directus API URL - must be set via environment variable
+const DIRECTUS_URL = process.env.EXPO_PUBLIC_DIRECTUS_URL;
+if (!DIRECTUS_URL) {
+  throw new Error('EXPO_PUBLIC_DIRECTUS_URL environment variable is required');
+}
+
+export { DIRECTUS_URL };
 
 // Define schema types matching our Directus collections
 export interface Organization {
@@ -134,13 +139,22 @@ export interface MessageRecipient {
   date_created: string;
 }
 
+// User reference that can be populated or just an ID
+export interface StartedByUser {
+  id: string;
+  role?: string;
+  first_name?: string;
+  last_name?: string;
+}
+
 // New conversation-based messaging system (WhatsApp-style)
 export interface Conversation {
   id: string;
   organization_id: string;
   type: 'private' | 'group';
   subject: string;
-  started_by: string;
+  started_by: string | StartedByUser;
+  channel?: 'secretaria' | 'profesores' | 'general' | string;
   status: 'open' | 'closed' | 'archived';
   closed_by?: string;
   closed_at?: string;

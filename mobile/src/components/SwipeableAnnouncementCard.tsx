@@ -44,6 +44,27 @@ function SwipeableAnnouncementCard({
     return date.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' }).toUpperCase().replace('.', '');
   };
 
+  // Format full date for accessibility
+  const formatFullDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('es-AR', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+    });
+  };
+
+  // Build accessibility label
+  const accessibilityLabel = [
+    item.title,
+    formatFullDate(item.published_at || item.created_at),
+    item.priority === 'urgent' ? 'urgente' : item.priority === 'important' ? 'importante' : null,
+    childName ? `para ${childName}` : null,
+    isUnread ? 'no leido' : null,
+    isPinned ? 'fijado' : null,
+    item.requires_acknowledgment && !isAcknowledged ? 'requiere confirmacion' : null,
+  ].filter(Boolean).join(', ');
+
   const handlePress = () => {
     if (isUnread) {
       onMarkAsRead();
@@ -151,6 +172,9 @@ function SwipeableAnnouncementCard({
         style={[styles.card, isUnread && styles.cardUnread]}
         onPress={handlePress}
         activeOpacity={0.9}
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel}
+        accessibilityHint="Toca para ver la novedad. Desliza para mas acciones"
       >
         {/* Priority Badge */}
         {item.priority === 'urgent' ? (

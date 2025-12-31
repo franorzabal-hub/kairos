@@ -66,11 +66,35 @@ export function WebAnnouncementCard({
     action();
   };
 
+  // Format full date for accessibility
+  const formatFullDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('es-AR', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+    });
+  };
+
+  // Build accessibility label
+  const accessibilityLabel = [
+    item.title,
+    formatFullDate(item.published_at || item.created_at),
+    item.priority === 'urgent' ? 'urgente' : item.priority === 'important' ? 'importante' : null,
+    childName ? `para ${childName}` : null,
+    isUnread ? 'no leido' : null,
+    isPinned ? 'fijado' : null,
+    item.requires_acknowledgment && !isAcknowledged ? 'requiere confirmacion' : null,
+  ].filter(Boolean).join(', ');
+
   return (
     <Pressable
       onPress={handlePress}
       onHoverIn={() => setIsHovered(true)}
       onHoverOut={() => setIsHovered(false)}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityHint="Toca para ver la novedad"
       style={(state) => ({
         backgroundColor: COLORS.white,
         borderRadius: BORDERS.radius.lg,

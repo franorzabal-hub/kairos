@@ -18,6 +18,7 @@ import { useSession } from '../../hooks';
 import { useChildren, useReports, usePickupRequests, useContentReadStatus } from '../../api/hooks';
 import { Report } from '../../api/directus';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY, CHILD_COLORS } from '../../theme';
+import { logger } from '../../utils';
 
 // Web-specific pressable state type
 type WebPressableState = PressableStateCallbackType & { hovered?: boolean };
@@ -105,7 +106,7 @@ export default function WebMisHijosScreen() {
       icon: 'calendar-outline',
       iconColor: '#10B981',
       onPress: () => {
-        console.log('Attendance not implemented yet');
+        logger.debug('Attendance not implemented yet');
       },
     },
     {
@@ -115,7 +116,7 @@ export default function WebMisHijosScreen() {
       icon: 'folder-outline',
       iconColor: '#F59E0B',
       onPress: () => {
-        console.log('Student record not implemented yet');
+        logger.debug('Student record not implemented yet');
       },
     },
     {

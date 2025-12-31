@@ -19,6 +19,7 @@ import { Report, PickupRequest } from '../api/directus';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY, SHADOWS, BADGE_STYLES, UNREAD_STYLES } from '../theme';
 import { useSession } from '../hooks';
 import { useContentReadStatus } from '../api/hooks';
+import { logger } from '../utils';
 
 interface MenuSection {
   id: string;
@@ -98,7 +99,7 @@ export default function MisHijosScreen() {
       iconColor: '#10B981',
       onPress: () => {
         // TODO: Navigate to attendance screen when implemented
-        console.log('Attendance not implemented yet');
+        logger.debug('Attendance not implemented yet');
       },
     },
     {
@@ -109,7 +110,7 @@ export default function MisHijosScreen() {
       iconColor: '#F59E0B',
       onPress: () => {
         // TODO: Navigate to student record screen when implemented
-        console.log('Student record not implemented yet');
+        logger.debug('Student record not implemented yet');
       },
     },
     {

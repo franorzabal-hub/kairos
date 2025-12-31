@@ -26,7 +26,7 @@ import {
 import { useSession } from '../hooks';
 import { Announcement, Event } from '../api/directus';
 import { COLORS, CHILD_COLORS, SPACING, BORDERS, TYPOGRAPHY } from '../theme';
-import { stripHtml } from '../utils';
+import { stripHtml, logger } from '../utils';
 
 export default function InicioScreen() {
   const router = useRouter();
@@ -174,7 +174,7 @@ export default function InicioScreen() {
   // Memoize handlers to prevent ListHeader re-renders
   const handleReportAbsence = useCallback(() => {
     // TODO: Implement absence report flow
-    console.log('Report absence');
+    logger.debug('Report absence');
   }, []);
 
   const handlePickupChange = useCallback(() => {

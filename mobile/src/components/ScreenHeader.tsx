@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import DirectusImage from './DirectusImage';
-import { useAuth } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import { useOrganization } from '../api/hooks';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY } from '../theme';
 

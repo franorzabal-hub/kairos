@@ -1,7 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getTokens } from '../api/directus';
-
-const DIRECTUS_URL = 'https://kairos-directus-684614817316.us-central1.run.app';
+import { getTokens, DIRECTUS_URL } from '../api/directus';
 
 /**
  * Hook to get an authenticated Directus asset URL

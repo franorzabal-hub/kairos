@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
-import { useAuth, useFilters } from '../context/AppContext';
-import { useChildren } from '../api/hooks';
+import { useAuth } from '../context/AuthContext';
+import { useChildren as useChildrenContext } from '../context/ChildrenContext';
+import { useChildren as useChildrenApi } from '../api/hooks';
 import { Student } from '../api/directus';
 
 /**
@@ -80,10 +81,10 @@ export interface SessionState extends SessionPermissions {
  *
  * ```
  * useSession()
- *   ├── useAuth()        → user, isAuthenticated, authLoading
- *   ├── useChildren()    → children[], childrenLoading, childrenError
- *   ├── useFilters()     → selectedChildId, setSelectedChildId
- *   └── useMemo()        → derived permissions (canViewReports, etc.)
+ *   ├── useAuth()           → user, isAuthenticated, authLoading
+ *   ├── useChildrenApi()    → children[], childrenLoading, childrenError
+ *   ├── useChildrenContext()→ selectedChildId, setSelectedChildId
+ *   └── useMemo()           → derived permissions (canViewReports, etc.)
  * ```
  */
 export function useSession(): SessionState {
@@ -95,10 +96,10 @@ export function useSession(): SessionState {
     data: children = [],
     isLoading: isChildrenLoading,
     error: childrenError,
-  } = useChildren();
+  } = useChildrenApi();
 
-  // Filter state for child selection
-  const { selectedChildId, setSelectedChildId } = useFilters();
+  // Child selection state from context
+  const { selectedChildId, setSelectedChildId } = useChildrenContext();
 
   // Derived permissions - computed once and cached
   const permissions = useMemo<SessionPermissions>(() => {

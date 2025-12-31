@@ -100,11 +100,24 @@ export function WebConversationCard({
     }
   };
 
+  // Build accessibility label
+  const participantNames = getParticipantNames();
+  const accessibilityLabel = [
+    conversation.subject || participantNames,
+    lastMessageText !== 'Sin mensajes' ? `ultimo mensaje: ${lastMessageText}` : null,
+    formatTime(lastMessageTime) ? `${formatTime(lastMessageTime)}` : null,
+    isUnread ? 'no leido' : null,
+    isPinned ? 'fijado' : null,
+  ].filter(Boolean).join(', ');
+
   return (
     <Pressable
       onPress={onPress}
       onHoverIn={() => setIsHovered(true)}
       onHoverOut={() => setIsHovered(false)}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityHint="Toca para abrir la conversacion"
       style={(state) => ({
         flexDirection: 'row',
         alignItems: 'center',

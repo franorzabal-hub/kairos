@@ -3,28 +3,9 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-nati
 import { Ionicons } from '@expo/vector-icons';
 import DirectusImage from './DirectusImage';
 import { Student } from '../api/directus';
-import { useFilters } from '../context/AppContext';
-import { COLORS, CHILD_COLORS, SPACING, BORDERS, TYPOGRAPHY, SHADOWS } from '../theme';
-
-/**
- * Creates a pastel/light version of a hex color by blending with white
- */
-function getPastelColor(hexColor: string, intensity: number = 0.15): string {
-  const r = parseInt(hexColor.slice(1, 3), 16);
-  const g = parseInt(hexColor.slice(3, 5), 16);
-  const b = parseInt(hexColor.slice(5, 7), 16);
-  const blendedR = Math.round(r * intensity + 255 * (1 - intensity));
-  const blendedG = Math.round(g * intensity + 255 * (1 - intensity));
-  const blendedB = Math.round(b * intensity + 255 * (1 - intensity));
-  return `#${blendedR.toString(16).padStart(2, '0')}${blendedG.toString(16).padStart(2, '0')}${blendedB.toString(16).padStart(2, '0')}`;
-}
-
-/**
- * Get child color by index in children array
- */
-function getChildColor(index: number): string {
-  return CHILD_COLORS[index % CHILD_COLORS.length];
-}
+import { useChildren } from '../context/ChildrenContext';
+import { COLORS, SPACING, BORDERS, TYPOGRAPHY, SHADOWS } from '../theme';
+import { getPastelColor, getChildColor } from '../utils';
 
 interface ChildSelectorProps {
   children?: Student[];
@@ -44,11 +25,11 @@ function ChildSelector({
   compact = false,
 }: ChildSelectorProps) {
   // Use props if provided, otherwise use context
-  const filters = useFilters();
-  const children = childrenProp ?? filters.children;
-  const selectedChildId = selectedChildIdProp ?? filters.selectedChildId;
-  const onSelectChild = onSelectChildProp ?? filters.setSelectedChildId;
-  const onSelectAll = onSelectAllProp ?? (() => filters.setSelectedChildId(null));
+  const childrenCtx = useChildren();
+  const children = childrenProp ?? childrenCtx.children;
+  const selectedChildId = selectedChildIdProp ?? childrenCtx.selectedChildId;
+  const onSelectChild = onSelectChildProp ?? childrenCtx.setSelectedChildId;
+  const onSelectAll = onSelectAllProp ?? (() => childrenCtx.setSelectedChildId(null));
 
   if (!children || children.length === 0) {
     return null;

@@ -1,12 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, ActivityIndicator, StyleSheet, Text } from 'react-native';
 import { Image, ImageProps as ExpoImageProps, ImageContentFit } from 'expo-image';
-import { directus } from '../api/directus';
+import { directus, DIRECTUS_URL } from '../api/directus';
 
 // DEBUG FLAG - set to true to see debug info on screen
 const DEBUG_MODE = false;
-
-const DIRECTUS_URL = 'https://kairos-directus-684614817316.us-central1.run.app';
 
 // Blur hash placeholder for loading state (soft gray gradient)
 const DEFAULT_BLUR_HASH = 'L5H2EC=PM+yV0g-mq.wG9c010J}I';

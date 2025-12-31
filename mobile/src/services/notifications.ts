@@ -4,6 +4,7 @@ import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { directus } from '../api/directus';
 import { createItem, updateItem, readItems } from '@directus/sdk';
+import { logger } from '../utils';
 
 // Configure how notifications are handled when app is in foreground
 Notifications.setNotificationHandler({
@@ -31,7 +32,7 @@ export interface PushToken {
 export async function registerForPushNotifications(): Promise<string | null> {
   // Must be on physical device
   if (!Device.isDevice) {
-    console.log('Push notifications require a physical device');
+    logger.info('Push notifications require a physical device');
     return null;
   }
 
@@ -46,7 +47,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
   }
 
   if (finalStatus !== 'granted') {
-    console.log('Push notification permission not granted');
+    logger.info('Push notification permission not granted');
     return null;
   }
 
@@ -55,7 +56,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
                     Constants.easConfig?.projectId;
 
   if (!projectId) {
-    console.log('Project ID not found. Configure eas.projectId in app.json');
+    logger.warn('Project ID not found. Configure eas.projectId in app.json');
     return null;
   }
 
@@ -118,7 +119,7 @@ export async function savePushToken(userId: string, token: string): Promise<void
     }
   } catch (error) {
     // push_tokens collection might not exist yet - that's okay
-    console.log('Could not save push token:', error);
+    logger.warn('Could not save push token:', error);
   }
 }
 

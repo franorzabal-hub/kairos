@@ -7,6 +7,7 @@ import React from 'react';
 import { View, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY } from '../../theme';
+import { logger } from '../../utils';
 
 const CHAT_COLORS = {
   urgent: '#D32F2F',
@@ -34,9 +35,9 @@ function MessageInput({
 }: MessageInputProps) {
   const handleAttachPress = () => {
     Alert.alert('Adjuntar', 'Selecciona el tipo de archivo', [
-      { text: 'Cámara', onPress: () => console.log('Camera') },
-      { text: 'Galería', onPress: () => console.log('Gallery') },
-      { text: 'Archivo', onPress: () => console.log('File') },
+      { text: 'Cámara', onPress: () => logger.debug('Camera attachment selected') },
+      { text: 'Galería', onPress: () => logger.debug('Gallery attachment selected') },
+      { text: 'Archivo', onPress: () => logger.debug('File attachment selected') },
       { text: 'Cancelar', style: 'cancel' },
     ]);
   };

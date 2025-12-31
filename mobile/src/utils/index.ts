@@ -2,6 +2,12 @@
  * Utility functions for the mobile app
  */
 
+// Re-export color utilities
+export { getPastelColor, getChildColor } from './colors';
+
+// Re-export logger utility
+export { logger } from './logger';
+
 /**
  * Strip HTML tags and decode common HTML entities for preview text.
  * Useful for displaying clean text from rich HTML content.

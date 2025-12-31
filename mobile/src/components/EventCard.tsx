@@ -4,25 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Event } from '../api/directus';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY, SHADOWS } from '../theme';
-
-/**
- * Creates a pastel/light version of a hex color by blending with white
- * @param hexColor - The base color in hex format (e.g., "#5C6BC0")
- * @param intensity - How much of the original color to keep (0.15-0.25 works well)
- * @returns Pastel version of the color
- */
-function getPastelColor(hexColor: string, intensity: number = 0.2): string {
-  const r = parseInt(hexColor.slice(1, 3), 16);
-  const g = parseInt(hexColor.slice(3, 5), 16);
-  const b = parseInt(hexColor.slice(5, 7), 16);
-
-  // Blend with white (255, 255, 255)
-  const blendedR = Math.round(r * intensity + 255 * (1 - intensity));
-  const blendedG = Math.round(g * intensity + 255 * (1 - intensity));
-  const blendedB = Math.round(b * intensity + 255 * (1 - intensity));
-
-  return `#${blendedR.toString(16).padStart(2, '0')}${blendedG.toString(16).padStart(2, '0')}${blendedB.toString(16).padStart(2, '0')}`;
-}
+import { getPastelColor } from '../utils';
 
 // Event status types
 export type EventStatus =
@@ -118,10 +100,32 @@ function EventCard({
     });
   };
 
+  // Format full date for accessibility
+  const formatFullDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('es-AR', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+    });
+  };
+
   // Date block colors: always use soft pastel background with strong text
   // This creates visual consistency across all cards while maintaining child identification
   const dateBlockBgColor = childColor ? getPastelColor(childColor, 0.2) : COLORS.primaryLight;
   const dateBlockTextColor = childColor || COLORS.primary;
+
+  // Build accessibility label
+  const accessibilityLabel = [
+    event.title,
+    formatFullDate(event.start_date),
+    formatTime(event.start_date),
+    event.location_external ? `en ${event.location_external}` : null,
+    childName ? `para ${childName}` : null,
+    isPending ? 'pendiente de respuesta' : null,
+    isCancelled ? 'cancelado' : null,
+    isUnread ? 'no leido' : null,
+  ].filter(Boolean).join(', ');
 
   return (
     <TouchableOpacity
@@ -132,6 +136,9 @@ function EventCard({
       ]}
       onPress={handlePress}
       activeOpacity={0.7}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityHint="Toca para ver detalles del evento"
     >
       {/* Left: Date Block (Squircle) - Left-aligned content */}
       <View style={[

@@ -10,7 +10,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { FlashList } from '@shopify/flash-list';
-import { useFilters, FilterMode } from '../context/AppContext';
+import { useUI, FilterMode } from '../context/UIContext';
+import { useChildren } from '../context/ChildrenContext';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY } from '../theme';
 
 interface FilterOption {
@@ -38,7 +39,8 @@ function FilterBar({
   showPinnedFilter = false,
   showArchivedFilter = false,
 }: FilterBarProps) {
-  const { filterMode, setFilterMode, selectedChildId, setSelectedChildId, children } = useFilters();
+  const { filterMode, setFilterMode } = useUI();
+  const { children, selectedChildId, setSelectedChildId } = useChildren();
   const [showChildPicker, setShowChildPicker] = useState(false);
 
   const selectedChild = children.find(c => c.id === selectedChildId);

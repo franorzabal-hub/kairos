@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
-import { useUnreadCounts, useAuth } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
+import { useUnreadCounts } from '../context/UIContext';
 import { useAnnouncements, useEvents, useConversations, usePickupRequests, useReports } from '../api/hooks';
 import { getAllReadIds } from '../services/readStatusService';
 

@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Event } from '../../../api/directus';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY, SHADOWS } from '../../../theme';
+import { getPastelColor } from '../../../utils';
 
 // Web-specific pressable state type
 type WebPressableState = PressableStateCallbackType & { hovered?: boolean };
@@ -33,19 +34,6 @@ interface WebEventCardProps {
   childColor?: string;
   onPress?: () => void;
   onActionPress?: () => void;
-}
-
-/**
- * Creates a pastel version of a hex color
- */
-function getPastelColor(hexColor: string, intensity: number = 0.2): string {
-  const r = parseInt(hexColor.slice(1, 3), 16);
-  const g = parseInt(hexColor.slice(3, 5), 16);
-  const b = parseInt(hexColor.slice(5, 7), 16);
-  const blendedR = Math.round(r * intensity + 255 * (1 - intensity));
-  const blendedG = Math.round(g * intensity + 255 * (1 - intensity));
-  const blendedB = Math.round(b * intensity + 255 * (1 - intensity));
-  return `#${blendedR.toString(16).padStart(2, '0')}${blendedG.toString(16).padStart(2, '0')}${blendedB.toString(16).padStart(2, '0')}`;
 }
 
 const CTA_CONFIG: Partial<Record<EventStatus, {
@@ -101,9 +89,34 @@ export function WebEventCard({
   const dateBlockBgColor = childColor ? getPastelColor(childColor, 0.2) : COLORS.primaryLight;
   const dateBlockTextColor = childColor || COLORS.primary;
 
+  // Format full date for accessibility
+  const formatFullDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('es-AR', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+    });
+  };
+
+  // Build accessibility label
+  const accessibilityLabel = [
+    event.title,
+    formatFullDate(event.start_date),
+    formatTime(event.start_date),
+    event.location_external ? `en ${event.location_external}` : null,
+    childName ? `para ${childName}` : null,
+    isPending ? 'pendiente de respuesta' : null,
+    isCancelled ? 'cancelado' : null,
+    isUnread ? 'no leido' : null,
+  ].filter(Boolean).join(', ');
+
   return (
     <Pressable
       onPress={handlePress}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityHint="Toca para ver detalles del evento"
       style={(state) => ({
         flexDirection: 'row',
         backgroundColor: COLORS.white,

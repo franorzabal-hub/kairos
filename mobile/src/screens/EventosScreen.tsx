@@ -8,7 +8,7 @@ import { CalendarProvider, ExpandableCalendar } from 'react-native-calendars';
 import ScreenHeader from '../components/ScreenHeader';
 import FilterBar from '../components/FilterBar';
 import DirectusImage from '../components/DirectusImage';
-import { useFilters, useUnreadCounts } from '../context/AppContext';
+import { useFilters, useUnreadCounts } from '../context/UIContext';
 import { useEvents, useContentReadStatus } from '../api/hooks';
 import { Event } from '../api/directus';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY, UNREAD_STYLES, SHADOWS, BADGE_STYLES } from '../theme';
