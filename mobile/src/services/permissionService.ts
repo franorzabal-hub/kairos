@@ -13,7 +13,7 @@
  */
 
 import { readMe } from '@directus/sdk';
-import { directus } from '../api/directus';
+import { directus, getTokens } from '../api/directus';
 
 // Directus permission structure
 interface DirectusPermission {
@@ -70,12 +70,44 @@ class PermissionService {
       this.roleId = currentUser.role;
 
       // Fetch permissions for this role using raw fetch
-      // (directus_permissions is a system collection not in typed schema)
-      const response = await fetch(
-        `${(directus as any).url}/permissions?filter[role][_eq]=${this.roleId}&limit=-1`,
+      // In Directus v11: Role -> Policy (via access table) -> Permissions
+      const { accessToken } = await getTokens();
+      if (!accessToken) {
+        throw new Error('No access token available');
+      }
+
+      const baseUrl = process.env.EXPO_PUBLIC_DIRECTUS_URL || 'https://kairos-directus-684614817316.us-central1.run.app';
+
+      // Step 1: Get the policy ID for this role from the access table
+      const accessResponse = await fetch(
+        `${baseUrl}/access?filter[role][_eq]=${this.roleId}&limit=1`,
         {
           headers: {
-            'Authorization': `Bearer ${await (directus as any).getToken()}`,
+            'Authorization': `Bearer ${accessToken}`,
+          },
+        }
+      );
+
+      if (!accessResponse.ok) {
+        throw new Error(`Failed to fetch access: ${accessResponse.status}`);
+      }
+
+      const accessResult = await accessResponse.json();
+      const policyId = accessResult.data?.[0]?.policy;
+
+      if (!policyId) {
+        if (__DEV__) console.warn('[PermissionService] No policy found for role');
+        this.permissions = {};
+        this.initialized = true;
+        return;
+      }
+
+      // Step 2: Fetch permissions for this policy
+      const response = await fetch(
+        `${baseUrl}/permissions?filter[policy][_eq]=${policyId}&limit=-1`,
+        {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
           },
         }
       );
