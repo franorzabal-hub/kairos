@@ -7,11 +7,11 @@ import {
   Modal,
   useWindowDimensions,
   ActivityIndicator,
-  Image,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import CachedImage from './CachedImage';
 import { COLORS, SPACING, BORDERS } from '../theme';
 
 interface VideoEmbedProps {
@@ -102,10 +102,11 @@ export default function VideoEmbed({ url, title }: VideoEmbedProps) {
       >
         {thumbnailUrl ? (
           <View style={styles.thumbnailContainer}>
-            <Image
-              source={{ uri: thumbnailUrl }}
+            <CachedImage
+              uri={thumbnailUrl}
               style={StyleSheet.absoluteFill}
-              resizeMode="cover"
+              contentFit="cover"
+              cachePolicy="memory-disk"
             />
           </View>
         ) : (

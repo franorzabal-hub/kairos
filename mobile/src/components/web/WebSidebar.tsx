@@ -10,9 +10,10 @@
  * Uses dark theme colors from tailwind.config.js (sidebar.*)
  */
 import React, { useState } from 'react';
-import { View, Text, Pressable, Image, PressableStateCallbackType } from 'react-native';
+import { View, Text, Pressable, PressableStateCallbackType } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import DirectusImage from '../DirectusImage';
 import { useSession } from '../../hooks';
 import { useOrganization } from '../../api/hooks';
 import { CHILD_COLORS } from '../../theme';
@@ -86,26 +87,26 @@ export function WebSidebar() {
         }}
         className="border-sidebar-border"
       >
-        {organization?.logo ? (
-          <Image
-            source={{ uri: organization.logo }}
-            style={{ width: 32, height: 32, borderRadius: 6, marginRight: 12 }}
-          />
-        ) : (
-          <View
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: 6,
-              marginRight: 12,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-            className="bg-sidebar-accent"
-          >
-            <Ionicons name="school" size={18} color="#fff" />
-          </View>
-        )}
+        <DirectusImage
+          fileId={organization?.logo}
+          style={{ width: 32, height: 32, borderRadius: 6, marginRight: 12 }}
+          contentFit="cover"
+          fallback={
+            <View
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 6,
+                marginRight: 12,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+              className="bg-sidebar-accent"
+            >
+              <Ionicons name="school" size={18} color="#fff" />
+            </View>
+          }
+        />
         <Text
           style={{ flex: 1, fontSize: 15, fontWeight: '600' }}
           className="text-sidebar-text"
