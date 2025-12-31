@@ -32,12 +32,6 @@ import { permissionDebugger } from '../services/permissionDebugger';
 import { MissingPermission } from '../services/permissionService';
 import { COLORS, SPACING, TYPOGRAPHY, BORDERS } from '../theme';
 
-// Only render in development
-if (!__DEV__) {
-  // Export no-op component in production
-  module.exports = { default: () => null };
-}
-
 interface PermissionDebugPanelProps {
   /** Initial collapsed state */
   initialCollapsed?: boolean;

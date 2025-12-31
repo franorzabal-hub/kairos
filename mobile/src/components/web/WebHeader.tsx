@@ -44,28 +44,39 @@ export function WebHeader({ title, breadcrumbs }: WebHeaderProps) {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: 32,
-        paddingVertical: 16,
+        paddingHorizontal: 24, // Matches new sidebar padding
+        paddingVertical: 12, // Compact vertical padding
         borderBottomWidth: 1,
-        minHeight: 64,
-      }}
-      className="bg-white border-content-border"
+        minHeight: 56, // Fixed height for consistency
+        position: 'sticky', // Ensure stickiness for web
+        top: 0,
+        zIndex: 50,
+      } as any}
+      className="bg-white/80 backdrop-blur-md border-gray-200"
     >
-      {/* Left side: Breadcrumbs + Title */}
-      <View style={{ flexDirection: 'column', flex: 1 }}>
-        {/* Breadcrumbs */}
-        {breadcrumbs && breadcrumbs.length > 0 && (
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+      {/* Left side: Breadcrumbs + Title Context */}
+      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        {breadcrumbs && breadcrumbs.length > 0 ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+             {/* Base Crumb (e.g. Home icon or first item) */}
+            <Pressable
+              onPress={() => router.push('/')}
+              style={(state) => ({
+                opacity: (state as WebPressableState).hovered ? 0.7 : 1,
+                marginRight: 8,
+              })}
+            >
+               <Ionicons name="home-outline" size={14} color={COLORS.gray500} />
+            </Pressable>
+
             {breadcrumbs.map((crumb, index) => (
               <React.Fragment key={index}>
-                {index > 0 && (
-                  <Ionicons
-                    name="chevron-forward"
-                    size={12}
-                    color={COLORS.gray400}
-                    style={{ marginHorizontal: 8 }}
-                  />
-                )}
+                <Ionicons
+                  name="chevron-forward"
+                  size={12}
+                  color={COLORS.gray300}
+                  style={{ marginHorizontal: 6 }}
+                />
                 <Pressable
                   onPress={() => handleBreadcrumbPress(crumb.href)}
                   disabled={!crumb.href}
@@ -75,8 +86,9 @@ export function WebHeader({ title, breadcrumbs }: WebHeaderProps) {
                 >
                   <Text
                     style={{
-                      fontSize: 13,
-                      color: crumb.href ? COLORS.gray500 : COLORS.gray400,
+                      fontSize: 14,
+                      fontWeight: index === breadcrumbs.length - 1 ? '600' : '400',
+                      color: index === breadcrumbs.length - 1 ? COLORS.gray800 : COLORS.gray500,
                     }}
                   >
                     {crumb.label}
@@ -85,78 +97,63 @@ export function WebHeader({ title, breadcrumbs }: WebHeaderProps) {
               </React.Fragment>
             ))}
           </View>
-        )}
-
-        {/* Page Title */}
-        {title && (
-          <Text
-            style={{
-              fontSize: 24,
-              fontWeight: '700',
-              color: COLORS.gray800,
-            }}
-          >
-            {title}
-          </Text>
+        ) : (
+          /* Fallback if no breadcrumbs, show title */
+          title && (
+            <Text
+              style={{
+                fontSize: 16,
+                fontWeight: '600',
+                color: COLORS.gray800,
+              }}
+            >
+              {title}
+            </Text>
+          )
         )}
       </View>
 
       {/* Right side: Actions */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        {/* Search button */}
-        <Pressable
-          style={(state) => ({
-            width: 40,
-            height: 40,
-            borderRadius: 8,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: (state as WebPressableState).hovered ? COLORS.gray100 : 'transparent',
-          })}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+        {/* Search Input (Mock) */}
+        <View 
+          className="hidden md:flex flex-row items-center bg-gray-100 rounded-md px-3 py-1.5 mr-2"
+          style={{ width: 200 }}
         >
-          <Ionicons name="search" size={20} color={COLORS.gray500} />
-        </Pressable>
+          <Ionicons name="search" size={14} color={COLORS.gray400} style={{ marginRight: 8 }} />
+          <Text style={{ fontSize: 13, color: COLORS.gray400 }}>Buscar...</Text>
+          <View style={{ flex: 1 }} />
+          <Text style={{ fontSize: 10, color: COLORS.gray400, borderWidth: 1, borderColor: COLORS.gray300, borderRadius: 4, paddingHorizontal: 4 }}>⌘K</Text>
+        </View>
 
         {/* Notifications button */}
         <Pressable
           style={(state) => ({
-            width: 40,
-            height: 40,
-            borderRadius: 8,
+            width: 32,
+            height: 32,
+            borderRadius: 6,
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: (state as WebPressableState).hovered ? COLORS.gray100 : 'transparent',
           })}
         >
           <View>
-            <Ionicons name="notifications-outline" size={20} color={COLORS.gray500} />
-            {/* Notification badge - uncomment when needed */}
-            {/* <View
-              style={{
-                position: 'absolute',
-                top: -2,
-                right: -2,
-                width: 8,
-                height: 8,
-                borderRadius: 4,
-                backgroundColor: COLORS.red,
-              }}
-            /> */}
+            <Ionicons name="notifications-outline" size={18} color={COLORS.gray600} />
           </View>
         </Pressable>
 
         {/* Help button */}
         <Pressable
           style={(state) => ({
-            width: 40,
-            height: 40,
-            borderRadius: 8,
+            width: 32,
+            height: 32,
+            borderRadius: 6,
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: (state as WebPressableState).hovered ? COLORS.gray100 : 'transparent',
           })}
         >
-          <Ionicons name="help-circle-outline" size={20} color={COLORS.gray500} />
+          <Ionicons name="help-circle-outline" size={18} color={COLORS.gray600} />
         </Pressable>
       </View>
     </View>

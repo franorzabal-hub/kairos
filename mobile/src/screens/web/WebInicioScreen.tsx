@@ -179,87 +179,48 @@ export default function WebInicioScreen() {
   };
 
   return (
-    <WebLayout>
-      <View style={{
-        flex: 1,
-        padding: SPACING.lg,
-        maxWidth: 1200,
-        marginHorizontal: 'auto',
-        width: '100%',
-      }}>
-        {/* Page Header */}
-        <View style={{
-          marginBottom: SPACING.lg,
-        }}>
-          <Text style={{
-            ...TYPOGRAPHY.sectionTitle,
-            fontSize: 28,
-            color: COLORS.darkGray,
-            marginBottom: SPACING.xs,
-          }}>
-            Bienvenido, {user?.first_name || 'Usuario'}
+    <WebLayout title="Inicio" breadcrumbs={[{ label: 'Inicio', href: '/' }]}>
+      <View className="flex-1 w-full max-w-[1600px] mx-auto">
+        {/* Dashboard Header */}
+        <View className="mb-8">
+          <Text className="text-3xl font-bold text-gray-900 mb-1">
+            Hola, {user?.first_name || 'Usuario'} 👋
           </Text>
-          <Text style={{
-            ...TYPOGRAPHY.body,
-            color: COLORS.gray,
-          }}>
-            Este es tu resumen de novedades y eventos
+          <Text className="text-base text-gray-500">
+            Aquí tienes un resumen de la actividad escolar reciente.
           </Text>
         </View>
 
-        {/* Quick Access */}
-        <QuickAccess
-          onReportAbsence={handleReportAbsence}
-          onPickupChange={handlePickupChange}
-          onContactSchool={handleContactSchool}
-        />
+        {/* Quick Access - Horizontal Grid */}
+        <View className="mb-8">
+           <QuickAccess
+             onReportAbsence={handleReportAbsence}
+             onPickupChange={handlePickupChange}
+             onContactSchool={handleContactSchool}
+           />
+        </View>
 
         {/* Upcoming Events Section */}
         {upcomingEvents.length > 0 && (
-          <View style={{
-            marginTop: SPACING.xl,
-            marginBottom: SPACING.xl,
-          }}>
-            <View style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: SPACING.md,
-            }}>
-              <Text style={{
-                ...TYPOGRAPHY.sectionTitle,
-                color: COLORS.darkGray,
-              }}>
+          <View className="mb-10">
+            <View className="flex-row justify-between items-center mb-4">
+              <Text className="text-xl font-bold text-gray-800">
                 Próximos Eventos
               </Text>
               <Pressable
                 onPress={handleSeeAllEvents}
-                style={(state) => ({
-                  opacity: (state as WebPressableState).hovered ? 0.7 : 1,
-                  ...(Platform.OS === 'web' && { cursor: 'pointer' } as any),
-                })}
+                className="opacity-100 hover:opacity-70 transition-opacity"
               >
-                <Text style={{
-                  ...TYPOGRAPHY.body,
-                  color: COLORS.primary,
-                  fontWeight: '600',
-                }}>
-                  Ver todos
+                <Text className="text-sm font-semibold text-primary">
+                  Ver agenda completa →
                 </Text>
               </Pressable>
             </View>
 
             {/* Events Grid - 3 columns on web */}
-            <View style={{
-              flexDirection: 'row',
-              flexWrap: 'wrap',
-              gap: SPACING.md,
-            }}>
+            <View className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {upcomingEvents.map((event) => (
-                <View key={event.id} style={{
-                  width: 'calc(33.333% - 11px)',
-                  minWidth: 280,
-                } as any}>
+                <View key={event.id} className="w-full">
                   <WebEventCard
                     event={event}
                     status={getEventStatus(event)}
@@ -272,72 +233,45 @@ export default function WebInicioScreen() {
         )}
 
         {/* Announcements Section */}
-        <View style={{ marginTop: SPACING.lg }}>
+        <View>
           {/* Header with filter */}
-          <View style={{
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: SPACING.md,
-          }}>
-            <View style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: SPACING.md,
-            }}>
-              <Text style={{
-                ...TYPOGRAPHY.sectionTitle,
-                color: COLORS.darkGray,
-              }}>
+          <View className="flex-row justify-between items-center mb-6">
+            <View className="flex-row items-center gap-4">
+              <Text className="text-xl font-bold text-gray-800">
                 Novedades
               </Text>
               <ChildSelector compact />
             </View>
-          </View>
 
-          {/* Filter tabs */}
-          <View style={{ marginBottom: SPACING.md }}>
-            <SegmentedControl
-              segments={[
-                { key: 'unread', label: 'No leídas', count: unreadCounts.inicio },
-                { key: 'all', label: 'Todas' },
-              ]}
-              selectedKey={filterMode === 'unread' ? 'unread' : 'all'}
-              onSelect={(key) => setFilterMode(key as 'unread' | 'all')}
-            />
+            {/* Filter tabs - moved to right */}
+            <View className="w-64">
+              <SegmentedControl
+                segments={[
+                  { key: 'unread', label: 'No leídas', count: unreadCounts.inicio },
+                  { key: 'all', label: 'Todas' },
+                ]}
+                selectedKey={filterMode === 'unread' ? 'unread' : 'all'}
+                onSelect={(key) => setFilterMode(key as 'unread' | 'all')}
+              />
+            </View>
           </View>
 
           {/* Announcements Grid */}
           {isLoading ? (
-            <View style={{
-              padding: SPACING.xl,
-              alignItems: 'center',
-            }}>
+            <View className="p-12 items-center justify-center">
               <ActivityIndicator size="large" color={COLORS.primary} />
             </View>
           ) : filteredAnnouncements.length === 0 ? (
-            <View style={{
-              padding: SPACING.xl,
-              alignItems: 'center',
-              gap: SPACING.md,
-            }}>
-              <Ionicons name="newspaper-outline" size={48} color={COLORS.gray} />
-              <Text style={{
-                ...TYPOGRAPHY.body,
-                color: COLORS.gray,
-                textAlign: 'center',
-              }}>
+            <View className="p-16 items-center justify-center border-2 border-dashed border-gray-200 rounded-xl bg-gray-50/50">
+              <Ionicons name="newspaper-outline" size={48} color={COLORS.gray300} />
+              <Text className="mt-4 text-gray-500 text-center font-medium">
                 {filterMode === 'unread'
-                  ? 'No hay novedades sin leer'
-                  : filterMode === 'pinned'
-                  ? 'No hay novedades fijadas'
-                  : filterMode === 'archived'
-                  ? 'No hay novedades archivadas'
-                  : 'No hay novedades'}
+                  ? '¡Estás al día! No hay novedades sin leer.'
+                  : 'No hay novedades para mostrar.'}
               </Text>
             </View>
           ) : (
-            <ResponsiveCardGrid minColumnWidth={320} gap={SPACING.md}>
+            <ResponsiveCardGrid minColumnWidth={320} gap={24}>
               {filteredAnnouncements.map((announcement) => {
                 const itemIsUnread = !isRead(announcement.id);
                 const itemIsPinned = pinnedIds.has(announcement.id) || Boolean(announcement.is_pinned);

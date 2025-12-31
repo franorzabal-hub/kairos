@@ -222,53 +222,23 @@ export default function WebMensajesScreen() {
 
   // Render conversation list (master panel)
   const renderMaster = () => (
-    <View style={{
-      flex: 1,
-      backgroundColor: COLORS.white,
-      borderRightWidth: 1,
-      borderRightColor: COLORS.border,
-      ...(Platform.OS === 'web' && {
-        overflow: 'hidden',
-      } as any),
-    }}>
+    <View className="flex-1 bg-white border-r border-gray-200 h-full overflow-hidden">
       {/* Header */}
-      <View style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: SPACING.md,
-        borderBottomWidth: 1,
-        borderBottomColor: COLORS.border,
-      }}>
-        <Text style={{
-          ...TYPOGRAPHY.sectionTitle,
-          color: COLORS.darkGray,
-        }}>
-          Mensajes
+      <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-100">
+        <Text className="text-lg font-bold text-gray-800">
+          Bandeja de entrada
         </Text>
         {/* New Conversation Button */}
         <Pressable
           onPress={() => setViewMode(viewMode === 'new' ? 'list' : 'new')}
-          style={(state) => ({
-            width: 36,
-            height: 36,
-            borderRadius: BORDERS.radius.full,
-            backgroundColor: COLORS.primary,
-            alignItems: 'center',
-            justifyContent: 'center',
-            ...(Platform.OS === 'web' && {
-              cursor: 'pointer',
-              opacity: (state as WebPressableState).hovered ? 0.85 : 1,
-              transition: 'all 0.15s ease',
-            } as any),
-          })}
+          className="w-8 h-8 rounded-full bg-primary items-center justify-center hover:opacity-90 transition-opacity"
         >
           <Ionicons name="add" size={20} color={COLORS.white} />
         </Pressable>
       </View>
 
       {/* Filter */}
-      <View style={{ padding: SPACING.sm }}>
+      <View className="p-2 border-b border-gray-100 bg-gray-50/50">
         <SegmentedControl
           segments={[
             { key: 'all', label: 'Todos' },
@@ -281,18 +251,18 @@ export default function WebMensajesScreen() {
 
       {/* Conversation List */}
       {loadingConversations ? (
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="small" color={COLORS.primary} />
         </View>
       ) : filteredConversations.length === 0 ? (
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: SPACING.xl }}>
-          <Ionicons name="chatbubbles-outline" size={48} color={COLORS.gray} />
-          <Text style={{ ...TYPOGRAPHY.body, color: COLORS.gray, marginTop: SPACING.md, textAlign: 'center' }}>
-            {messageFilter === 'unread' ? 'No hay mensajes sin leer' : 'No hay conversaciones'}
+        <View className="flex-1 items-center justify-center p-8">
+          <Ionicons name="chatbubbles-outline" size={40} color={COLORS.gray300} />
+          <Text className="text-gray-400 mt-2 text-center text-sm">
+            {messageFilter === 'unread' ? 'No tienes mensajes sin leer' : 'Bandeja vacía'}
           </Text>
         </View>
       ) : (
-        <ScrollView style={{ flex: 1 }}>
+        <ScrollView className="flex-1 bg-white">
           <ResponsiveCardList gap={0}>
             {filteredConversations.map((conversation) => (
               <WebConversationCard
@@ -311,85 +281,50 @@ export default function WebMensajesScreen() {
   );
 
   // Render chat view (detail panel)
+  // Render chat view (detail panel)
   const renderDetail = () => {
     // New conversation mode
     if (viewMode === 'new') {
       return (
-        <View style={{
-          flex: 1,
-          backgroundColor: COLORS.lightGray,
-        }}>
+        <View className="flex-1 bg-gray-50/50">
           {/* Header */}
-          <View style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            padding: SPACING.md,
-            backgroundColor: COLORS.white,
-            borderBottomWidth: 1,
-            borderBottomColor: COLORS.border,
-          }}>
+          <View className="flex-row items-center px-6 py-3 bg-white border-b border-gray-200">
             <Pressable
               onPress={handleCloseDetail}
-              style={(state) => ({
-                padding: SPACING.sm,
-                marginRight: SPACING.sm,
-                borderRadius: BORDERS.radius.md,
-                ...(Platform.OS === 'web' && {
-                  cursor: 'pointer',
-                  backgroundColor: (state as WebPressableState).hovered ? COLORS.lightGray : 'transparent',
-                } as any),
-              })}
+              className="p-2 mr-3 rounded-md hover:bg-gray-100 transition-colors"
             >
-              <Ionicons name="close" size={24} color={COLORS.gray} />
+              <Ionicons name="close" size={24} color={COLORS.gray600} />
             </Pressable>
-            <Text style={{ ...TYPOGRAPHY.sectionTitle, color: COLORS.black, flex: 1 }}>
+            <Text className="text-xl font-bold text-gray-900 flex-1">
               Nueva conversación
             </Text>
           </View>
 
-          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: SPACING.lg, gap: SPACING.lg }}>
+          <ScrollView className="flex-1" contentContainerStyle={{ padding: 32, gap: 24 }}>
             {/* Channel Selection */}
             {!newConversationChannel ? (
               <View>
-                <Text style={{ ...TYPOGRAPHY.caption, color: COLORS.gray, marginBottom: SPACING.md, textTransform: 'uppercase' }}>
+                <Text className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4">
                   Selecciona un departamento
                 </Text>
-                <View style={{ gap: SPACING.sm }}>
+                <View className="gap-3">
                   {CONTACT_CHANNELS.map((channel) => (
                     <Pressable
                       key={channel.id}
                       onPress={() => setNewConversationChannel(channel)}
-                      style={(state) => ({
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        padding: SPACING.md,
-                        backgroundColor: COLORS.white,
-                        borderRadius: BORDERS.radius.lg,
-                        gap: SPACING.md,
-                        ...(Platform.OS === 'web' && {
-                          cursor: 'pointer',
-                          boxShadow: (state as WebPressableState).hovered
-                            ? '0 4px 12px rgba(0,0,0,0.1)'
-                            : '0 1px 3px rgba(0,0,0,0.08)',
-                          transition: 'box-shadow 0.2s ease',
-                        } as any),
-                      })}
+                      className="flex-row items-center p-4 bg-white rounded-xl shadow-sm border border-transparent hover:border-gray-300 hover:shadow-md transition-all cursor-pointer"
                     >
-                      <View style={{
-                        width: 48,
-                        height: 48,
-                        borderRadius: BORDERS.radius.md,
-                        backgroundColor: `${channel.color}15`,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}>
+                      <View 
+                        className="w-12 h-12 rounded-lg items-center justify-center mr-4"
+                        style={{ backgroundColor: `${channel.color}15` }}
+                      >
                         <Ionicons name={channel.icon} size={24} color={channel.color} />
                       </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ ...TYPOGRAPHY.listItemTitle, color: COLORS.black }}>{channel.name}</Text>
-                        <Text style={{ ...TYPOGRAPHY.caption, color: COLORS.gray }}>{channel.description}</Text>
+                      <View className="flex-1">
+                        <Text className="text-base font-semibold text-gray-900">{channel.name}</Text>
+                        <Text className="text-sm text-gray-500">{channel.description}</Text>
                       </View>
-                      <Ionicons name="chevron-forward" size={20} color={COLORS.gray} />
+                      <Ionicons name="chevron-forward" size={20} color={COLORS.gray400} />
                     </Pressable>
                   ))}
                 </View>
@@ -397,100 +332,59 @@ export default function WebMensajesScreen() {
             ) : (
               <>
                 {/* Selected Channel */}
-                <View style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  padding: SPACING.md,
-                  backgroundColor: COLORS.white,
-                  borderRadius: BORDERS.radius.lg,
-                  gap: SPACING.md,
-                  ...SHADOWS.card,
-                }}>
-                  <View style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: BORDERS.radius.md,
-                    backgroundColor: `${newConversationChannel.color}15`,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
+                <View className="flex-row items-center p-4 bg-white rounded-xl shadow-sm border border-gray-100">
+                  <View 
+                    className="w-12 h-12 rounded-lg items-center justify-center mr-4"
+                    style={{ backgroundColor: `${newConversationChannel.color}15` }}
+                  >
                     <Ionicons name={newConversationChannel.icon} size={24} color={newConversationChannel.color} />
                   </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ ...TYPOGRAPHY.caption, color: COLORS.gray }}>Para:</Text>
-                    <Text style={{ ...TYPOGRAPHY.listItemTitle, color: COLORS.black }}>{newConversationChannel.name}</Text>
+                  <View className="flex-1">
+                    <Text className="text-xs text-gray-500">Para:</Text>
+                    <Text className="text-base font-semibold text-gray-900">{newConversationChannel.name}</Text>
                   </View>
                   <Pressable
                     onPress={() => setNewConversationChannel(null)}
-                    style={(state) => ({
-                      padding: SPACING.sm,
-                      borderRadius: BORDERS.radius.full,
-                      ...(Platform.OS === 'web' && {
-                        cursor: 'pointer',
-                        backgroundColor: (state as WebPressableState).hovered ? COLORS.lightGray : 'transparent',
-                      } as any),
-                    })}
+                    className="p-2 rounded-full hover:bg-gray-100 transition-colors"
                   >
-                    <Ionicons name="close-circle" size={24} color={COLORS.gray} />
+                    <Ionicons name="close-circle" size={24} color={COLORS.gray400} />
                   </Pressable>
                 </View>
 
                 {/* Subject Input */}
-                <View style={{
-                  backgroundColor: COLORS.white,
-                  borderRadius: BORDERS.radius.lg,
-                  padding: SPACING.md,
-                  ...SHADOWS.card,
-                }}>
-                  <Text style={{ ...TYPOGRAPHY.caption, color: COLORS.gray, textTransform: 'uppercase', marginBottom: SPACING.sm }}>
+                <View className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                  <Text className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
                     Asunto
                   </Text>
                   <TextInput
-                    style={{
-                      ...TYPOGRAPHY.body,
-                      color: COLORS.black,
-                      borderBottomWidth: 1,
-                      borderBottomColor: COLORS.border,
-                      paddingVertical: SPACING.sm,
-                      ...(Platform.OS === 'web' && { outlineStyle: 'none' } as any),
-                    }}
+                    className="text-base text-gray-900 border-b border-gray-200 py-2 focus:border-primary outline-none"
                     placeholder="¿De qué se trata tu consulta?"
-                    placeholderTextColor={COLORS.gray}
+                    placeholderTextColor={COLORS.gray400}
                     value={newSubject}
                     onChangeText={setNewSubject}
                     maxLength={100}
                   />
-                  <Text style={{ ...TYPOGRAPHY.caption, color: COLORS.gray, textAlign: 'right', marginTop: SPACING.xs }}>
+                  <Text className="text-xs text-gray-400 text-right mt-1">
                     {newSubject.length}/100
                   </Text>
                 </View>
 
                 {/* Message Input */}
-                <View style={{
-                  backgroundColor: COLORS.white,
-                  borderRadius: BORDERS.radius.lg,
-                  padding: SPACING.md,
-                  ...SHADOWS.card,
-                }}>
-                  <Text style={{ ...TYPOGRAPHY.caption, color: COLORS.gray, textTransform: 'uppercase', marginBottom: SPACING.sm }}>
+                <View className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                  <Text className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
                     Mensaje
                   </Text>
                   <TextInput
-                    style={{
-                      ...TYPOGRAPHY.body,
-                      color: COLORS.black,
-                      minHeight: 120,
-                      paddingTop: SPACING.sm,
-                      ...(Platform.OS === 'web' && { outlineStyle: 'none' } as any),
-                    }}
+                    className="text-base text-gray-900 min-h-[120px] pt-2 outline-none"
                     placeholder="Escribe tu mensaje aquí..."
-                    placeholderTextColor={COLORS.gray}
+                    placeholderTextColor={COLORS.gray400}
                     value={newMessage}
                     onChangeText={setNewMessage}
                     multiline
                     maxLength={2000}
+                    style={{ textAlignVertical: 'top' }}
                   />
-                  <Text style={{ ...TYPOGRAPHY.caption, color: COLORS.gray, textAlign: 'right', marginTop: SPACING.xs }}>
+                  <Text className="text-xs text-gray-400 text-right mt-1">
                     {newMessage.length}/2000
                   </Text>
                 </View>
@@ -499,21 +393,18 @@ export default function WebMensajesScreen() {
                 <Pressable
                   onPress={handleCreateConversation}
                   disabled={!newSubject.trim() || !newMessage.trim() || createConversation.isPending}
-                  style={(state) => ({
-                    backgroundColor: newSubject.trim() && newMessage.trim() ? COLORS.primary : COLORS.border,
-                    padding: SPACING.md,
-                    borderRadius: BORDERS.radius.lg,
-                    alignItems: 'center',
-                    ...(Platform.OS === 'web' && {
-                      cursor: newSubject.trim() && newMessage.trim() ? 'pointer' : 'not-allowed',
-                      opacity: newSubject.trim() && newMessage.trim() && (state as WebPressableState).hovered ? 0.85 : 1,
-                    } as any),
-                  })}
+                  className={`p-4 rounded-xl items-center justify-center transition-all ${
+                    newSubject.trim() && newMessage.trim() 
+                      ? 'bg-primary hover:opacity-90 cursor-pointer shadow-md' 
+                      : 'bg-gray-200 cursor-not-allowed'
+                  }`}
                 >
                   {createConversation.isPending ? (
                     <ActivityIndicator size="small" color={COLORS.white} />
                   ) : (
-                    <Text style={{ ...TYPOGRAPHY.body, fontWeight: '600', color: COLORS.white }}>
+                    <Text className={`text-base font-bold ${
+                      newSubject.trim() && newMessage.trim() ? 'text-white' : 'text-gray-400'
+                    }`}>
                       Enviar mensaje
                     </Text>
                   )}
@@ -528,15 +419,12 @@ export default function WebMensajesScreen() {
     // No conversation selected
     if (!selectedConversationId) {
       return (
-        <View style={{
-          flex: 1,
-          backgroundColor: COLORS.lightGray,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}>
-          <Ionicons name="chatbubbles-outline" size={64} color={COLORS.border} />
-          <Text style={{ ...TYPOGRAPHY.body, color: COLORS.gray, marginTop: SPACING.md }}>
-            Selecciona una conversación
+        <View className="flex-1 bg-gray-50 items-center justify-center h-full">
+          <View className="w-24 h-24 bg-gray-100 rounded-full items-center justify-center mb-4">
+            <Ionicons name="chatbubbles-outline" size={48} color={COLORS.gray300} />
+          </View>
+          <Text className="text-lg font-medium text-gray-500">
+            Selecciona una conversación para comenzar
           </Text>
         </View>
       );
@@ -544,55 +432,20 @@ export default function WebMensajesScreen() {
 
     // Chat view
     return (
-      <View style={{
-        flex: 1,
-        backgroundColor: COLORS.lightGray,
-        ...(Platform.OS === 'web' && {
-          display: 'flex',
-          flexDirection: 'column',
-        } as any),
-      }}>
+      <View className="flex-1 bg-gray-50 flex-col h-full">
         {/* Chat Header */}
-        <View style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          padding: SPACING.md,
-          backgroundColor: COLORS.white,
-          borderBottomWidth: 1,
-          borderBottomColor: COLORS.border,
-        }}>
-          <Pressable
-            onPress={handleCloseDetail}
-            style={(state) => ({
-              padding: SPACING.sm,
-              marginRight: SPACING.sm,
-              borderRadius: BORDERS.radius.md,
-              ...(Platform.OS === 'web' && {
-                cursor: 'pointer',
-                backgroundColor: (state as WebPressableState).hovered ? COLORS.lightGray : 'transparent',
-              } as any),
-            })}
-          >
-            <Ionicons name="arrow-back" size={24} color={COLORS.primary} />
-          </Pressable>
-          <View style={{ flex: 1 }}>
-            <Text style={{ ...TYPOGRAPHY.sectionTitle, color: COLORS.black }} numberOfLines={1}>
+        <View className="flex-row items-center px-6 py-3 bg-white border-b border-gray-200">
+          <View className="flex-1">
+            <Text className="text-lg font-bold text-gray-900" numberOfLines={1}>
               {selectedConversation?.subject ?? 'Conversación'}
             </Text>
-            <Text style={{ ...TYPOGRAPHY.caption, color: COLORS.gray }}>
+            <Text className="text-xs text-gray-500">
               {participantName}
               {otherParticipants.length > 1 && ` +${otherParticipants.length - 1}`}
             </Text>
           </View>
-          <View style={{
-            width: 40,
-            height: 40,
-            borderRadius: BORDERS.radius.full,
-            backgroundColor: COLORS.primaryLight,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
-            <Text style={{ ...TYPOGRAPHY.body, fontWeight: '600', color: COLORS.primary }}>
+          <View className="w-10 h-10 rounded-full bg-primary/10 items-center justify-center">
+            <Text className="text-base font-bold text-primary">
               {participantInitials}
             </Text>
           </View>
@@ -600,18 +453,18 @@ export default function WebMensajesScreen() {
 
         {/* Messages */}
         {loadingMessages ? (
-          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <View className="flex-1 items-center justify-center">
             <ActivityIndicator size="large" color={COLORS.primary} />
           </View>
         ) : (
           <ScrollView
-            style={{ flex: 1 }}
-            contentContainerStyle={{ padding: SPACING.md }}
+            className="flex-1"
+            contentContainerStyle={{ padding: 24 }}
           >
             {messages.length === 0 ? (
-              <View style={{ alignItems: 'center', paddingVertical: SPACING.xl }}>
-                <Text style={{ ...TYPOGRAPHY.body, color: COLORS.gray }}>Sin mensajes</Text>
-                <Text style={{ ...TYPOGRAPHY.caption, color: COLORS.gray, marginTop: SPACING.xs }}>
+              <View className="items-center py-8">
+                <Text className="text-gray-400 text-sm">Sin mensajes</Text>
+                <Text className="text-gray-400 text-xs mt-1">
                   Sé el primero en escribir
                 </Text>
               </View>
@@ -639,46 +492,35 @@ export default function WebMensajesScreen() {
         )}
 
         {/* Message Input */}
-        {canReply && !isClosed ? (
-          <MessageInput
-            value={inputText}
-            onChangeText={setInputText}
-            onSend={handleSendMessage}
-            isSending={sendMessage.isPending}
-          />
-        ) : (
-          <View style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            paddingVertical: SPACING.md,
-            backgroundColor: COLORS.lightGray,
-            borderTopWidth: 1,
-            borderTopColor: COLORS.border,
-            gap: SPACING.sm,
-          }}>
-            <Ionicons name="lock-closed" size={18} color={COLORS.gray} />
-            <Text style={{ ...TYPOGRAPHY.body, color: COLORS.gray }}>
-              {isClosed ? 'Esta conversación está cerrada' : 'Esta conversación es de solo lectura'}
-            </Text>
-          </View>
-        )}
+        <View className="bg-white border-t border-gray-200 p-4">
+          {canReply && !isClosed ? (
+            <MessageInput
+              value={inputText}
+              onChangeText={setInputText}
+              onSend={handleSendMessage}
+              isSending={sendMessage.isPending}
+            />
+          ) : (
+            <View className="flex-row items-center justify-center py-4 bg-gray-50 rounded-lg gap-2">
+              <Ionicons name="lock-closed" size={16} color={COLORS.gray500} />
+              <Text className="text-gray-500 font-medium">
+                {isClosed ? 'Esta conversación está cerrada' : 'Esta conversación es de solo lectura'}
+              </Text>
+            </View>
+          )}
+        </View>
       </View>
     );
   };
 
   return (
-    <WebLayout>
-      <View style={{
-        flex: 1,
-        ...(Platform.OS === 'web' && {
-          height: 'calc(100vh - 60px)', // Subtract header height
-        } as any),
-      }}>
+    <WebLayout title="Mensajes" breadcrumbs={[{ label: 'Inicio', href: '/' }, { label: 'Mensajes', href: '/mensajes' }]}>
+      <View className="flex-1 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden" style={{ height: 'calc(100vh - 140px)' }}>
         <MasterDetailLayout
           master={renderMaster()}
           detail={renderDetail()}
-          masterWidth={380}
+          masterWidth={360}
+          gap={0}
         />
       </View>
     </WebLayout>

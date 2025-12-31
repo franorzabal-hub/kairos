@@ -11,9 +11,9 @@
  * WebEventCard is re-exported for backwards compatibility.
  */
 
-// EventCard is now unified - re-export for backwards compatibility
-import EventCard from '../../EventCard';
-export { EventCard as WebEventCard };
+// EventCard is now unified (handles both mobile and web).
+// WebEventCard is re-exported for backwards compatibility.
+export { default as WebEventCard } from './WebEventCard';
 export type { EventStatus } from '../../EventCard';
 
 export { WebAnnouncementCard } from './WebAnnouncementCard';

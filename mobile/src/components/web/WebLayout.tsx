@@ -48,15 +48,15 @@ export function WebLayout({
       style={{
         flex: 1,
         flexDirection: 'row',
-        height: '100vh' as unknown as number, // CSS value for web
         overflow: 'hidden',
       }}
+      className="h-screen bg-gray-50"
     >
       {/* Sidebar - Fixed width, full height */}
       {!hideSidebar && <WebSidebar />}
 
       {/* Main content area */}
-      <View style={{ flex: 1, flexDirection: 'column' }}>
+      <View style={{ flex: 1, flexDirection: 'column', position: 'relative' }}>
         {/* Header - Sticky at top */}
         {!hideHeader && <WebHeader title={title} breadcrumbs={breadcrumbs} />}
 
@@ -70,17 +70,18 @@ export function WebLayout({
         >
           <View
             style={{
-              maxWidth: 1280, // max-w-7xl equivalent
+              maxWidth: 1600, // Increased max-width for modern ultrawide feel
               marginHorizontal: 'auto',
               width: '100%',
-              padding: 32, // p-8 equivalent
+              paddingHorizontal: 24,
+              paddingVertical: 24,
             }}
           >
             {children}
           </View>
         </View>
 
-        {/* Footer - Status bar */}
+        {/* Footer - Status bar (Optional/Hidden for now to match cleaner SaaS look) */}
         {!hideFooter && <WebFooter />}
       </View>
     </View>
