@@ -8,6 +8,7 @@ import {
   markAsUnread as markAsUnreadService,
   ContentType,
 } from '../../services/readStatusService';
+import { logger } from '../../utils/logger';
 
 // Re-export ContentType for convenience
 export type { ContentType } from '../../services/readStatusService';
@@ -60,10 +61,11 @@ export function useMarkAsRead(type: ContentType) {
 
       return { previousReadIds };
     },
-    onError: (_err, _id, context) => {
+    onError: (error, _id, context) => {
       // Rollback on error
       if (!userId || !context?.previousReadIds) return;
       queryClient.setQueryData(queryKeys.readIds(type, userId), context.previousReadIds);
+      logger.error('Failed to mark item as read', { error, type });
     },
     onSettled: () => {
       // Refetch to ensure consistency
@@ -102,10 +104,11 @@ export function useMarkAsUnread(type: ContentType) {
 
       return { previousReadIds };
     },
-    onError: (_err, _id, context) => {
+    onError: (error, _id, context) => {
       // Rollback on error
       if (!userId || !context?.previousReadIds) return;
       queryClient.setQueryData(queryKeys.readIds(type, userId), context.previousReadIds);
+      logger.error('Failed to mark item as unread', { error, type });
     },
     onSettled: () => {
       // Refetch to ensure consistency

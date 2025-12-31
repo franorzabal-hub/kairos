@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
 import { queryKeys } from './queryKeys';
+import { logger } from '../../utils/logger';
 
 // Type for the announcement states cache
 export type AnnouncementStatesCache = {
@@ -76,9 +77,10 @@ export function useAnnouncementStateMutation({
       return { previous };
     },
 
-    onError: (_err, _id, context) => {
+    onError: (error, _id, context) => {
       if (!userId || !context?.previous) return;
       queryClient.setQueryData(queryKeys.announcementStates(userId), context.previous);
+      logger.error(`Failed to update announcement ${stateField}`, { error, operation });
     },
 
     onSettled: () => {

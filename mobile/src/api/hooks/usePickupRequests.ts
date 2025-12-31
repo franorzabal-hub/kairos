@@ -4,6 +4,7 @@ import { directus, PickupRequest } from '../directus';
 import { useAuth } from '../../context/AuthContext';
 import { useChildren } from '../../context/ChildrenContext';
 import { queryKeys } from './queryKeys';
+import { logger } from '../../utils/logger';
 
 // Fetch pickup requests
 export function usePickupRequests() {
@@ -59,6 +60,9 @@ export function useCreatePickupRequest() {
         queryClient.invalidateQueries({ queryKey: queryKeys.pickupRequests.user(userId) });
       }
     },
+    onError: (error) => {
+      logger.error('Failed to create pickup request', { error });
+    },
   });
 }
 
@@ -86,6 +90,9 @@ export function useUpdatePickupRequest() {
       if (userId) {
         queryClient.invalidateQueries({ queryKey: queryKeys.pickupRequests.user(userId) });
       }
+    },
+    onError: (error) => {
+      logger.error('Failed to update pickup request', { error });
     },
   });
 }

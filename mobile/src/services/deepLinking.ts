@@ -1,6 +1,7 @@
 import * as Linking from 'expo-linking';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
+import { logger } from '../utils/logger';
 
 const PENDING_DEEP_LINK_KEY = 'pending_deep_link';
 
@@ -62,7 +63,7 @@ export function parseDeepLink(url: string): string | null {
 
     return null;
   } catch (error) {
-    console.error('Error parsing deep link:', error);
+    logger.error('Failed to parse deep link', error);
     return null;
   }
 }
@@ -74,7 +75,8 @@ export async function savePendingDeepLink(url: string): Promise<void> {
   try {
     await AsyncStorage.setItem(PENDING_DEEP_LINK_KEY, url);
   } catch (error) {
-    console.error('Error saving pending deep link:', error);
+    // Log but don't throw - failing to save pending deep link is non-critical
+    logger.warn('Failed to save pending deep link', error);
   }
 }
 
@@ -89,7 +91,7 @@ export async function consumePendingDeepLink(): Promise<string | null> {
     }
     return url;
   } catch (error) {
-    console.error('Error consuming pending deep link:', error);
+    logger.warn('Failed to consume pending deep link', error);
     return null;
   }
 }
@@ -104,14 +106,14 @@ export function navigateFromDeepLink(url: string): boolean {
 
   // Validate against whitelist to prevent path traversal attacks
   if (!isAllowedRoute(path)) {
-    console.warn('Deep link blocked: path not in allowed routes', { path });
+    logger.warn('Deep link blocked: path not in allowed routes', { path });
     return false;
   }
 
   // Sanitize the path
   const sanitizedPath = sanitizePath(path);
   if (!sanitizedPath) {
-    console.warn('Deep link blocked: failed to sanitize path', { path });
+    logger.warn('Deep link blocked: failed to sanitize path', { path });
     return false;
   }
 
@@ -165,10 +167,10 @@ export function navigateFromDeepLink(url: string): boolean {
 
     // Route is in whitelist but not explicitly handled above
     // This should not happen if ALLOWED_ROUTES and handlers are in sync
-    console.warn('Deep link: allowed route without explicit handler', { sanitizedPath });
+    logger.warn('Deep link: allowed route without explicit handler', { sanitizedPath });
     return false;
   } catch (error) {
-    console.error('Error navigating from deep link:', error);
+    logger.error('Failed to navigate from deep link', error);
     return false;
   }
 }

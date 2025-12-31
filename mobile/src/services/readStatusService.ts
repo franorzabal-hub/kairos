@@ -1,6 +1,7 @@
 import { directus, ContentRead } from '../api/directus';
 import { readItems, createItem, deleteItems } from '@directus/sdk';
 import { CONTENT_TYPES, ContentTypeValue } from '../constants';
+import { logger } from '../utils/logger';
 
 // ContentType derives from CONTENT_TYPES constant values
 export type ContentType = ContentTypeValue;
@@ -30,7 +31,8 @@ export async function getReadIds(type: ContentType, userId: string): Promise<Set
     );
     return new Set(reads.map((r: Pick<ContentRead, 'content_id'>) => r.content_id));
   } catch (error) {
-    console.error(`Error reading ${type} read status:`, error);
+    logger.warn(`Failed to fetch ${type} read status, returning empty fallback`, error);
+    // Return empty fallback - UI will treat items as unread
     return new Set();
   }
 }
@@ -64,7 +66,8 @@ export async function markAsRead(type: ContentType, id: string, userId: string):
       );
     }
   } catch (error) {
-    console.error(`Error marking ${type} as read:`, error);
+    // Log but don't throw - marking as read is non-critical and shouldn't block UI
+    logger.warn(`Failed to mark ${type} as read`, error);
   }
 }
 
@@ -106,7 +109,8 @@ export async function markMultipleAsRead(type: ContentType, ids: string[], userI
       ));
     }
   } catch (error) {
-    console.error(`Error batch marking ${type} as read:`, error);
+    // Log but don't throw - marking as read is non-critical and shouldn't block UI
+    logger.warn(`Failed to batch mark ${type} as read`, error);
   }
 }
 
@@ -127,7 +131,8 @@ export async function markAsUnread(type: ContentType, id: string, userId: string
       })
     );
   } catch (error) {
-    console.error(`Error marking ${type} as unread:`, error);
+    // Log but don't throw - marking as unread is non-critical and shouldn't block UI
+    logger.warn(`Failed to mark ${type} as unread`, error);
   }
 }
 
@@ -186,7 +191,8 @@ export async function getAllReadIds(userId: string): Promise<Record<ContentType,
 
     return result;
   } catch (error) {
-    console.error('Error getting all read IDs:', error);
+    logger.warn('Failed to fetch all read IDs, returning empty fallback', error);
+    // Return empty fallback - UI will treat all items as unread
     return {
       announcements: new Set(),
       events: new Set(),
@@ -218,6 +224,7 @@ export async function clearAllReadStatus(userId: string): Promise<void> {
       })
     );
   } catch (error) {
-    console.error('Error clearing read status:', error);
+    // Log but don't throw - clearing read status is non-critical
+    logger.warn('Failed to clear read status', error);
   }
 }

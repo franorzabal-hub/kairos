@@ -1,8 +1,12 @@
 import { createDirectus, rest, authentication } from '@directus/sdk';
-import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
+import * as Storage from '../utils/storage';
 
-// Directus API URL - must be set via environment variable
-const DIRECTUS_URL = process.env.EXPO_PUBLIC_DIRECTUS_URL;
+// Directus API URL - uses environment variable or fallback for web production builds
+const DIRECTUS_URL =
+  process.env.EXPO_PUBLIC_DIRECTUS_URL ||
+  (Platform.OS === 'web' ? 'https://kairos-directus-684614817316.us-central1.run.app' : null);
+
 if (!DIRECTUS_URL) {
   throw new Error('EXPO_PUBLIC_DIRECTUS_URL environment variable is required');
 }
@@ -323,33 +327,33 @@ const REFRESH_TOKEN_KEY = 'directus_refresh_token';
 const BIOMETRIC_ENABLED_KEY = 'biometric_auth_enabled';
 
 export async function saveTokens(accessToken: string, refreshToken: string) {
-  await SecureStore.setItemAsync(TOKEN_KEY, accessToken);
-  await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, refreshToken);
+  await Storage.setItemAsync(TOKEN_KEY, accessToken);
+  await Storage.setItemAsync(REFRESH_TOKEN_KEY, refreshToken);
 }
 
 export async function getTokens() {
-  const accessToken = await SecureStore.getItemAsync(TOKEN_KEY);
-  const refreshToken = await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
+  const accessToken = await Storage.getItemAsync(TOKEN_KEY);
+  const refreshToken = await Storage.getItemAsync(REFRESH_TOKEN_KEY);
   return { accessToken, refreshToken };
 }
 
 export async function clearTokens() {
-  await SecureStore.deleteItemAsync(TOKEN_KEY);
-  await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
+  await Storage.deleteItemAsync(TOKEN_KEY);
+  await Storage.deleteItemAsync(REFRESH_TOKEN_KEY);
 }
 
 // Biometric authentication helpers
 export async function setBiometricEnabled(enabled: boolean): Promise<void> {
-  await SecureStore.setItemAsync(BIOMETRIC_ENABLED_KEY, enabled ? 'true' : 'false');
+  await Storage.setItemAsync(BIOMETRIC_ENABLED_KEY, enabled ? 'true' : 'false');
 }
 
 export async function isBiometricEnabled(): Promise<boolean> {
-  const value = await SecureStore.getItemAsync(BIOMETRIC_ENABLED_KEY);
+  const value = await Storage.getItemAsync(BIOMETRIC_ENABLED_KEY);
   return value === 'true';
 }
 
 export async function clearBiometricSetting(): Promise<void> {
-  await SecureStore.deleteItemAsync(BIOMETRIC_ENABLED_KEY);
+  await Storage.deleteItemAsync(BIOMETRIC_ENABLED_KEY);
 }
 
 // Create Directus client

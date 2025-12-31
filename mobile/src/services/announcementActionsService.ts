@@ -1,5 +1,6 @@
 import { directus } from '../api/directus';
 import { readItems, createItem, deleteItems } from '@directus/sdk';
+import { logger } from '../utils/logger';
 
 // Types for the new collections
 export interface UserPinnedAnnouncement {
@@ -45,7 +46,8 @@ export async function getPinnedIds(userId: string): Promise<Set<string>> {
     );
     return new Set(pinned.map((p: { announcement_id: string }) => p.announcement_id));
   } catch (error) {
-    if (__DEV__) console.error('Error getting pinned announcements:', error);
+    logger.warn('Failed to fetch pinned announcements, returning empty fallback', error);
+    // Return empty fallback - UI will show no pinned items
     return new Set();
   }
 }
@@ -75,7 +77,7 @@ export async function pinAnnouncement(announcementId: string, userId: string): P
       );
     }
   } catch (error) {
-    if (__DEV__) console.error('Error pinning announcement:', error);
+    logger.error('Failed to pin announcement', error);
     throw error;
   }
 }
@@ -94,7 +96,7 @@ export async function unpinAnnouncement(announcementId: string, userId: string):
       })
     );
   } catch (error) {
-    if (__DEV__) console.error('Error unpinning announcement:', error);
+    logger.error('Failed to unpin announcement', error);
     throw error;
   }
 }
@@ -121,7 +123,8 @@ export async function getArchivedIds(userId: string): Promise<Set<string>> {
     );
     return new Set(archived.map((a: { announcement_id: string }) => a.announcement_id));
   } catch (error) {
-    if (__DEV__) console.error('Error getting archived announcements:', error);
+    logger.warn('Failed to fetch archived announcements, returning empty fallback', error);
+    // Return empty fallback - UI will show no archived items
     return new Set();
   }
 }
@@ -151,7 +154,7 @@ export async function archiveAnnouncement(announcementId: string, userId: string
       );
     }
   } catch (error) {
-    if (__DEV__) console.error('Error archiving announcement:', error);
+    logger.error('Failed to archive announcement', error);
     throw error;
   }
 }
@@ -170,7 +173,7 @@ export async function unarchiveAnnouncement(announcementId: string, userId: stri
       })
     );
   } catch (error) {
-    if (__DEV__) console.error('Error unarchiving announcement:', error);
+    logger.error('Failed to unarchive announcement', error);
     throw error;
   }
 }
@@ -197,7 +200,8 @@ export async function getAcknowledgedIds(userId: string): Promise<Set<string>> {
     );
     return new Set(acknowledged.map((a: { announcement_id: string }) => a.announcement_id));
   } catch (error) {
-    if (__DEV__) console.error('Error getting acknowledgments:', error);
+    logger.warn('Failed to fetch acknowledgments, returning empty fallback', error);
+    // Return empty fallback - UI will show no acknowledged items
     return new Set();
   }
 }
@@ -227,7 +231,7 @@ export async function acknowledgeAnnouncement(announcementId: string, userId: st
       );
     }
   } catch (error) {
-    if (__DEV__) console.error('Error acknowledging announcement:', error);
+    logger.error('Failed to acknowledge announcement', error);
     throw error;
   }
 }
@@ -258,7 +262,8 @@ export async function getAllUserAnnouncementStates(userId: string): Promise<{
       acknowledgedIds: acknowledged,
     };
   } catch (error) {
-    if (__DEV__) console.error('Error getting user announcement states:', error);
+    logger.warn('Failed to fetch user announcement states, returning empty fallback', error);
+    // Return empty fallback - UI will show default states
     return {
       pinnedIds: new Set(),
       archivedIds: new Set(),
