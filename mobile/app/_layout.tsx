@@ -13,6 +13,8 @@ import * as Linking from 'expo-linking';
 import { AppProvider, useAuth } from '../src/context/AppContext';
 import { ThemeProvider } from '../src/context/ThemeContext';
 import { ToastProvider } from '../src/context/ToastContext';
+import { PermissionProvider } from '../src/context/PermissionContext';
+import PermissionDebugPanel from '../src/components/PermissionDebugPanel';
 import LoginScreen from '../src/screens/LoginScreen';
 import { ErrorBoundary } from '../src/components/ErrorBoundary';
 import { useQueryErrorHandler } from '../src/hooks';
@@ -148,15 +150,19 @@ function RootContent() {
   }
 
   return (
-    <ThemeProvider>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen
-          name="settings"
-          options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
-        />
-      </Stack>
-    </ThemeProvider>
+    <PermissionProvider>
+      <ThemeProvider>
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen
+            name="settings"
+            options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+          />
+        </Stack>
+        {/* Dev-only floating panel for permission debugging */}
+        <PermissionDebugPanel />
+      </ThemeProvider>
+    </PermissionProvider>
   );
 }
 
