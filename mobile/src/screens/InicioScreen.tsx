@@ -241,8 +241,8 @@ export default function InicioScreen() {
         </View>
       ) : (
         <FlashList
-          key={selectedChildId || 'all'}
           data={filteredAnnouncements}
+          extraData={selectedChildId}
           keyExtractor={(item) => item.id}
           refreshControl={
             <RefreshControl refreshing={isRefetchingAnnouncements} onRefresh={onRefresh} />
