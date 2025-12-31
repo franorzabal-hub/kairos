@@ -25,6 +25,8 @@ interface WebLayoutProps {
   hideSidebar?: boolean;
   /** Hide header */
   hideHeader?: boolean;
+  /** Use full screen width/height without inner padding (SPA mode) */
+  fullScreen?: boolean;
 }
 
 export function WebLayout({
@@ -33,6 +35,7 @@ export function WebLayout({
   breadcrumbs,
   hideSidebar = false,
   hideHeader = false,
+  fullScreen = false,
 }: WebLayoutProps) {
   // On mobile, just render children without the layout wrapper
   if (Platform.OS !== 'web') {
@@ -60,21 +63,27 @@ export function WebLayout({
         <View
           style={{
             flex: 1,
-            overflow: 'auto' as unknown as 'visible', // CSS for scrolling
+            overflow: fullScreen ? 'hidden' : ('auto' as unknown as 'visible'),
           }}
-          className="bg-content-bg"
+          className={fullScreen ? "bg-white" : "bg-content-bg"}
         >
-          <View
-            style={{
-              maxWidth: 1600, // Increased max-width for modern ultrawide feel
-              marginHorizontal: 'auto',
-              width: '100%',
-              paddingHorizontal: 24,
-              paddingVertical: 24,
-            }}
-          >
-            {children}
-          </View>
+          {fullScreen ? (
+             // Full screen mode: direct children render
+             children
+          ) : (
+            // Standard mode: Centered container with padding
+            <View
+              style={{
+                maxWidth: 1600, // Increased max-width for modern ultrawide feel
+                marginHorizontal: 'auto',
+                width: '100%',
+                paddingHorizontal: 24,
+                paddingVertical: 24,
+              }}
+            >
+              {children}
+            </View>
+          )}
         </View>
       </View>
     </View>

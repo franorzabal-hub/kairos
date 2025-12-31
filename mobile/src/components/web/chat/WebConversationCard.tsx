@@ -53,15 +53,24 @@ export function WebConversationCard({
 
   // Get participant info for avatar
   const getParticipantInfo = () => {
-    // Check if it's an "Admin" or "School" user (often no specific participant or named "Administracion")
-    // This is a heuristic - adjust based on actual data model for "School" sender
+    // Check if it's an "Admin" or "School" user
     const isSchool = conversation.otherParticipants.length === 0 || 
                      conversation.otherParticipants.some(p => p.email?.includes('admin') || p.first_name === 'Administracion');
 
     if (isSchool) {
+      // Humanize: Try to map to specific roles if known, otherwise fallback to Organization name
+      // This is a placeholder for logic that might check message content or other metadata
+      let displayName = organization?.name || 'Administración';
+      
+      // Heuristic: Check if subject implies a specific department (Mock logic for "Humanizing")
+      const subject = conversation.subject.toLowerCase();
+      if (subject.includes('pago') || subject.includes('cuota')) displayName = 'Secretaría';
+      else if (subject.includes('salud') || subject.includes('medic')) displayName = 'Enfermería';
+      else if (subject.includes('micro') || subject.includes('ruta')) displayName = 'Transporte';
+
       return { 
-        name: organization?.name || 'Administración', 
-        initials: 'AD', 
+        name: displayName,
+        initials: displayName.substring(0, 2).toUpperCase(), 
         color: COLORS.primary, 
         userId: 'school',
         isSchool: true 
@@ -124,16 +133,20 @@ export function WebConversationCard({
       style={(state) => ({
         flexDirection: 'row',
         paddingVertical: 12, // py-3
-        paddingHorizontal: 16,
+        paddingHorizontal: 16, // px-4
+        paddingLeft: isSelected ? 12 : 16, // Adjust padding when border is present to keep content aligned (optional, or just add border)
         borderBottomWidth: 1,
         borderBottomColor: COLORS.border,
+        borderLeftWidth: isSelected ? 4 : 0, // Active state border
+        borderLeftColor: COLORS.primary,
         backgroundColor: isSelected 
-          ? COLORS.primaryLight 
+          ? '#EFF6FF' // bg-blue-50
           : (state as WebPressableState).hovered 
             ? '#F9FAFB' // gray-50
             : COLORS.white,
         cursor: 'pointer',
         alignItems: 'flex-start',
+        transition: 'all 0.1s ease-in-out',
       })}
     >
       {/* Left Column: Avatar & Unread Dot */}
