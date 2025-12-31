@@ -281,7 +281,7 @@ const styles = StyleSheet.create({
   },
   title: {
     ...TYPOGRAPHY.listItemTitle,
-    fontWeight: '500',
+    fontWeight: '600',
     color: COLORS.darkGray,
   },
   titleUnread: {
@@ -298,7 +298,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 6,
-    flexWrap: 'wrap',
     gap: 4,
   },
   metaText: {
