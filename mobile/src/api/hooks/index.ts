@@ -59,7 +59,9 @@ export {
   useMuteConversation,
   useArchiveConversation,
   useUnarchiveConversation,
+  useCreateConversation,
   type ConversationWithMeta,
+  type CreateConversationParams,
 } from './useConversations';
 
 // Read status

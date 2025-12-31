@@ -488,3 +488,75 @@ export function useUnarchiveConversation() {
     },
   });
 }
+
+// ============================================
+// CREATE CONVERSATION (Parent-initiated)
+// ============================================
+
+export interface CreateConversationParams {
+  subject: string;
+  channelId: string; // e.g., 'secretaria', 'enfermeria', etc.
+  initialMessage: string;
+  isUrgent?: boolean;
+}
+
+// Create a new conversation with initial message
+export function useCreateConversation() {
+  const queryClient = useQueryClient();
+  const { user } = useAppContext();
+  const directusUserId = user?.directus_user_id;
+
+  return useMutation({
+    mutationFn: async ({
+      subject,
+      channelId,
+      initialMessage,
+      isUrgent = false,
+    }: CreateConversationParams) => {
+      if (!directusUserId) throw new Error('User not authenticated');
+
+      // Step 1: Create the conversation
+      const conversation = await directus.request(
+        createItem('conversations', {
+          subject,
+          status: 'open',
+          channel: channelId,
+          started_by: directusUserId,
+          organization_id: user?.organization_id,
+        })
+      );
+
+      const conversationId = (conversation as any).id;
+
+      // Step 2: Add the creator as a participant
+      await directus.request(
+        createItem('conversation_participants', {
+          conversation_id: conversationId,
+          user_id: directusUserId,
+          can_reply: true,
+          is_blocked: false,
+          is_muted: false,
+        })
+      );
+
+      // Step 3: Send the initial message
+      await directus.request(
+        createItem('conversation_messages', {
+          conversation_id: conversationId,
+          sender_id: directusUserId,
+          content: initialMessage,
+          content_type: 'text',
+          is_urgent: isUrgent,
+        })
+      );
+
+      return { conversationId };
+    },
+    onSuccess: () => {
+      // Invalidate conversations list to show the new conversation
+      if (directusUserId) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.conversations.user(directusUserId) });
+      }
+    },
+  });
+}
