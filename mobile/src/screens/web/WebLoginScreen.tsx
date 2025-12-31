@@ -17,6 +17,8 @@ import {
   ActivityIndicator,
   Platform,
   PressableStateCallbackType,
+  NativeSyntheticEvent,
+  TextInputKeyPressEventData,
 } from 'react-native';
 import { useAuth } from '../../context/AppContext';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY } from '../../theme';
@@ -43,16 +45,17 @@ export default function WebLoginScreen() {
 
     try {
       await login(email.trim(), password);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Login error:', err);
-      setError(err.message || 'Error al iniciar sesión. Verifica tus credenciales.');
+      const errorMessage = err instanceof Error ? err.message : 'Error al iniciar sesión. Verifica tus credenciales.';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
   }, [email, password, login]);
 
   // Handle Enter key press on form fields
-  const handleKeyPress = useCallback((e: any) => {
+  const handleKeyPress = useCallback((e: NativeSyntheticEvent<TextInputKeyPressEventData>) => {
     if (e.nativeEvent.key === 'Enter' && !loading) {
       handleLogin();
     }

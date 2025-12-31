@@ -188,8 +188,9 @@ export default function CambiosScreen() {
 
       resetForm();
       setActiveTab('historial');
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'No se pudo enviar la solicitud');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'No se pudo enviar la solicitud';
+      Alert.alert('Error', errorMessage);
     }
   };
 

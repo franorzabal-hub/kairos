@@ -19,6 +19,8 @@
  */
 
 import { permissionDebugger } from './permissionDebugger';
+import { logger } from '../utils/logger';
+import { DirectusError, isDirectusError } from '../types/directus';
 
 // Error types for structured handling
 export type ErrorType = 'NO_PERMISSION' | 'NOT_FOUND' | 'NETWORK' | 'UNKNOWN' | null;
@@ -52,28 +54,20 @@ export async function safeRequest<T>(
       errorType: null,
       errorMessage: null,
     };
-  } catch (err: any) {
+  } catch (err: unknown) {
     // Extract status code from Directus error
-    const status = err?.response?.status || err?.status || err?.errors?.[0]?.extensions?.code;
-    const message = err?.errors?.[0]?.message || err?.message || 'Unknown error';
+    const directusErr = isDirectusError(err) ? err : null;
+    const status = directusErr?.response?.status || directusErr?.status || directusErr?.errors?.[0]?.extensions?.code;
+    const message = directusErr?.errors?.[0]?.message || directusErr?.message || 'Unknown error';
 
     // Handle 403 Forbidden
     if (status === 403 || status === 'FORBIDDEN') {
-      const missingInfo = {
-        collection,
-        action,
-        message: `403: ${message}`,
-        timestamp: new Date().toISOString(),
-      };
-
-      if (__DEV__) {
-        console.error('🔒 PERMISO FALTANTE:', missingInfo);
-        permissionDebugger.log403(collection, action, message);
-      }
+      logger.warn('safeRequest', `Permission denied: ${action} on ${collection}`, { message });
+      permissionDebugger.log403(collection, action, message);
 
       return {
         data: null,
-        error: err,
+        error: err instanceof Error ? err : new Error(message),
         errorType: 'NO_PERMISSION',
         errorMessage: message,
       };
@@ -83,30 +77,28 @@ export async function safeRequest<T>(
     if (status === 404 || status === 'NOT_FOUND') {
       return {
         data: null,
-        error: err,
+        error: err instanceof Error ? err : new Error(message),
         errorType: 'NOT_FOUND',
         errorMessage: message,
       };
     }
 
     // Handle network errors
-    if (err?.message?.includes('Network') || err?.message?.includes('fetch')) {
+    if (message?.includes('Network') || message?.includes('fetch')) {
       return {
         data: null,
-        error: err,
+        error: err instanceof Error ? err : new Error(message),
         errorType: 'NETWORK',
         errorMessage: 'Error de conexión',
       };
     }
 
     // Unknown errors - still don't crash, but log
-    if (__DEV__) {
-      console.error('[safeRequest] Unexpected error:', err);
-    }
+    logger.error('safeRequest', `Unexpected error on ${action} ${collection}`, err);
 
     return {
       data: null,
-      error: err,
+      error: err instanceof Error ? err : new Error(message),
       errorType: 'UNKNOWN',
       errorMessage: message,
     };

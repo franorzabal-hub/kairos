@@ -3,19 +3,27 @@ import { readItems, readItem } from '@directus/sdk';
 import { directus, Event } from '../directus';
 import { useChildren } from '../../context/ChildrenContext';
 import { useUI } from '../../context/UIContext';
+import { useAuth } from '../../context/AuthContext';
 import { queryKeys } from './queryKeys';
+import { EventFilter } from '../../types/directus';
 
 // Fetch events
 export function useEvents() {
+  const { user } = useAuth();
   const { selectedChildId } = useChildren();
   const { filterMode } = useUI();
 
   return useQuery({
-    queryKey: [...queryKeys.events, selectedChildId, filterMode],
+    queryKey: [...queryKeys.events, selectedChildId, filterMode, user?.organization_id],
     queryFn: async () => {
-      const filter: any = {
+      const filter: EventFilter = {
         status: { _eq: 'published' },
       };
+
+      // Multi-tenant isolation: filter by organization_id
+      if (user?.organization_id) {
+        filter.organization_id = { _eq: user.organization_id };
+      }
 
       const items = await directus.request(
         readItems('events', {
@@ -27,6 +35,7 @@ export function useEvents() {
 
       return items as Event[];
     },
+    enabled: !!user?.organization_id,
   });
 }
 
@@ -38,6 +47,7 @@ export function useEvent(id: string) {
       if (!id) return null;
       const item = await directus.request(
         readItem('events', id, {
+          // Nested relational fields - SDK type limitation requires 'as any'
           fields: ['*', { location_id: ['*'] }] as any,
         })
       );

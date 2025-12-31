@@ -14,6 +14,7 @@
 
 import { readMe } from '@directus/sdk';
 import { directus, getTokens, DIRECTUS_URL } from '../api/directus';
+import { logger } from '../utils/logger';
 
 // Directus permission structure
 interface DirectusPermission {
@@ -61,7 +62,7 @@ class PermissionService {
       ) as { role: string | null };
 
       if (!currentUser?.role) {
-        if (__DEV__) console.warn('[PermissionService] User has no role assigned');
+        logger.warn('PermissionService', 'User has no role assigned');
         this.permissions = {};
         this.initialized = true;
         return;
@@ -96,7 +97,7 @@ class PermissionService {
       const policyId = accessResult.data?.[0]?.policy;
 
       if (!policyId) {
-        if (__DEV__) console.warn('[PermissionService] No policy found for role');
+        logger.warn('PermissionService', 'No policy found for role');
         this.permissions = {};
         this.initialized = true;
         return;
@@ -123,13 +124,9 @@ class PermissionService {
       this.permissions = this.buildPermissionMap(permissions);
       this.initialized = true;
 
-      if (__DEV__) {
-        console.log('[PermissionService] Initialized with', Object.keys(this.permissions).length, 'collections');
-      }
-    } catch (error: any) {
-      if (__DEV__) {
-        console.error('[PermissionService] Failed to init:', error?.message);
-      }
+      logger.debug('PermissionService', `Initialized with ${Object.keys(this.permissions).length} collections`);
+    } catch (error: unknown) {
+      logger.error('PermissionService', 'Failed to initialize permissions', error);
       // Initialize with empty permissions to prevent crashes
       this.permissions = {};
       this.initialized = true;
@@ -165,7 +162,7 @@ class PermissionService {
    */
   can(collection: string, action: 'create' | 'read' | 'update' | 'delete' = 'read'): boolean {
     if (!this.initialized || !this.permissions) {
-      if (__DEV__) console.warn('[PermissionService] Not initialized, denying access');
+      logger.warn('PermissionService', 'Not initialized, denying access');
       return false;
     }
 
@@ -228,9 +225,7 @@ class PermissionService {
    * Get all permissions (for debugging).
    */
   debug(): PermissionMap | null {
-    if (__DEV__) {
-      console.log('[PermissionService] Current permissions:', this.permissions);
-    }
+    logger.debug('PermissionService', 'Current permissions', this.permissions);
     return this.permissions;
   }
 

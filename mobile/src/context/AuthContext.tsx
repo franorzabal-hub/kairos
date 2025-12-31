@@ -11,6 +11,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import * as LocalAuthentication from 'expo-local-authentication';
 import { AppUser, directus, saveTokens, getTokens, clearTokens, isBiometricEnabled, setBiometricEnabled } from '../api/directus';
 import { readMe, readItems } from '@directus/sdk';
+import { isDirectusError } from '../types/directus';
 
 // Maximum biometric attempts before lockout
 const MAX_BIOMETRIC_ATTEMPTS = 3;
@@ -85,8 +86,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       return null;
-    } catch (error: any) {
-      if (__DEV__) console.log('[AuthContext] fetchAppUser error:', error?.message);
+    } catch (error: unknown) {
+      if (__DEV__) console.log('[AuthContext] fetchAppUser error:', error instanceof Error ? error.message : 'Unknown error');
       return null;
     }
   };
@@ -194,9 +195,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setBiometricAttempts(0);
         setLockoutEndTime(null);
       }
-    } catch (error: any) {
-      if (__DEV__) console.error('[AuthContext] Login failed:', error?.message);
-      throw new Error(error.errors?.[0]?.message || 'Error de autenticación');
+    } catch (error: unknown) {
+      const errorMessage = isDirectusError(error)
+        ? error.errors?.[0]?.message ?? error.message ?? 'Error de autenticación'
+        : error instanceof Error ? error.message : 'Error de autenticación';
+      if (__DEV__) console.error('[AuthContext] Login failed:', errorMessage);
+      throw new Error(errorMessage);
     }
   }, []);
 

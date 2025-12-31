@@ -1,6 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { readItems, readItem, createItem, updateItem } from '@directus/sdk';
-import { getAggregateCount } from '../../types/directus';
+import {
+  getAggregateCount,
+  GroupedAggregateResult,
+  ConversationMessageFilter,
+} from '../../types/directus';
 import {
   directus,
   Conversation,
@@ -10,6 +14,7 @@ import {
 } from '../directus';
 import { useAuth } from '../../context/AuthContext';
 import { queryKeys } from './queryKeys';
+import { logger } from '../../utils/logger';
 
 // Extended conversation type with computed properties
 export interface ConversationWithMeta extends Conversation {
@@ -44,6 +49,7 @@ export function useConversations() {
             user_id: { _eq: directusUserId },
             is_blocked: { _eq: false },
           },
+          // Nested relational fields - SDK type limitation requires 'as any'
           fields: [
             '*',
             { conversation_id: ['*', { participants: ['*', { user_id: ['*'] }] }] },
@@ -68,6 +74,7 @@ export function useConversations() {
             conversation_id: { _in: conversationIds },
             deleted_at: { _null: true },
           },
+          // Nested relational fields - SDK type limitation requires 'as any'
           fields: ['*', { sender_id: ['*'] }] as any,
           sort: ['-date_created'],
           limit: conversationIds.length * 2,
@@ -109,10 +116,14 @@ export function useConversations() {
           })
         );
 
-        for (const item of unreadAll as any[]) {
+        for (const item of unreadAll as unknown as GroupedAggregateResult[]) {
           const convId = item.conversation_id;
-          const count = parseInt(item.countDistinct?.id || '0', 10);
-          unreadCountsMap.set(convId, count);
+          // countDistinct returns an object like { id: "5" } when using field-specific aggregates
+          const countDistinct = item.countDistinct as { id?: string | number } | undefined;
+          const count = parseInt(String(countDistinct?.id ?? '0'), 10);
+          if (convId) {
+            unreadCountsMap.set(convId, count);
+          }
         }
       }
 
@@ -128,7 +139,7 @@ export function useConversations() {
                   deleted_at: { _null: true },
                   sender_id: { _neq: directusUserId },
                   date_created: { _gt: participation.last_read_at },
-                } as any, // Directus SDK type limitation for date comparison operators
+                } as ConversationMessageFilter, // Directus SDK type limitation for date comparison operators
                 aggregate: { count: ['*'] },
               })
             );
@@ -185,10 +196,8 @@ export function useConversation(conversationId: string) {
 
       const conversation = await directus.request(
         readItem('conversations', conversationId, {
-          fields: [
-            '*',
-            { participants: ['*', { user_id: ['*'] }] },
-          ] as any,
+          // Nested relational fields - SDK type limitation requires 'as any'
+          fields: ['*', { participants: ['*', { user_id: ['*'] }] }] as any,
         })
       );
 
@@ -214,6 +223,7 @@ export function useConversationMessages(conversationId: string) {
             conversation_id: { _eq: conversationId },
             deleted_at: { _null: true },
           },
+          // Nested relational fields - SDK type limitation requires 'as any'
           fields: ['*', { sender_id: ['*'] }] as any,
           sort: ['date_created'],
           limit: 100,
@@ -262,6 +272,9 @@ export function useSendMessage() {
         queryClient.invalidateQueries({ queryKey: queryKeys.conversations.user(directusUserId) });
       }
     },
+    onError: (error) => {
+      logger.error('Failed to send message', { error });
+    },
   });
 }
 
@@ -284,6 +297,9 @@ export function useMarkConversationRead() {
       if (directusUserId) {
         queryClient.invalidateQueries({ queryKey: queryKeys.conversations.user(directusUserId) });
       }
+    },
+    onError: (error) => {
+      logger.error('Failed to mark conversation as read', { error });
     },
   });
 }
@@ -324,6 +340,9 @@ export function useCloseConversation() {
         queryClient.invalidateQueries({ queryKey: queryKeys.conversations.user(directusUserId) });
       }
     },
+    onError: (error) => {
+      logger.error('Failed to close conversation', { error });
+    },
   });
 }
 
@@ -350,6 +369,9 @@ export function useReopenConversation() {
       if (directusUserId) {
         queryClient.invalidateQueries({ queryKey: queryKeys.conversations.user(directusUserId) });
       }
+    },
+    onError: (error) => {
+      logger.error('Failed to reopen conversation', { error });
     },
   });
 }
@@ -380,6 +402,9 @@ export function useToggleParticipantReply() {
         queryClient.invalidateQueries({ queryKey: queryKeys.conversations.user(directusUserId) });
       }
     },
+    onError: (error) => {
+      logger.error('Failed to toggle participant reply permission', { error });
+    },
   });
 }
 
@@ -408,6 +433,9 @@ export function useToggleParticipantBlocked() {
       if (directusUserId) {
         queryClient.invalidateQueries({ queryKey: queryKeys.conversations.user(directusUserId) });
       }
+    },
+    onError: (error) => {
+      logger.error('Failed to toggle participant blocked status', { error });
     },
   });
 }
@@ -438,6 +466,9 @@ export function useMuteConversation() {
         queryClient.invalidateQueries({ queryKey: queryKeys.conversations.user(directusUserId) });
       }
     },
+    onError: (error) => {
+      logger.error('Failed to toggle conversation mute status', { error });
+    },
   });
 }
 
@@ -462,6 +493,9 @@ export function useArchiveConversation() {
         queryClient.invalidateQueries({ queryKey: queryKeys.conversations.user(directusUserId) });
       }
     },
+    onError: (error) => {
+      logger.error('Failed to archive conversation', { error });
+    },
   });
 }
 
@@ -485,6 +519,9 @@ export function useUnarchiveConversation() {
       if (directusUserId) {
         queryClient.invalidateQueries({ queryKey: queryKeys.conversations.user(directusUserId) });
       }
+    },
+    onError: (error) => {
+      logger.error('Failed to unarchive conversation', { error });
     },
   });
 }
@@ -526,7 +563,7 @@ export function useCreateConversation() {
         })
       );
 
-      const conversationId = (conversation as any).id;
+      const conversationId = (conversation as Conversation).id;
 
       // Step 2: Add the creator as a participant
       await directus.request(
@@ -557,6 +594,9 @@ export function useCreateConversation() {
       if (directusUserId) {
         queryClient.invalidateQueries({ queryKey: queryKeys.conversations.user(directusUserId) });
       }
+    },
+    onError: (error) => {
+      logger.error('Failed to create conversation', { error });
     },
   });
 }

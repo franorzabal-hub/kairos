@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useChildren } from '../../context/ChildrenContext';
 import { useUI } from '../../context/UIContext';
 import { queryKeys } from './queryKeys';
+import { logger } from '../../utils/logger';
 
 // Extended message type with recipient info
 export interface MessageWithReadStatus extends Message {
@@ -33,7 +34,7 @@ export function useMessages() {
           filter: {
             user_id: { _eq: directusUserId },
           },
-          // NestedFields for relational message data
+          // Nested relational fields - SDK type limitation requires 'as any'
           fields: ['*', { message_id: ['*'] }] as any,
           sort: ['-date_created'],
           limit: 50,
@@ -73,6 +74,9 @@ export function useMarkMessageRead() {
       if (directusUserId) {
         queryClient.invalidateQueries({ queryKey: queryKeys.messageRecipients.user(directusUserId) });
       }
+    },
+    onError: (error) => {
+      logger.error('Failed to mark message as read', { error });
     },
   });
 }
