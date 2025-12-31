@@ -29,16 +29,29 @@ export function useChildren() {
       // Get students for these guardians
       const studentIds = guardians.map(g => g.student_id);
 
-      // Note: Don't request grade_id - Parent role may not have permission for that field
+      // Fetch students with section info (includes grade_id for content filtering)
+      // The section relation is needed to properly filter announcements by grade
       const students = await directus.request(
         readItems('students', {
           filter: { id: { _in: studentIds }, status: { _eq: 'active' } },
-          fields: ['id', 'organization_id', 'first_name', 'last_name', 'birth_date', 'photo', 'section_id', 'status'],
+          fields: [
+            'id',
+            'organization_id',
+            'first_name',
+            'last_name',
+            'birth_date',
+            'photo',
+            'section_id',
+            'status',
+            // Include section with grade_id for filtering announcements by grade
+            { section_id: ['id', 'grade_id', 'name'] },
+          ] as any,
         })
       );
 
-      setChildren(students as Student[]);
-      return students as Student[];
+      const typedStudents = students as unknown as Student[];
+      setChildren(typedStudents);
+      return typedStudents;
     },
     enabled: !!user?.id,
   });

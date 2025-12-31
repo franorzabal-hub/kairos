@@ -69,6 +69,26 @@ export interface AppUser {
   children?: string[];
 }
 
+export interface Grade {
+  id: string;
+  organization_id: string;
+  name: string;
+  level?: 'initial' | 'primary' | 'secondary';
+  order?: number;
+}
+
+export interface Section {
+  id: string;
+  organization_id: string;
+  grade_id: string;
+  name: string;
+  teacher_id?: string;
+  school_year?: number;
+  capacity?: number;
+  // Populated relation
+  grade?: Grade;
+}
+
 export interface Student {
   id: string;
   organization_id: string;
@@ -78,6 +98,8 @@ export interface Student {
   section_id: string;
   photo?: string;
   status: 'active' | 'inactive';
+  // Populated relation (when fetched with section_id.*)
+  section?: Section;
 }
 
 export interface Announcement {
@@ -312,6 +334,8 @@ interface Schema {
   organizations: Organization[];
   campuses: Campus[];
   app_users: AppUser[];
+  grades: Grade[];
+  sections: Section[];
   students: Student[];
   student_guardians: StudentGuardian[];
   announcements: Announcement[];

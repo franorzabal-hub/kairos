@@ -178,7 +178,8 @@ export function useInicioLogic({
           return announcement.target_id === selectedChild.section_id;
         }
         if (announcement.target_type === 'grade') {
-          return true; // TODO: Need to fetch grade_id from section
+          // Check if child's section belongs to the targeted grade
+          return selectedChild.section?.grade_id === announcement.target_id;
         }
         return true;
       });
