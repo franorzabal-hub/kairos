@@ -31,7 +31,7 @@ export default function ConversationListScreen() {
   const router = useRouter();
   // Centralized session state - user, children, permissions
   const { user, children, selectedChildId, setSelectedChildId } = useSession();
-  const [messageFilter, setMessageFilter] = useState<MessageFilter>('all');
+  const [messageFilter, setMessageFilter] = useState<MessageFilter>('unread');
   const { unreadCounts } = useUnreadCounts();
   const queryResult = useConversations();
   const { data: conversations = [], isLoading, refetch, isRefetching } = queryResult;
@@ -200,8 +200,8 @@ export default function ConversationListScreen() {
       <View style={styles.filterContainer}>
         <SegmentedControl
           segments={[
-            { key: 'all', label: 'Todos', count: allCount },
             { key: 'unread', label: 'No leídos', count: unreadCount },
+            { key: 'all', label: 'Todos', count: allCount },
           ]}
           selectedKey={messageFilter}
           onSelect={(key) => setMessageFilter(key as MessageFilter)}
