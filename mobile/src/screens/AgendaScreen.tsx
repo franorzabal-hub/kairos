@@ -45,22 +45,18 @@ export default function AgendaScreen() {
     });
   }, [events, selectedChild]);
 
-  // Date helpers
-  const now = useMemo(() => new Date(), []);
-  const today = useMemo(() => new Date(now.getFullYear(), now.getMonth(), now.getDate()), [now]);
-  const tomorrow = useMemo(() => {
-    const d = new Date(today);
-    d.setDate(d.getDate() + 1);
-    return d;
-  }, [today]);
-  const endOfWeek = useMemo(() => {
-    const d = new Date(today);
-    d.setDate(d.getDate() + (7 - d.getDay())); // Next Sunday
-    return d;
-  }, [today]);
+  // OPTIMIZED: Consolidated date helpers, sections, and counts into a single useMemo
+  // This eliminates 4 separate date memos, 1 sections memo, and 1 count memo
+  // Date computations are O(1), so the main cost is the event iteration which we do once
+  const { upcomingSections, pastSection, today, upcomingCount, pastCount } = useMemo(() => {
+    // Date helpers (cheap O(1) operations - computed inline)
+    const now = new Date();
+    const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const tomorrowDate = new Date(todayDate);
+    tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+    const endOfWeekDate = new Date(todayDate);
+    endOfWeekDate.setDate(endOfWeekDate.getDate() + (7 - endOfWeekDate.getDay())); // Next Sunday
 
-  // Group events into sections
-  const { upcomingSections, pastSection } = useMemo(() => {
     const todayEvents: Event[] = [];
     const tomorrowEvents: Event[] = [];
     const thisWeekEvents: Event[] = [];
@@ -71,13 +67,13 @@ export default function AgendaScreen() {
       const eventDate = new Date(event.start_date);
       const eventDay = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate());
 
-      if (eventDay < today) {
+      if (eventDay < todayDate) {
         pastEvents.push(event);
-      } else if (eventDay.getTime() === today.getTime()) {
+      } else if (eventDay.getTime() === todayDate.getTime()) {
         todayEvents.push(event);
-      } else if (eventDay.getTime() === tomorrow.getTime()) {
+      } else if (eventDay.getTime() === tomorrowDate.getTime()) {
         tomorrowEvents.push(event);
-      } else if (eventDay <= endOfWeek) {
+      } else if (eventDay <= endOfWeekDate) {
         thisWeekEvents.push(event);
       } else {
         laterEvents.push(event);
@@ -116,8 +112,18 @@ export default function AgendaScreen() {
       ? { key: 'past', title: 'HISTORIAL', data: pastEvents }
       : null;
 
-    return { upcomingSections: upcoming, pastSection: past };
-  }, [childFilteredEvents, today, tomorrow, endOfWeek]);
+    // Also compute counts here since we have the data
+    const upCount = upcoming.reduce((sum, section) => sum + section.data.length, 0);
+    const pCount = past?.data.length || 0;
+
+    return {
+      upcomingSections: upcoming,
+      pastSection: past,
+      today: todayDate,
+      upcomingCount: upCount,
+      pastCount: pCount,
+    };
+  }, [childFilteredEvents]);
 
   // Get sections based on time filter
   const sections = useMemo(() => {
@@ -127,13 +133,6 @@ export default function AgendaScreen() {
       return pastSection ? [pastSection] : [];
     }
   }, [timeFilter, upcomingSections, pastSection]);
-
-  // Count for tabs
-  const upcomingCount = useMemo(() =>
-    upcomingSections.reduce((sum, section) => sum + section.data.length, 0),
-    [upcomingSections]
-  );
-  const pastCount = pastSection?.data.length || 0;
 
   // Get child info helper for EventCard - returns name and color
   const getChildInfo = (event: Event): { name?: string; color?: string } => {

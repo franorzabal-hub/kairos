@@ -47,38 +47,45 @@ export default function MisHijosScreen() {
 
   const isLoading = isChildrenLoading || reportsLoading || pickupLoading;
 
-  // If only one child, auto-select
-  const effectiveSelectedChildId = useMemo(() => {
-    if (children.length === 1) return children[0].id;
-    return selectedChildId;
-  }, [children, selectedChildId]);
+  // OPTIMIZED: Consolidated 5 useMemos into 1 that computes all child-related derived state
+  // All these had overlapping dependencies (effectiveSelectedChildId, reports, pickupRequests)
+  const {
+    effectiveSelectedChildId,
+    selectedChild,
+    unreadReportsCount,
+    pendingPickupCount,
+    recentReports,
+  } = useMemo(() => {
+    // If only one child, auto-select
+    const effectiveId = children.length === 1 ? children[0].id : selectedChildId;
 
-  const selectedChild = useMemo(() => {
-    return effectiveSelectedChildId ? getChildById(effectiveSelectedChildId) || null : null;
-  }, [effectiveSelectedChildId, getChildById]);
+    // Get selected child object
+    const child = effectiveId ? getChildById(effectiveId) || null : null;
 
-  // Count unread reports for selected child
-  const unreadReportsCount = useMemo(() => {
-    if (!effectiveSelectedChildId) return 0;
-    const childReports = reports.filter(r => r.student_id === effectiveSelectedChildId);
-    return filterUnreadReports(childReports).length;
-  }, [reports, effectiveSelectedChildId, filterUnreadReports]);
+    // Early return if no effective child ID
+    if (!effectiveId) {
+      return {
+        effectiveSelectedChildId: effectiveId,
+        selectedChild: child,
+        unreadReportsCount: 0,
+        pendingPickupCount: 0,
+        recentReports: [] as Report[],
+      };
+    }
 
-  // Count pending pickup requests for selected child
-  const pendingPickupCount = useMemo(() => {
-    if (!effectiveSelectedChildId) return 0;
-    return pickupRequests.filter(
-      r => r.student_id === effectiveSelectedChildId && r.status === 'pending'
-    ).length;
-  }, [pickupRequests, effectiveSelectedChildId]);
+    // Filter reports for selected child once
+    const childReports = reports.filter(r => r.student_id === effectiveId);
 
-  // Get recent reports for preview
-  const recentReports = useMemo(() => {
-    if (!effectiveSelectedChildId) return [];
-    return reports
-      .filter(r => r.student_id === effectiveSelectedChildId)
-      .slice(0, 3);
-  }, [reports, effectiveSelectedChildId]);
+    return {
+      effectiveSelectedChildId: effectiveId,
+      selectedChild: child,
+      unreadReportsCount: filterUnreadReports(childReports).length,
+      pendingPickupCount: pickupRequests.filter(
+        r => r.student_id === effectiveId && r.status === 'pending'
+      ).length,
+      recentReports: childReports.slice(0, 3),
+    };
+  }, [children, selectedChildId, getChildById, reports, pickupRequests, filterUnreadReports]);
 
   // Menu sections
   const menuSections: MenuSection[] = [

@@ -101,35 +101,32 @@ export function useSession(): SessionState {
   // Child selection state from context
   const { selectedChildId, setSelectedChildId } = useChildrenContext();
 
-  // Derived permissions - computed once and cached
-  const permissions = useMemo<SessionPermissions>(() => {
+  // OPTIMIZED: Consolidated permissions and helper methods into single useMemo
+  // All have the same dependency (children), so compute once
+  const { permissions, getChildById, getChildByName } = useMemo(() => {
     const hasChildren = children.length > 0;
 
     return {
-      hasChildren,
-      // Can view reports if user has children
-      canViewReports: hasChildren,
-      // Can request pickup - for now, assume all parents can pickup
-      // In the future, this could check student_guardians.can_pickup
-      canRequestPickup: hasChildren,
-      // Is primary guardian - for now, assume first child relationship
-      // In the future, this could check student_guardians.is_primary
-      isPrimaryGuardian: hasChildren,
-    };
-  }, [children]);
-
-  // Helper methods
-  const getChildById = useMemo(() => {
-    return (id: string): Student | undefined => {
-      return children.find(c => c.id === id);
-    };
-  }, [children]);
-
-  const getChildByName = useMemo(() => {
-    return (firstName: string): Student | undefined => {
-      return children.find(c =>
-        c.first_name.toLowerCase() === firstName.toLowerCase()
-      );
+      permissions: {
+        hasChildren,
+        // Can view reports if user has children
+        canViewReports: hasChildren,
+        // Can request pickup - for now, assume all parents can pickup
+        // In the future, this could check student_guardians.can_pickup
+        canRequestPickup: hasChildren,
+        // Is primary guardian - for now, assume first child relationship
+        // In the future, this could check student_guardians.is_primary
+        isPrimaryGuardian: hasChildren,
+      } as SessionPermissions,
+      // Helper methods
+      getChildById: (id: string): Student | undefined => {
+        return children.find(c => c.id === id);
+      },
+      getChildByName: (firstName: string): Student | undefined => {
+        return children.find(c =>
+          c.first_name.toLowerCase() === firstName.toLowerCase()
+        );
+      },
     };
   }, [children]);
 

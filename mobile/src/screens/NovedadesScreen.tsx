@@ -23,9 +23,13 @@ export default function NovedadesScreen() {
 
   // Fetch user's pinned/archived/acknowledged states
   const { data: announcementStates, isLoading: statesLoading } = useAnnouncementStates();
-  const pinnedIds = useMemo(() => announcementStates?.pinnedIds instanceof Set ? announcementStates.pinnedIds : new Set<string>(), [announcementStates]);
-  const archivedIds = useMemo(() => announcementStates?.archivedIds instanceof Set ? announcementStates.archivedIds : new Set<string>(), [announcementStates]);
-  const acknowledgedIds = useMemo(() => announcementStates?.acknowledgedIds instanceof Set ? announcementStates.acknowledgedIds : new Set<string>(), [announcementStates]);
+
+  // OPTIMIZED: Consolidated 3 useMemo into 1 to reduce overhead
+  const { pinnedIds, archivedIds, acknowledgedIds } = useMemo(() => ({
+    pinnedIds: announcementStates?.pinnedIds instanceof Set ? announcementStates.pinnedIds : new Set<string>(),
+    archivedIds: announcementStates?.archivedIds instanceof Set ? announcementStates.archivedIds : new Set<string>(),
+    acknowledgedIds: announcementStates?.acknowledgedIds instanceof Set ? announcementStates.acknowledgedIds : new Set<string>(),
+  }), [announcementStates]);
 
   // Pin and archive mutations for swipe actions
   const { togglePin } = useAnnouncementPin();

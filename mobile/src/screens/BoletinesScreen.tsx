@@ -28,13 +28,35 @@ export default function BoletinesScreen() {
   // Fetch reports (TanStack Query handles offline caching)
   const { data: reports = [], isLoading, refetch, isRefetching, dataUpdatedAt } = useReports();
 
-  // Apply filters
-  const filteredReports = useMemo(() => {
-    if (filterMode === 'unread') {
-      return filterUnread(reports);
-    }
-    return reports;
-  }, [reports, filterMode, filterUnread]);
+  // OPTIMIZED: Consolidated 3 useMemo chain into 1
+  // Previously: filteredReports -> reportsByStudent -> listData (chain of dependencies)
+  // Now: Single memo that does filtering, grouping, and list building in one pass
+  const listData = useMemo<ReportListItem[]>(() => {
+    // Step 1: Apply filters
+    const filtered = filterMode === 'unread' ? filterUnread(reports) : reports;
+
+    // Step 2: Group by student
+    const byStudent: Record<string, Report[]> = {};
+    filtered.forEach(report => {
+      const child = children.find(c => c.id === report.student_id);
+      const childName = child ? `${child.first_name} ${child.last_name}` : 'Estudiante';
+
+      if (!byStudent[childName]) {
+        byStudent[childName] = [];
+      }
+      byStudent[childName].push(report);
+    });
+
+    // Step 3: Build list items
+    const items: ReportListItem[] = [];
+    Object.entries(byStudent).forEach(([childName, studentReports]) => {
+      items.push({ type: 'header', id: `header-${childName}`, title: childName });
+      studentReports.forEach((report) => {
+        items.push({ type: 'report', id: report.id, report });
+      });
+    });
+    return items;
+  }, [reports, filterMode, filterUnread, children]);
 
   const onRefresh = async () => {
     await refetch();
@@ -64,30 +86,6 @@ export default function BoletinesScreen() {
       }
     }
   };
-
-  const reportsByStudent = useMemo(() => {
-    return filteredReports.reduce((acc: Record<string, Report[]>, report) => {
-      const child = children.find(c => c.id === report.student_id);
-      const childName = child ? `${child.first_name} ${child.last_name}` : 'Estudiante';
-
-      if (!acc[childName]) {
-        acc[childName] = [];
-      }
-      acc[childName].push(report);
-      return acc;
-    }, {});
-  }, [filteredReports, children]);
-
-  const listData = useMemo<ReportListItem[]>(() => {
-    const items: ReportListItem[] = [];
-    Object.entries(reportsByStudent).forEach(([childName, studentReports]) => {
-      items.push({ type: 'header', id: `header-${childName}`, title: childName });
-      studentReports.forEach((report) => {
-        items.push({ type: 'report', id: report.id, report });
-      });
-    });
-    return items;
-  }, [reportsByStudent]);
 
   // Format last update time for offline indicator
   const lastUpdateText = dataUpdatedAt
