@@ -5,18 +5,18 @@ import { FlashList } from '@shopify/flash-list';
 import ScreenHeader from '../components/ScreenHeader';
 import FilterBar from '../components/FilterBar';
 import SwipeableAnnouncementCard from '../components/SwipeableAnnouncementCard';
-import { useFilters, useUnreadCounts } from '../context/AppContext';
-import { useAnnouncements, useChildren, useContentReadStatus, useAnnouncementStates, useAnnouncementPin, useAnnouncementArchive } from '../api/hooks';
+import { useFilters, useUnreadCounts } from '../context/UIContext';
+import { useSession } from '../hooks';
+import { useAnnouncements, useContentReadStatus, useAnnouncementStates, useAnnouncementPin, useAnnouncementArchive } from '../api/hooks';
 import { Announcement } from '../api/directus';
 import { COLORS, SPACING, TYPOGRAPHY } from '../theme';
 
 export default function NovedadesScreen() {
-  const { filterMode, selectedChildId, children } = useFilters();
+  const { filterMode } = useFilters();
   const { unreadCounts } = useUnreadCounts();
+  // Centralized session state - user, children, selected child
+  const { children, selectedChildId } = useSession();
   const { isRead, filterUnread, markAsRead } = useContentReadStatus('announcements');
-
-  // Fetch children on mount
-  useChildren();
 
   // Fetch announcements
   const { data: announcements = [], isLoading, refetch, isRefetching } = useAnnouncements();
@@ -122,6 +122,7 @@ export default function NovedadesScreen() {
         <FlashList
           data={filteredAnnouncements}
           keyExtractor={(item) => item.id}
+          estimatedItemSize={150}
           refreshControl={
             <RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />
           }

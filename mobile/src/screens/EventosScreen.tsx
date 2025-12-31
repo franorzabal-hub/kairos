@@ -236,6 +236,7 @@ export default function EventosScreen() {
             <FlashList
               data={eventsForSelectedDate}
               keyExtractor={(item) => item.id}
+              estimatedItemSize={280}
               refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />}
               contentContainerStyle={styles.calendarListContent}
               renderItem={renderEventCard}
@@ -262,6 +263,7 @@ export default function EventosScreen() {
         <FlashList
           data={filteredEvents}
           keyExtractor={(item) => item.id}
+          estimatedItemSize={280}
           refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />}
           ListHeaderComponent={ListHeader}
           contentContainerStyle={styles.listContent}

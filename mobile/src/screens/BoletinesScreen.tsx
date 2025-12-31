@@ -8,7 +8,7 @@ import ScreenHeader from '../components/ScreenHeader';
 import FilterBar from '../components/FilterBar';
 import { useFilters, useUnreadCounts } from '../context/AppContext';
 import { useReports, useChildren, useContentReadStatus } from '../api/hooks';
-import { Report } from '../api/directus';
+import { Report, DIRECTUS_URL } from '../api/directus';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY, UNREAD_STYLES, BADGE_STYLES, SHADOWS } from '../theme';
 
 type ReportListItem =
@@ -56,7 +56,7 @@ export default function BoletinesScreen() {
 
     if (report.file) {
       try {
-        const fileUrl = `https://kairos-directus-684614817316.us-central1.run.app/assets/${report.file}`;
+        const fileUrl = `${DIRECTUS_URL}/assets/${report.file}`;
         await Linking.openURL(fileUrl);
       } catch (error) {
         console.error('Error opening file:', error);
@@ -163,6 +163,7 @@ export default function BoletinesScreen() {
         <FlashList
           data={listData}
           keyExtractor={(item) => item.id}
+          estimatedItemSize={80}
           refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />}
           ListHeaderComponent={ListHeader}
           contentContainerStyle={styles.listContent}

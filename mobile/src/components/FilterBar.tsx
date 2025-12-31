@@ -162,6 +162,7 @@ function FilterBar({
             <FlashList
               data={children}
               keyExtractor={(item) => item.id}
+              estimatedItemSize={60}
               renderItem={({ item }) => (
                 <TouchableOpacity
                   style={selectedChildId === item.id ? [styles.childOption, styles.childOptionSelected] : styles.childOption}

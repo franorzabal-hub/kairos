@@ -16,7 +16,7 @@ import { FlashList } from '@shopify/flash-list';
 import ScreenHeader from '../components/ScreenHeader';
 import ChildSelector from '../components/ChildSelector';
 import SegmentedControl from '../components/SegmentedControl';
-import { useUnreadCounts } from '../context/AppContext';
+import { useUnreadCounts } from '../context/UIContext';
 import { useConversations, ConversationWithMeta } from '../api/hooks';
 import { useSession } from '../hooks';
 import { COLORS, CHILD_COLORS, SPACING, BORDERS, TYPOGRAPHY, SHADOWS, UNREAD_STYLES } from '../theme';
@@ -396,6 +396,7 @@ export default function ConversationListScreen() {
         <FlashList
           data={filteredConversations}
           keyExtractor={(item) => item.id}
+          estimatedItemSize={100}
           refreshControl={
             <RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />
           }

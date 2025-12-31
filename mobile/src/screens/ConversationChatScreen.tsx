@@ -388,6 +388,7 @@ export default function ConversationChatScreen() {
             ref={listRef}
             data={messages}
             keyExtractor={(item) => item.id}
+            estimatedItemSize={80}
             renderItem={renderMessage}
             contentContainerStyle={styles.messagesList}
             ListEmptyComponent={
