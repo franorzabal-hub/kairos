@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Text, StyleSheet, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, SPACING, BORDERS } from '../theme';
+import { COLORS, SPACING, BORDERS, SHADOWS, FONT_SIZES } from '../theme';
 
 interface ToastProps {
   visible: boolean;
@@ -105,16 +105,12 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.listItemPadding,
     paddingHorizontal: SPACING.screenPadding,
     borderRadius: BORDERS.radius.lg,
-    gap: SPACING.sm + 2,
-    shadowColor: COLORS.black,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 6,
+    gap: SPACING.md,
+    ...SHADOWS.fab,
   },
   message: {
     color: COLORS.white,
-    fontSize: 15,
+    fontSize: FONT_SIZES.xl,
     fontWeight: '500',
     flex: 1,
   },

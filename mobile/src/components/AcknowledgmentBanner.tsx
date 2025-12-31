@@ -7,7 +7,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, SPACING, BORDERS } from '../theme';
+import { COLORS, SPACING, BORDERS, TYPOGRAPHY, FONT_SIZES } from '../theme';
 
 interface AcknowledgmentBannerProps {
   isAcknowledged: boolean;
@@ -98,23 +98,23 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   pendingTitle: {
-    fontSize: 16,
+    fontSize: FONT_SIZES['2xl'],
     fontWeight: '600',
     color: '#92400E', // Dark amber
-    marginBottom: 2,
+    marginBottom: SPACING.xxs,
   },
   pendingSubtitle: {
-    fontSize: 14,
+    fontSize: FONT_SIZES.lg,
     color: '#B45309', // Medium amber
   },
   acknowledgedTitle: {
-    fontSize: 16,
+    fontSize: FONT_SIZES['2xl'],
     fontWeight: '600',
     color: '#065F46', // Dark green
-    marginBottom: 2,
+    marginBottom: SPACING.xxs,
   },
   acknowledgedSubtitle: {
-    fontSize: 14,
+    fontSize: FONT_SIZES.lg,
     color: '#047857', // Medium green
   },
   acknowledgeButton: {
@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: COLORS.white,
-    fontSize: 15,
+    fontSize: FONT_SIZES.xl,
     fontWeight: '600',
   },
 });

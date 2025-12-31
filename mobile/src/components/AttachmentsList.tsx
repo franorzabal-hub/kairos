@@ -14,7 +14,7 @@ import { WebView } from 'react-native-webview';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AnnouncementAttachment } from '../api/directus';
 import { useDirectusAsset, getDirectusAssetUrl } from '../hooks/useDirectusAsset';
-import { COLORS, SPACING, BORDERS, TYPOGRAPHY } from '../theme';
+import { COLORS, SPACING, BORDERS, TYPOGRAPHY, SIZES, FONT_SIZES } from '../theme';
 
 interface AttachmentsListProps {
   attachments: AnnouncementAttachment[];
@@ -235,8 +235,8 @@ const styles = StyleSheet.create({
     gap: SPACING.md,
   },
   fileIcon: {
-    width: 44,
-    height: 44,
+    width: SIZES.touchTarget,
+    height: SIZES.touchTarget,
     borderRadius: BORDERS.radius.md,
     alignItems: 'center',
     justifyContent: 'center',
@@ -252,11 +252,11 @@ const styles = StyleSheet.create({
   fileSize: {
     ...TYPOGRAPHY.caption,
     color: COLORS.gray,
-    marginTop: 2,
+    marginTop: SPACING.xxs,
   },
   downloadButton: {
-    width: 36,
-    height: 36,
+    width: SIZES.buttonHeightSm,
+    height: SIZES.buttonHeightSm,
     borderRadius: BORDERS.radius.full,
     backgroundColor: COLORS.primaryLight,
     alignItems: 'center',

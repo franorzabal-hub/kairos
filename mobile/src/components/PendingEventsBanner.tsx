@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-nati
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Event } from '../api/directus';
-import { COLORS, SPACING, BORDERS, TYPOGRAPHY, SHADOWS } from '../theme';
+import { COLORS, SPACING, BORDERS, TYPOGRAPHY, SHADOWS, SIZES } from '../theme';
 
 interface PendingEventsBannerProps {
   events: Event[];
@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
     marginVertical: SPACING.sm,
     borderRadius: BORDERS.radius.lg,
     padding: SPACING.md,
-    borderLeftWidth: 4,
+    borderLeftWidth: BORDERS.width.thick,
     borderLeftColor: COLORS.warning,
   },
   header: {
@@ -93,8 +93,8 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   iconContainer: {
-    width: 28,
-    height: 28,
+    width: SPACING.xxl + SPACING.xs,
+    height: SPACING.xxl + SPACING.xs,
     borderRadius: BORDERS.radius.full,
     backgroundColor: COLORS.warning,
     alignItems: 'center',
@@ -108,9 +108,9 @@ const styles = StyleSheet.create({
   badge: {
     backgroundColor: COLORS.warning,
     paddingHorizontal: SPACING.sm,
-    paddingVertical: 2,
+    paddingVertical: SPACING.xxs,
     borderRadius: BORDERS.radius.full,
-    minWidth: 24,
+    minWidth: SPACING.xxl,
     alignItems: 'center',
   },
   badgeText: {
@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    minWidth: 200,
+    minWidth: SIZES.cardImageHeight + SIZES.avatarMd,
     ...SHADOWS.small,
   },
   eventItemFull: {
@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
   eventDate: {
     ...TYPOGRAPHY.caption,
     color: COLORS.gray,
-    marginBottom: 2,
+    marginBottom: SPACING.xxs,
   },
   eventTitle: {
     ...TYPOGRAPHY.body,
@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
+    gap: SPACING.xxs,
   },
   actionText: {
     ...TYPOGRAPHY.caption,
