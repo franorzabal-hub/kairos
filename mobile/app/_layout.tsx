@@ -166,8 +166,8 @@ function RootContent() {
             options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
           />
         </Stack>
-        {/* Dev-only floating panel for permission debugging */}
-        <PermissionDebugPanel />
+        {/* Dev-only floating panel for permission debugging - Mobile only (Web has it in footer) */}
+        {Platform.OS !== 'web' && <PermissionDebugPanel />}
       </ThemeProvider>
     </PermissionProvider>
   );

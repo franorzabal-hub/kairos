@@ -35,10 +35,13 @@ import { COLORS, SPACING, TYPOGRAPHY, BORDERS } from '../theme';
 interface PermissionDebugPanelProps {
   /** Initial collapsed state */
   initialCollapsed?: boolean;
+  /** Rendering mode: 'floating' (default) or 'inline' (for footer integration) */
+  mode?: 'floating' | 'inline';
 }
 
 export default function PermissionDebugPanel({
   initialCollapsed = true,
+  mode = 'floating',
 }: PermissionDebugPanelProps) {
   const [collapsed, setCollapsed] = useState(initialCollapsed);
   const [missing, setMissing] = useState<MissingPermission[]>([]);
@@ -76,7 +79,61 @@ export default function PermissionDebugPanel({
     return null;
   }
 
-  // Collapsed state - just show badge
+  // Inline mode (Footer integration)
+  if (mode === 'inline') {
+    return (
+      <>
+        <TouchableOpacity
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 6, opacity: 0.7 }}
+          onPress={() => setCollapsed(!collapsed)}
+        >
+          <Ionicons name="lock-closed" size={14} color={COLORS.white} />
+          {missing.length > 0 && (
+            <View style={{ backgroundColor: COLORS.error, borderRadius: 6, paddingHorizontal: 4, height: 12, justifyContent: 'center' }}>
+              <Text style={{ fontSize: 8, color: 'white', fontWeight: 'bold' }}>{missing.length}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+
+        {/* Render panel absolute relative to the footer/screen if expanded */}
+        {!collapsed && (
+          <View style={[styles.container, { bottom: 40, right: 10 }]}>
+            {/* Re-use existing panel content structure */}
+            <View style={styles.header}>
+              <View style={styles.headerLeft}>
+                <Text style={styles.headerTitle}>Permisos ({missing.length})</Text>
+              </View>
+              <View style={styles.headerRight}>
+                <TouchableOpacity onPress={handleCopy} style={styles.headerButton}>
+                  <Ionicons name={copied ? 'checkmark' : 'copy-outline'} size={16} color={COLORS.white} />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handleClear} style={styles.headerButton}>
+                  <Ionicons name="trash-outline" size={16} color={COLORS.white} />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setCollapsed(true)} style={styles.headerButton}>
+                  <Ionicons name="close" size={18} color={COLORS.white} />
+                </TouchableOpacity>
+              </View>
+            </View>
+            <ScrollView style={styles.content} nestedScrollEnabled>
+              {missing.length === 0 ? (
+                <Text style={styles.emptyText}>Sin permisos faltantes</Text>
+              ) : (
+                missing.map((item, index) => (
+                  <View key={index} style={styles.item}>
+                    <Text style={styles.itemAction}>{item.action} {item.collection}</Text>
+                    <Text style={styles.itemMessage}>{item.message}</Text>
+                  </View>
+                ))
+              )}
+            </ScrollView>
+          </View>
+        )}
+      </>
+    );
+  }
+
+  // Collapsed state - just show badge (Floating)
   if (collapsed) {
     return (
       <TouchableOpacity
@@ -94,7 +151,7 @@ export default function PermissionDebugPanel({
     );
   }
 
-  // Expanded panel
+  // Expanded panel (Floating)
   return (
     <View style={styles.container}>
       {/* Header */}

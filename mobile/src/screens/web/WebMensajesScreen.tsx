@@ -288,14 +288,13 @@ export default function WebMensajesScreen() {
   );
 
   // Render chat view (detail panel)
-  // Render chat view (detail panel)
   const renderDetail = () => {
     // New conversation mode
     if (viewMode === 'new') {
       return (
-        <View className="flex-1 bg-gray-50/50">
+        <View className="flex-1 bg-gray-50/50 flex-col h-full">
           {/* Header */}
-          <View className="flex-row items-center px-6 py-3 bg-white border-b border-gray-200">
+          <View className="flex-row items-center px-6 py-3 bg-white border-b border-gray-200 flex-shrink-0">
             <Pressable
               onPress={handleCloseDetail}
               className="p-2 mr-3 rounded-md hover:bg-gray-100 transition-colors"
@@ -308,7 +307,7 @@ export default function WebMensajesScreen() {
           </View>
 
           <ScrollView className="flex-1" contentContainerStyle={{ padding: 32, gap: 24 }}>
-            {/* Channel Selection */}
+            {/* Channel Selection & Form ... (same as before) */}
             {!newConversationChannel ? (
               <View>
                 <Text className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4">
@@ -439,9 +438,9 @@ export default function WebMensajesScreen() {
 
     // Chat view
     return (
-      <View className="flex-1 bg-gray-50 flex-col h-full">
-        {/* Chat Header */}
-        <View className="flex-row items-center px-6 py-3 bg-white border-b border-gray-200">
+      <View className="flex-1 bg-white flex-col h-full w-full overflow-hidden">
+        {/* Chat Header (Fixed) */}
+        <View className="flex-row items-center px-6 py-3 bg-white border-b border-gray-200 flex-shrink-0 z-10">
           <View className="flex-1">
             <Text className="text-lg font-bold text-gray-900" numberOfLines={1}>
               {selectedConversation?.subject ?? 'Conversación'}
@@ -458,48 +457,50 @@ export default function WebMensajesScreen() {
           </View>
         </View>
 
-        {/* Messages */}
-        {loadingMessages ? (
-          <View className="flex-1 items-center justify-center">
-            <ActivityIndicator size="large" color={COLORS.primary} />
-          </View>
-        ) : (
-          <ScrollView
-            className="flex-1"
-            contentContainerStyle={{ padding: 24 }}
-          >
-            {messages.length === 0 ? (
-              <View className="items-center py-8">
-                <Text className="text-gray-400 text-sm">Sin mensajes</Text>
-                <Text className="text-gray-400 text-xs mt-1">
-                  Sé el primero en escribir
-                </Text>
-              </View>
-            ) : (
-              messages.map((message, index) => {
-                const senderId = typeof message.sender_id === 'string' ? message.sender_id : message.sender_id?.id;
-                const isMyMessage = senderId === directusUserId;
-                const showDate = shouldShowDateSeparator(index, messages);
-                const isFirstMessage = index === 0;
+        {/* Messages List (Scrollable) */}
+        <View className="flex-1 bg-gray-50">
+          {loadingMessages ? (
+            <View className="flex-1 items-center justify-center">
+              <ActivityIndicator size="large" color={COLORS.primary} />
+            </View>
+          ) : (
+            <ScrollView
+              className="flex-1"
+              contentContainerStyle={{ padding: 24, paddingBottom: 24 }}
+            >
+              {messages.length === 0 ? (
+                <View className="items-center py-8">
+                  <Text className="text-gray-400 text-sm">Sin mensajes</Text>
+                  <Text className="text-gray-400 text-xs mt-1">
+                    Sé el primero en escribir
+                  </Text>
+                </View>
+              ) : (
+                messages.map((message, index) => {
+                  const senderId = typeof message.sender_id === 'string' ? message.sender_id : message.sender_id?.id;
+                  const isMyMessage = senderId === directusUserId;
+                  const showDate = shouldShowDateSeparator(index, messages);
+                  const isFirstMessage = index === 0;
 
-                return (
-                  <View key={message.id}>
-                    {showDate && <DateSeparator date={formatDate(message.date_created)} />}
-                    {isFirstMessage ? (
-                      <FirstMessageCard message={message} />
-                    ) : (
-                      <ChatBubble message={message} isMyMessage={isMyMessage} />
-                    )}
-                  </View>
-                );
-              })
-            )}
-            <View ref={messagesEndRef} />
-          </ScrollView>
-        )}
+                  return (
+                    <View key={message.id}>
+                      {showDate && <DateSeparator date={formatDate(message.date_created)} />}
+                      {isFirstMessage ? (
+                        <FirstMessageCard message={message} />
+                      ) : (
+                        <ChatBubble message={message} isMyMessage={isMyMessage} />
+                      )}
+                    </View>
+                  );
+                })
+              )}
+              <View ref={messagesEndRef} />
+            </ScrollView>
+          )}
+        </View>
 
-        {/* Message Input */}
-        <View className="bg-white border-t border-gray-200 p-4">
+        {/* Message Input (Fixed Bottom) */}
+        <View className="bg-white border-t border-gray-200 p-4 flex-shrink-0">
           {canReply && !isClosed ? (
             <MessageInput
               value={inputText}
@@ -526,13 +527,13 @@ export default function WebMensajesScreen() {
       breadcrumbs={[{ label: 'Inicio', href: '/' }, { label: 'Mensajes', href: '/mensajes' }]}
       fullScreen={true}
     >
-      {/* Page Wrapper - Full Height, No Global Scroll */}
-      <View className="h-screen overflow-hidden flex flex-row bg-white w-full">
+      {/* Main Workspace - Full Height, No Global Scroll */}
+      <View className="flex-1 flex-row h-full w-full overflow-hidden">
         
         {/* LEFT COLUMN: Message List */}
-        <View className="w-1/3 border-r border-gray-200 flex flex-col h-full bg-white">
+        <View className="w-1/3 border-r border-gray-200 flex flex-col h-full bg-white flex-shrink-0">
           {/* Header (Sticky) */}
-          <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-100 bg-white z-10">
+          <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-100 bg-white z-10 flex-shrink-0">
             <Text className="text-lg font-bold text-gray-800">
               Bandeja de entrada
             </Text>
@@ -553,7 +554,7 @@ export default function WebMensajesScreen() {
           </View>
 
           {/* Filter Bar */}
-          <View className="p-2 border-b border-gray-100 bg-gray-50/50">
+          <View className="p-2 border-b border-gray-100 bg-gray-50/50 flex-shrink-0">
             <SegmentedControl
               segments={[
                 { key: 'all', label: 'Todos' },
@@ -565,7 +566,7 @@ export default function WebMensajesScreen() {
           </View>
 
           {/* Scrollable List */}
-          <View className="flex-1 overflow-hidden">
+          <View className="flex-1 overflow-hidden bg-white">
             {loadingConversations ? (
               <View className="flex-1 items-center justify-center">
                 <ActivityIndicator size="small" color={COLORS.primary} />
@@ -601,7 +602,7 @@ export default function WebMensajesScreen() {
         </View>
 
         {/* RIGHT COLUMN: Detail / Chat */}
-        <View className="flex-1 flex flex-col h-full bg-gray-50/50">
+        <View className="flex-1 flex flex-col h-full bg-gray-50/50 overflow-hidden">
           {renderDetail()}
         </View>
 

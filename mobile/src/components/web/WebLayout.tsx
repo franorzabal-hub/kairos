@@ -14,6 +14,7 @@ import React, { ReactNode } from 'react';
 import { Platform, View } from 'react-native';
 import { WebSidebar } from './WebSidebar';
 import { WebHeader } from './WebHeader';
+import { WebFooter } from './WebFooter';
 
 interface WebLayoutProps {
   children: ReactNode;
@@ -43,49 +44,51 @@ export function WebLayout({
   }
 
   return (
-    <View
-      style={{
-        flex: 1,
-        flexDirection: 'row',
-        overflow: 'hidden',
-      }}
-      className="h-screen bg-gray-50"
-    >
-      {/* Sidebar - Fixed width, full height */}
-      {!hideSidebar && <WebSidebar />}
+    // 1. Contenedor Raíz (Page Wrapper)
+    // flex-col because Footer is at the bottom
+    <View className="flex-1 h-screen flex-col bg-white overflow-hidden">
+      
+      {/* 2. Área Central (Main Workspace) */}
+      {/* Ocupa todo el espacio menos el Footer */}
+      <View className="flex-1 flex-row overflow-hidden">
+        
+        {/* Sidebar */}
+        {!hideSidebar && <WebSidebar />}
 
-      {/* Main content area */}
-      <View style={{ flex: 1, flexDirection: 'column', position: 'relative' }}>
-        {/* Header - Sticky at top */}
-        {!hideHeader && <WebHeader title={title} breadcrumbs={breadcrumbs} />}
+        {/* Content Column */}
+        <View className="flex-1 flex-col relative">
+          {/* Header - Sticky at top */}
+          {!hideHeader && <WebHeader title={title} breadcrumbs={breadcrumbs} />}
 
-        {/* Content - Scrollable area */}
-        <View
-          style={{
-            flex: 1,
-            overflow: fullScreen ? 'hidden' : ('auto' as unknown as 'visible'),
-          }}
-          className={fullScreen ? "bg-white" : "bg-content-bg"}
-        >
-          {fullScreen ? (
-             // Full screen mode: direct children render
-             children
-          ) : (
-            // Standard mode: Centered container with padding
-            <View
-              style={{
-                maxWidth: 1600, // Increased max-width for modern ultrawide feel
-                marginHorizontal: 'auto',
-                width: '100%',
-                paddingHorizontal: 24,
-                paddingVertical: 24,
-              }}
-            >
-              {children}
-            </View>
-          )}
+          {/* Main Content Area */}
+          <View className={`flex-1 overflow-hidden ${fullScreen ? 'bg-white' : 'bg-content-bg'}`}>
+            {fullScreen ? (
+               // Full Screen Mode (SPA) - No scrolling here, direct children
+               children
+            ) : (
+              // Standard Mode - Centered container with scroll
+              <View 
+                style={{ flex: 1, overflow: 'auto' as any }} // CSS scroll
+              >
+                <View
+                  style={{
+                    maxWidth: 1600,
+                    marginHorizontal: 'auto',
+                    width: '100%',
+                    paddingHorizontal: 24,
+                    paddingVertical: 24,
+                  }}
+                >
+                  {children}
+                </View>
+              </View>
+            )}
+          </View>
         </View>
       </View>
+
+      {/* 4. Footer Global (System Status Bar) */}
+      <WebFooter />
     </View>
   );
 }
