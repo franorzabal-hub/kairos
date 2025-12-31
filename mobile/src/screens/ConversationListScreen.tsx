@@ -214,6 +214,11 @@ export default function ConversationListScreen() {
     </View>
   );
 
+  const handleContactAdmin = () => {
+    // TODO: Navigate to new conversation with admin or show contact options
+    router.push('/mensajes/contactar-secretaria');
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {isLoading ? (
@@ -242,6 +247,16 @@ export default function ConversationListScreen() {
           }
         />
       )}
+
+      {/* FAB - Contact Administration */}
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={handleContactAdmin}
+        activeOpacity={0.8}
+      >
+        <Ionicons name="chatbubble-ellipses" size={20} color={COLORS.white} />
+        <Text style={styles.fabText}>Secretaría</Text>
+      </TouchableOpacity>
     </SafeAreaView>
   );
 }
@@ -393,5 +408,24 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.body,
     color: COLORS.gray,
     textAlign: 'center',
+  },
+  // FAB - Floating Action Button
+  fab: {
+    position: 'absolute',
+    right: SPACING.screenPadding,
+    bottom: SPACING.tabBarOffset + SPACING.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.primary,
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.lg,
+    borderRadius: BORDERS.radius.full,
+    gap: SPACING.sm,
+    ...SHADOWS.fab,
+  },
+  fabText: {
+    ...TYPOGRAPHY.body,
+    fontWeight: '600',
+    color: COLORS.white,
   },
 });
