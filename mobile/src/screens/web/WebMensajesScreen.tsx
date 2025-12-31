@@ -522,7 +522,7 @@ export default function WebMensajesScreen() {
 
   return (
     <WebLayout title="Mensajes" breadcrumbs={[{ label: 'Inicio', href: '/' }, { label: 'Mensajes', href: '/mensajes' }]}>
-      <View className="flex-1 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden" style={{ height: 'calc(100vh - 140px)' }}>
+      <View className="flex-1 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden" style={{ height: 'calc(100vh - 140px)' } as any}>
         <MasterDetailLayout
           master={renderMaster()}
           detail={renderDetail()}

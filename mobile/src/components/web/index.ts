@@ -9,7 +9,6 @@
 export { WebLayout } from './WebLayout';
 export { WebSidebar } from './WebSidebar';
 export { WebHeader } from './WebHeader';
-export { WebFooter } from './WebFooter';
 
 // Card components (web-optimized with hover effects)
 export {
