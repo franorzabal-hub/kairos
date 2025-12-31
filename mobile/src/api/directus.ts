@@ -252,14 +252,14 @@ export interface UserPinnedAnnouncement {
   id: string;
   user_id: string;
   announcement_id: string;
-  pinned_at: string;
+  created_at: string;  // Directus auto-generated timestamp
 }
 
 export interface UserArchivedAnnouncement {
   id: string;
   user_id: string;
   announcement_id: string;
-  archived_at: string;
+  created_at: string;  // Directus auto-generated timestamp
 }
 
 export interface AnnouncementAcknowledgment {

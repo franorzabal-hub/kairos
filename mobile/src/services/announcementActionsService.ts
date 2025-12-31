@@ -6,14 +6,14 @@ export interface UserPinnedAnnouncement {
   id: string;
   user_id: string;
   announcement_id: string;
-  pinned_at: string;
+  created_at: string;  // Directus uses created_at for this collection
 }
 
 export interface UserArchivedAnnouncement {
   id: string;
   user_id: string;
   announcement_id: string;
-  archived_at: string;
+  created_at: string;  // Directus uses created_at for this collection
 }
 
 export interface AnnouncementAcknowledgment {
@@ -40,7 +40,7 @@ export async function getPinnedIds(userId: string): Promise<Set<string>> {
         },
         fields: ['announcement_id'],
         limit: 500,
-        sort: ['-pinned_at'],
+        sort: ['-created_at'],
       })
     );
     return new Set(pinned.map((p: { announcement_id: string }) => p.announcement_id));
@@ -116,7 +116,7 @@ export async function getArchivedIds(userId: string): Promise<Set<string>> {
         },
         fields: ['announcement_id'],
         limit: 500,
-        sort: ['-archived_at'],
+        sort: ['-created_at'],
       })
     );
     return new Set(archived.map((a: { announcement_id: string }) => a.announcement_id));
