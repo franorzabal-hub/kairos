@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -297,7 +297,11 @@ export default function ConversationChatScreen() {
     return currentDate !== prevDate;
   };
 
-  const renderMessage = ({ item, index }: { item: ConversationMessage; index: number }) => {
+  // Memoized keyExtractor to prevent unnecessary re-renders
+  const keyExtractor = useCallback((item: ConversationMessage) => item.id, []);
+
+  // Memoized renderItem to prevent unnecessary re-renders
+  const renderMessage = useCallback(({ item, index }: { item: ConversationMessage; index: number }) => {
     const senderId = typeof item.sender_id === 'string' ? item.sender_id : item.sender_id?.id;
     const isMyMessage = senderId === directusUserId;
     const showDate = shouldShowDateSeparator(index, messages);
@@ -313,7 +317,7 @@ export default function ConversationChatScreen() {
         )}
       </View>
     );
-  };
+  }, [directusUserId, messages, shouldShowDateSeparator, formatDate]);
 
   if (!conversationId) {
     return (
@@ -387,7 +391,7 @@ export default function ConversationChatScreen() {
           <FlashList
             ref={listRef}
             data={messages}
-            keyExtractor={(item) => item.id}
+            keyExtractor={keyExtractor}
             renderItem={renderMessage}
             contentContainerStyle={styles.messagesList}
             ListEmptyComponent={

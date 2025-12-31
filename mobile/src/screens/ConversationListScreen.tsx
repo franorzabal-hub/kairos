@@ -211,7 +211,7 @@ export default function ConversationListScreen() {
       ? conversation.lastMessage.sender_id
       : conversation.lastMessage.sender_id?.id;
     const senderName = sender?.first_name || 'Usuario';
-    const isMe = senderId === user?.directus_user_id;
+    const isMe = senderId === user?.id;
     const prefix = isMe ? 'Tú: ' : `${senderName}: `;
     return prefix + conversation.lastMessage.content;
   };
@@ -220,7 +220,11 @@ export default function ConversationListScreen() {
     router.push({ pathname: '/mensajes/[id]', params: { id: conversation.id } });
   };
 
-  const renderConversation = ({ item }: { item: ConversationWithMeta }) => {
+  // Memoized keyExtractor to prevent unnecessary re-renders
+  const keyExtractor = useCallback((item: ConversationWithMeta) => item.id, []);
+
+  // Memoized renderItem to prevent unnecessary re-renders
+  const renderConversation = useCallback(({ item }: { item: ConversationWithMeta }) => {
     const hasUnread = item.unreadCount > 0;
     const isUrgent = item.lastMessage?.is_urgent;
     const isClosed = item.status === 'closed';
@@ -328,7 +332,7 @@ export default function ConversationListScreen() {
         </View>
       </TouchableOpacity>
     );
-  };
+  }, [children, getParticipantInfo, getRelatedChildName, getChildColor, getLastMessagePreview, formatDate, handleConversationPress]);
 
   const ListHeader = () => (
     <View style={styles.listHeader}>
@@ -395,7 +399,7 @@ export default function ConversationListScreen() {
       ) : (
         <FlashList
           data={filteredConversations}
-          keyExtractor={(item) => item.id}
+          keyExtractor={keyExtractor}
           refreshControl={
             <RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />
           }

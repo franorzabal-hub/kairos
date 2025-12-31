@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -131,7 +131,11 @@ export default function EventosScreen() {
     return date.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' });
   };
 
-  const renderEventCard = ({ item }: { item: Event }) => {
+  // Memoized keyExtractor to prevent unnecessary re-renders
+  const keyExtractor = useCallback((item: Event) => item.id, []);
+
+  // Memoized renderItem to prevent unnecessary re-renders
+  const renderEventCard = useCallback(({ item }: { item: Event }) => {
     const itemIsUnread = !isRead(item.id);
     return (
       <TouchableOpacity
@@ -179,7 +183,7 @@ export default function EventosScreen() {
         </View>
       </TouchableOpacity>
     );
-  };
+  }, [isRead, markAsRead, router, formatDate]);
 
   const ListHeader = () => (
     <View style={styles.listHeader}>
@@ -235,7 +239,7 @@ export default function EventosScreen() {
             />
             <FlashList
               data={eventsForSelectedDate}
-              keyExtractor={(item) => item.id}
+              keyExtractor={keyExtractor}
               refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />}
               contentContainerStyle={styles.calendarListContent}
               renderItem={renderEventCard}
@@ -261,7 +265,7 @@ export default function EventosScreen() {
       ) : (
         <FlashList
           data={filteredEvents}
-          keyExtractor={(item) => item.id}
+          keyExtractor={keyExtractor}
           refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />}
           ListHeaderComponent={ListHeader}
           contentContainerStyle={styles.listContent}

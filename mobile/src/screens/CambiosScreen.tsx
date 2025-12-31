@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -232,7 +232,11 @@ export default function CambiosScreen() {
     </View>
   );
 
-  const renderHistoryItem = ({ item }: { item: PickupRequest }) => {
+  // Memoized keyExtractor to prevent unnecessary re-renders
+  const keyExtractor = useCallback((item: PickupRequest) => item.id, []);
+
+  // Memoized renderItem to prevent unnecessary re-renders
+  const renderHistoryItem = useCallback(({ item }: { item: PickupRequest }) => {
     const child = children.find(c => c.id === item.student_id);
     const childName = child ? `${child.first_name} ${child.last_name}` : 'Estudiante';
     const isEditable = canEditRequest(item);
@@ -270,7 +274,7 @@ export default function CambiosScreen() {
         ) : null}
       </View>
     );
-  };
+  }, [children, canEditRequest, formatDate, startEditing]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -403,7 +407,7 @@ export default function CambiosScreen() {
       ) : (
         <FlashList
           data={filteredPickupRequests}
-          keyExtractor={(item) => item.id}
+          keyExtractor={keyExtractor}
           refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />}
           ListHeaderComponent={ListHeader}
           contentContainerStyle={styles.historyContent}

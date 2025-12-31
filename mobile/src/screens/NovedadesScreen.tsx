@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FlashList } from '@shopify/flash-list';
@@ -98,6 +98,31 @@ export default function NovedadesScreen() {
     await refetch();
   };
 
+  // Memoized keyExtractor to prevent unnecessary re-renders
+  const keyExtractor = useCallback((item: Announcement) => item.id, []);
+
+  // Memoized renderItem to prevent unnecessary re-renders
+  const renderItem = useCallback(({ item }: { item: Announcement }) => {
+    const itemIsUnread = !isRead(item.id);
+    const itemIsPinned = pinnedIds.has(item.id) || Boolean(item.is_pinned);
+    const itemIsArchived = archivedIds.has(item.id);
+    const itemIsAcknowledged = acknowledgedIds.has(item.id);
+
+    return (
+      <SwipeableAnnouncementCard
+        item={item}
+        isUnread={itemIsUnread}
+        isPinned={itemIsPinned}
+        isArchived={itemIsArchived}
+        isAcknowledged={itemIsAcknowledged}
+        onMarkAsRead={() => markAsRead(item.id)}
+        onTogglePin={() => togglePin(item.id, itemIsPinned)}
+        onArchive={() => toggleArchive(item.id, false)}
+        onUnarchive={() => toggleArchive(item.id, true)}
+      />
+    );
+  }, [isRead, pinnedIds, archivedIds, acknowledgedIds, markAsRead, togglePin, toggleArchive]);
+
   const ListHeader = () => (
     <View style={styles.listHeader}>
       <ScreenHeader title="Novedades" />
@@ -121,32 +146,13 @@ export default function NovedadesScreen() {
       ) : (
         <FlashList
           data={filteredAnnouncements}
-          keyExtractor={(item) => item.id}
+          keyExtractor={keyExtractor}
           refreshControl={
             <RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />
           }
           ListHeaderComponent={ListHeader}
           contentContainerStyle={styles.listContent}
-          renderItem={({ item }: { item: Announcement }) => {
-            const itemIsUnread = !isRead(item.id);
-            const itemIsPinned = pinnedIds.has(item.id) || Boolean(item.is_pinned);
-            const itemIsArchived = archivedIds.has(item.id);
-            const itemIsAcknowledged = acknowledgedIds.has(item.id);
-
-            return (
-              <SwipeableAnnouncementCard
-                item={item}
-                isUnread={itemIsUnread}
-                isPinned={itemIsPinned}
-                isArchived={itemIsArchived}
-                isAcknowledged={itemIsAcknowledged}
-                onMarkAsRead={() => markAsRead(item.id)}
-                onTogglePin={() => togglePin(item.id, itemIsPinned)}
-                onArchive={() => toggleArchive(item.id, false)}
-                onUnarchive={() => toggleArchive(item.id, true)}
-              />
-            );
-          }}
+          renderItem={renderItem}
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <Text style={styles.emptyText}>No hay novedades</Text>

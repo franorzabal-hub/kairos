@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, RefreshControl, ActivityIndicator, Linking, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -109,7 +109,11 @@ export default function BoletinesScreen() {
     </View>
   );
 
-  const renderItem = ({ item }: { item: ReportListItem }) => {
+  // Memoized keyExtractor to prevent unnecessary re-renders
+  const keyExtractor = useCallback((item: ReportListItem) => item.id, []);
+
+  // Memoized renderItem to prevent unnecessary re-renders
+  const renderItem = useCallback(({ item }: { item: ReportListItem }) => {
     if (item.type === 'header') {
       return (
         <View style={styles.childSection}>
@@ -150,7 +154,7 @@ export default function BoletinesScreen() {
         </TouchableOpacity>
       </View>
     );
-  };
+  }, [isRead, handleDownload]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -162,7 +166,7 @@ export default function BoletinesScreen() {
       ) : (
         <FlashList
           data={listData}
-          keyExtractor={(item) => item.id}
+          keyExtractor={keyExtractor}
           refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />}
           ListHeaderComponent={ListHeader}
           contentContainerStyle={styles.listContent}
