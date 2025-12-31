@@ -8,7 +8,7 @@ import {
   ConversationMessage,
   DirectusUser,
 } from '../directus';
-import { useAppContext } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
 import { queryKeys } from './queryKeys';
 
 // Extended conversation type with computed properties
@@ -24,7 +24,7 @@ export interface ConversationWithMeta extends Conversation {
 // Fetch conversations for current user
 // OPTIMIZED: Replaced N+1 query pattern with batch queries
 export function useConversations() {
-  const { user } = useAppContext();
+  const { user } = useAuth();
   const directusUserId = user?.directus_user_id;
 
   const isEnabled = !!directusUserId;
@@ -175,7 +175,7 @@ export function useConversations() {
 
 // Fetch single conversation with messages
 export function useConversation(conversationId: string) {
-  const { user } = useAppContext();
+  const { user } = useAuth();
   const directusUserId = user?.directus_user_id;
 
   return useQuery({
@@ -200,7 +200,7 @@ export function useConversation(conversationId: string) {
 
 // Fetch messages for a conversation
 export function useConversationMessages(conversationId: string) {
-  const { user } = useAppContext();
+  const { user } = useAuth();
   const directusUserId = user?.directus_user_id;
 
   return useQuery({
@@ -229,7 +229,7 @@ export function useConversationMessages(conversationId: string) {
 // Send a message to a conversation
 export function useSendMessage() {
   const queryClient = useQueryClient();
-  const { user } = useAppContext();
+  const { user } = useAuth();
   const directusUserId = user?.directus_user_id;
 
   return useMutation({
@@ -268,7 +268,7 @@ export function useSendMessage() {
 // Mark conversation as read (update last_read_at)
 export function useMarkConversationRead() {
   const queryClient = useQueryClient();
-  const { user } = useAppContext();
+  const { user } = useAuth();
   const directusUserId = user?.directus_user_id;
 
   return useMutation({
@@ -295,7 +295,7 @@ export function useMarkConversationRead() {
 // Close a conversation (teacher only)
 export function useCloseConversation() {
   const queryClient = useQueryClient();
-  const { user } = useAppContext();
+  const { user } = useAuth();
   const directusUserId = user?.directus_user_id;
 
   return useMutation({
@@ -330,7 +330,7 @@ export function useCloseConversation() {
 // Reopen a closed conversation (teacher only)
 export function useReopenConversation() {
   const queryClient = useQueryClient();
-  const { user } = useAppContext();
+  const { user } = useAuth();
   const directusUserId = user?.directus_user_id;
 
   return useMutation({
@@ -357,7 +357,7 @@ export function useReopenConversation() {
 // Toggle can_reply for a participant (teacher only)
 export function useToggleParticipantReply() {
   const queryClient = useQueryClient();
-  const { user } = useAppContext();
+  const { user } = useAuth();
   const directusUserId = user?.directus_user_id;
 
   return useMutation({
@@ -386,7 +386,7 @@ export function useToggleParticipantReply() {
 // Block/unblock a participant (teacher only)
 export function useToggleParticipantBlocked() {
   const queryClient = useQueryClient();
-  const { user } = useAppContext();
+  const { user } = useAuth();
   const directusUserId = user?.directus_user_id;
 
   return useMutation({
@@ -415,7 +415,7 @@ export function useToggleParticipantBlocked() {
 // Mute/unmute conversation notifications (for current user)
 export function useMuteConversation() {
   const queryClient = useQueryClient();
-  const { user } = useAppContext();
+  const { user } = useAuth();
   const directusUserId = user?.directus_user_id;
 
   return useMutation({
@@ -444,7 +444,7 @@ export function useMuteConversation() {
 // Archive a conversation (teacher only)
 export function useArchiveConversation() {
   const queryClient = useQueryClient();
-  const { user } = useAppContext();
+  const { user } = useAuth();
   const directusUserId = user?.directus_user_id;
 
   return useMutation({
@@ -468,7 +468,7 @@ export function useArchiveConversation() {
 // Unarchive a conversation (restore to open status)
 export function useUnarchiveConversation() {
   const queryClient = useQueryClient();
-  const { user } = useAppContext();
+  const { user } = useAuth();
   const directusUserId = user?.directus_user_id;
 
   return useMutation({
@@ -503,7 +503,7 @@ export interface CreateConversationParams {
 // Create a new conversation with initial message
 export function useCreateConversation() {
   const queryClient = useQueryClient();
-  const { user } = useAppContext();
+  const { user } = useAuth();
   const directusUserId = user?.directus_user_id;
 
   return useMutation({

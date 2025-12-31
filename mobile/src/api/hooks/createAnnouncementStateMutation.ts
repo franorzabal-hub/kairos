@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useAppContext } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
 import { queryKeys } from './queryKeys';
 
 // Type for the announcement states cache
@@ -45,7 +45,7 @@ export function useAnnouncementStateMutation({
   operation,
 }: CreateMutationOptions) {
   const queryClient = useQueryClient();
-  const { user } = useAppContext();
+  const { user } = useAuth();
   const userId = user?.id;
 
   return useMutation({

@@ -1,7 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { readItems, updateItem } from '@directus/sdk';
 import { directus, Message, MessageRecipient } from '../directus';
-import { useAppContext } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
+import { useChildren } from '../../context/ChildrenContext';
+import { useUI } from '../../context/UIContext';
 import { queryKeys } from './queryKeys';
 
 // Extended message type with recipient info
@@ -13,7 +15,9 @@ export interface MessageWithReadStatus extends Message {
 
 // Fetch messages via message_recipients junction
 export function useMessages() {
-  const { user, selectedChildId, filterMode } = useAppContext();
+  const { user } = useAuth();
+  const { selectedChildId } = useChildren();
+  const { filterMode } = useUI();
 
   // message_recipients.user_id references directus_users, not app_users
   const directusUserId = user?.directus_user_id ?? '';
@@ -51,7 +55,7 @@ export function useMessages() {
 // Mark message as read by updating message_recipient
 export function useMarkMessageRead() {
   const queryClient = useQueryClient();
-  const { user } = useAppContext();
+  const { user } = useAuth();
   const directusUserId = user?.directus_user_id;
 
   return useMutation({

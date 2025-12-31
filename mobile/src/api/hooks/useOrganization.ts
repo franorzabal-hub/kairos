@@ -1,12 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 import { readItem } from '@directus/sdk';
 import { directus, Organization } from '../directus';
-import { useAppContext } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
 import { queryKeys } from './queryKeys';
 
 // Fetch organization data
 export function useOrganization() {
-  const { user } = useAppContext();
+  const { user } = useAuth();
 
   return useQuery({
     queryKey: queryKeys.organization(user?.organization_id || ''),

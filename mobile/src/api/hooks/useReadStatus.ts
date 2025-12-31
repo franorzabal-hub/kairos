@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useAppContext } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
 import { queryKeys } from './queryKeys';
 import {
   getReadIds as getReadIdsService,
@@ -17,7 +17,7 @@ export type { ContentType } from '../../services/readStatusService';
  * This ensures shared cache across all screens.
  */
 export function useReadIds(type: ContentType) {
-  const { user } = useAppContext();
+  const { user } = useAuth();
   const userId = user?.id;
 
   return useQuery({
@@ -36,7 +36,7 @@ export function useReadIds(type: ContentType) {
  */
 export function useMarkAsRead(type: ContentType) {
   const queryClient = useQueryClient();
-  const { user } = useAppContext();
+  const { user } = useAuth();
   const userId = user?.id;
 
   return useMutation({
@@ -78,7 +78,7 @@ export function useMarkAsRead(type: ContentType) {
  */
 export function useMarkAsUnread(type: ContentType) {
   const queryClient = useQueryClient();
-  const { user } = useAppContext();
+  const { user } = useAuth();
   const userId = user?.id;
 
   return useMutation({

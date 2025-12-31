@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useAppContext } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
 import { queryKeys } from './queryKeys';
 import {
   useAnnouncementStateMutation,
@@ -20,7 +20,7 @@ import {
  * Use this for the main feed to determine item states.
  */
 export function useAnnouncementStates() {
-  const { user } = useAppContext();
+  const { user } = useAuth();
   const userId = user?.id;
 
   return useQuery({

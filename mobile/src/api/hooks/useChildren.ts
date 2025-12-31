@@ -1,13 +1,15 @@
 import { useQuery } from '@tanstack/react-query';
 import { readItems } from '@directus/sdk';
 import { directus, Student } from '../directus';
-import { useAppContext } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
+import { useChildren as useChildrenContext } from '../../context/ChildrenContext';
 import { queryKeys } from './queryKeys';
 
 // Fetch children for the current user
 // Uses student_guardians junction table to find the parent's children
 export function useChildren() {
-  const { user, setChildren } = useAppContext();
+  const { user } = useAuth();
+  const { setChildren } = useChildrenContext();
   const userId = user?.id ?? '';
 
   return useQuery({

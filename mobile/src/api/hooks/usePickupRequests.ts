@@ -1,12 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { readItems, createItem, updateItem } from '@directus/sdk';
 import { directus, PickupRequest } from '../directus';
-import { useAppContext } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
+import { useChildren } from '../../context/ChildrenContext';
 import { queryKeys } from './queryKeys';
 
 // Fetch pickup requests
 export function usePickupRequests() {
-  const { user, children, selectedChildId } = useAppContext();
+  const { user } = useAuth();
+  const { children, selectedChildId } = useChildren();
   const userId = user?.id ?? '';
 
   return useQuery({
@@ -38,7 +40,7 @@ export function usePickupRequests() {
 // Create pickup request
 export function useCreatePickupRequest() {
   const queryClient = useQueryClient();
-  const { user } = useAppContext();
+  const { user } = useAuth();
   const userId = user?.id;
 
   return useMutation({
@@ -63,7 +65,7 @@ export function useCreatePickupRequest() {
 // Update pickup request (for editing pending requests)
 export function useUpdatePickupRequest() {
   const queryClient = useQueryClient();
-  const { user } = useAppContext();
+  const { user } = useAuth();
   const userId = user?.id;
 
   return useMutation({

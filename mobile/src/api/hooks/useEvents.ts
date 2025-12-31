@@ -1,12 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
 import { readItems, readItem } from '@directus/sdk';
 import { directus, Event } from '../directus';
-import { useAppContext } from '../../context/AppContext';
+import { useChildren } from '../../context/ChildrenContext';
+import { useUI } from '../../context/UIContext';
 import { queryKeys } from './queryKeys';
 
 // Fetch events
 export function useEvents() {
-  const { selectedChildId, filterMode } = useAppContext();
+  const { selectedChildId } = useChildren();
+  const { filterMode } = useUI();
 
   return useQuery({
     queryKey: [...queryKeys.events, selectedChildId, filterMode],
