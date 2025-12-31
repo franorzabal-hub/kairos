@@ -1,8 +1,8 @@
 /**
- * useEventCardLogic - Shared logic for EventCard components (mobile and web)
+ * useEventCardLogic - Shared logic for the unified EventCard component
  *
- * Extracts common date formatting, color calculations, and accessibility
- * label building from EventCard.tsx and WebEventCard.tsx
+ * Provides date formatting, color calculations, and accessibility
+ * labels for the cross-platform EventCard.tsx
  */
 import { useMemo } from 'react';
 import { Event } from '../api/directus';
