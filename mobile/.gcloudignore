@@ -1,0 +1,35 @@
+# Cloud Build ignore file
+# Only include what's needed for the web deployment
+
+# Include dist folder (override .gitignore)
+!dist/
+
+# Exclude development files
+node_modules/
+.expo/
+.git/
+ios/
+android/
+*.md
+*.log
+coverage/
+__tests__/
+__mocks__/
+.vscode/
+*.orig.*
+
+# Exclude source files not needed for deployment
+src/
+assets/
+app/
+*.ts
+*.tsx
+*.js
+*.jsx
+*.json
+!package.json
+
+# Keep only deployment files
+!Dockerfile
+!nginx.conf
+!dist/**
