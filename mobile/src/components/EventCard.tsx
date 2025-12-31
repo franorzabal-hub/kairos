@@ -5,6 +5,25 @@ import { useRouter } from 'expo-router';
 import { Event } from '../api/directus';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY, SHADOWS } from '../theme';
 
+/**
+ * Creates a pastel/light version of a hex color by blending with white
+ * @param hexColor - The base color in hex format (e.g., "#5C6BC0")
+ * @param intensity - How much of the original color to keep (0.15-0.25 works well)
+ * @returns Pastel version of the color
+ */
+function getPastelColor(hexColor: string, intensity: number = 0.2): string {
+  const r = parseInt(hexColor.slice(1, 3), 16);
+  const g = parseInt(hexColor.slice(3, 5), 16);
+  const b = parseInt(hexColor.slice(5, 7), 16);
+
+  // Blend with white (255, 255, 255)
+  const blendedR = Math.round(r * intensity + 255 * (1 - intensity));
+  const blendedG = Math.round(g * intensity + 255 * (1 - intensity));
+  const blendedB = Math.round(b * intensity + 255 * (1 - intensity));
+
+  return `#${blendedR.toString(16).padStart(2, '0')}${blendedG.toString(16).padStart(2, '0')}${blendedB.toString(16).padStart(2, '0')}`;
+}
+
 // Event status types
 export type EventStatus =
   | 'pending'      // Requires confirmation, not yet confirmed
@@ -99,27 +118,10 @@ function EventCard({
     });
   };
 
-  // Get relative day label if applicable
-  const getRelativeDay = (dateStr: string): string | null => {
-    const date = new Date(dateStr);
-    const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    if (date.toDateString() === today.toDateString()) {
-      return 'HOY';
-    }
-    if (date.toDateString() === tomorrow.toDateString()) {
-      return 'MAÑANA';
-    }
-    return null;
-  };
-
-  const relativeDay = getRelativeDay(event.start_date);
-
-  // Date block colors: child color if provided, otherwise default
-  const dateBlockBgColor = childColor || COLORS.primaryLight;
-  const dateBlockTextColor = childColor ? COLORS.white : COLORS.primary;
+  // Date block colors: always use soft pastel background with strong text
+  // This creates visual consistency across all cards while maintaining child identification
+  const dateBlockBgColor = childColor ? getPastelColor(childColor, 0.2) : COLORS.primaryLight;
+  const dateBlockTextColor = childColor || COLORS.primary;
 
   return (
     <TouchableOpacity
@@ -131,7 +133,7 @@ function EventCard({
       onPress={handlePress}
       activeOpacity={0.7}
     >
-      {/* Left: Date Block (Squircle) */}
+      {/* Left: Date Block (Squircle) - Left-aligned content */}
       <View style={[
         styles.dateBlock,
         { backgroundColor: dateBlockBgColor },
@@ -140,26 +142,15 @@ function EventCard({
         <Text style={[
           styles.dateMonth,
           { color: dateBlockTextColor },
-          childColor && styles.dateTextLight,
         ]}>
           {formatMonth(event.start_date)}
         </Text>
         <Text style={[
           styles.dateDay,
           { color: dateBlockTextColor },
-          childColor && styles.dateTextLight,
         ]}>
           {formatDay(event.start_date)}
         </Text>
-        {relativeDay && (
-          <View style={[
-            styles.relativeDayBadge,
-            isPending && styles.relativeDayBadgePending,
-            childColor && { backgroundColor: childColor },
-          ]}>
-            <Text style={styles.relativeDayText}>{relativeDay}</Text>
-          </View>
-        )}
       </View>
 
       {/* Center: Content */}
@@ -202,7 +193,7 @@ function EventCard({
             </>
           )}
 
-          {/* Child indicator (when viewing "Todos") - avatar style */}
+          {/* Child indicator (when viewing "Todos") - avatar only, name is redundant */}
           {childName && (
             <>
               <Text style={styles.metaSeparator}>•</Text>
@@ -211,9 +202,6 @@ function EventCard({
                   {childName.charAt(0).toUpperCase()}
                 </Text>
               </View>
-              <Text style={[styles.metaText, isPast && styles.textPast]}>
-                {childName}
-              </Text>
             </>
           )}
         </View>
@@ -261,48 +249,29 @@ const styles = StyleSheet.create({
   cardPast: {
     opacity: 0.6,
   },
-  // Date Block (Squircle)
+  // Date Block (Squircle) - Left-aligned for professional look
   dateBlock: {
     width: 56,
     height: 56,
     borderRadius: BORDERS.radius.lg,
-    alignItems: 'center',
+    alignItems: 'flex-start',  // Left align content
     justifyContent: 'center',
-    position: 'relative',
+    paddingLeft: SPACING.sm,   // Internal padding for left alignment
   },
   dateBlockPast: {
     opacity: 0.7,
   },
   dateMonth: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '600',
     letterSpacing: 0.5,
-    marginBottom: -2,
+    textTransform: 'uppercase',
   },
   dateDay: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '700',
     letterSpacing: -0.5,
-  },
-  dateTextLight: {
-    color: COLORS.white,
-  },
-  relativeDayBadge: {
-    position: 'absolute',
-    bottom: -4,
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: BORDERS.radius.sm,
-  },
-  relativeDayBadgePending: {
-    backgroundColor: COLORS.warning,
-  },
-  relativeDayText: {
-    fontSize: 8,
-    fontWeight: '700',
-    color: COLORS.white,
-    letterSpacing: 0.3,
+    marginTop: -2,
   },
   // Content
   content: {
