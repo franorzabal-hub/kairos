@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
-  Switch,
   Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,7 +17,8 @@ import { useSession } from '../hooks';
 import { clearAllReadStatus } from '../services/readStatusService';
 import { isBiometricEnabled, setBiometricEnabled } from '../api/directus';
 import Constants from 'expo-constants';
-import { COLORS, SPACING, BORDERS } from '../theme';
+import { SettingsRow, ToggleRow } from '../components/settings';
+import { COLORS, SPACING, BORDERS, FONT_SIZES, SIZES } from '../theme';
 import { logger } from '../utils';
 
 // Screen-specific semantic colors
@@ -29,69 +29,12 @@ const SETTINGS_COLORS = {
 
 // School contact info (would come from organization settings in production)
 const SCHOOL_INFO = {
-  name: 'Colegio San Martín',
+  name: 'Colegio San Martin',
   phone: '+54 11 4567-8900',
   email: 'info@colegiosanmartin.edu.ar',
   address: 'Av. Libertador 1234, Buenos Aires',
   website: 'https://colegiosanmartin.edu.ar',
 };
-
-type SettingsRowProps = {
-  icon: React.ReactNode;
-  label: string;
-  value?: string;
-  onPress?: () => void;
-  showChevron?: boolean;
-  destructive?: boolean;
-};
-
-const SettingsRow = ({ icon, label, value, onPress, showChevron = true, destructive = false }: SettingsRowProps) => (
-  <TouchableOpacity
-    style={styles.settingsRow}
-    onPress={onPress}
-    disabled={!onPress}
-    accessibilityRole="button"
-    accessibilityLabel={label}
-  >
-    <View style={styles.settingsRowLeft}>
-      {icon}
-      <Text style={[styles.settingsRowLabel, destructive && styles.destructiveText]}>{label}</Text>
-    </View>
-    <View style={styles.settingsRowRight}>
-      {value && <Text style={styles.settingsRowValue}>{value}</Text>}
-      {showChevron && onPress && (
-        <Ionicons name="chevron-forward" size={20} color={COLORS.gray} />
-      )}
-    </View>
-  </TouchableOpacity>
-);
-
-type ToggleRowProps = {
-  icon: React.ReactNode;
-  label: string;
-  description?: string;
-  value: boolean;
-  onValueChange: (value: boolean) => void;
-};
-
-const ToggleRow = ({ icon, label, description, value, onValueChange }: ToggleRowProps) => (
-  <View style={styles.toggleRow}>
-    <View style={styles.toggleRowLeft}>
-      {icon}
-      <View style={styles.toggleInfo}>
-        <Text style={styles.toggleLabel}>{label}</Text>
-        {description && <Text style={styles.toggleDescription}>{description}</Text>}
-      </View>
-    </View>
-    <Switch
-      value={value}
-      onValueChange={onValueChange}
-      trackColor={{ false: COLORS.border, true: COLORS.primaryLight }}
-      thumbColor={value ? COLORS.primary : COLORS.gray}
-      ios_backgroundColor={COLORS.border}
-    />
-  </View>
-);
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -120,7 +63,7 @@ export default function SettingsScreen() {
   // Biometric authentication state
   const [biometricEnabled, setBiometricState] = useState(false);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
-  const [biometricType, setBiometricType] = useState<string>('Biometría');
+  const [biometricType, setBiometricType] = useState<string>('Biometria');
 
   // Check biometric status on mount
   useEffect(() => {
@@ -154,7 +97,7 @@ export default function SettingsScreen() {
     if (newValue) {
       // Activating - verify biometric first
       const result = await LocalAuthentication.authenticateAsync({
-        promptMessage: 'Confirma para activar autenticación biométrica',
+        promptMessage: 'Confirma para activar autenticacion biometrica',
         cancelLabel: 'Cancelar',
         disableDeviceFallback: true,
       });
@@ -162,7 +105,7 @@ export default function SettingsScreen() {
       if (result.success) {
         await setBiometricEnabled(true);
         setBiometricState(true);
-        Alert.alert('Activado', `${biometricType} habilitado para inicio de sesión rápido.`);
+        Alert.alert('Activado', `${biometricType} habilitado para inicio de sesion rapido.`);
       }
     } else {
       // Deactivating
@@ -173,11 +116,11 @@ export default function SettingsScreen() {
 
   const handleLogout = () => {
     Alert.alert(
-      'Cerrar Sesión',
-      '¿Estás seguro que querés cerrar sesión?',
+      'Cerrar Sesion',
+      'Estas seguro que queres cerrar sesion?',
       [
         { text: 'Cancelar', style: 'cancel' },
-        { text: 'Cerrar Sesión', style: 'destructive', onPress: logout },
+        { text: 'Cerrar Sesion', style: 'destructive', onPress: logout },
       ]
     );
   };
@@ -202,15 +145,15 @@ export default function SettingsScreen() {
 
   const handleChangePassword = () => {
     Alert.alert(
-      'Cambiar Contraseña',
-      'Se enviará un enlace a tu correo electrónico para restablecer tu contraseña.',
+      'Cambiar Contrasena',
+      'Se enviara un enlace a tu correo electronico para restablecer tu contrasena.',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
           text: 'Enviar Enlace',
           onPress: () => {
             // TODO: Implement password reset
-            Alert.alert('Enlace Enviado', 'Revisá tu correo electrónico para cambiar tu contraseña.');
+            Alert.alert('Enlace Enviado', 'Revisa tu correo electronico para cambiar tu contrasena.');
           },
         },
       ]
@@ -220,7 +163,7 @@ export default function SettingsScreen() {
   const handleDeleteAccount = () => {
     Alert.alert(
       'Eliminar Cuenta',
-      'Esta acción es irreversible. Todos tus datos serán eliminados permanentemente. ¿Estás seguro?',
+      'Esta accion es irreversible. Todos tus datos seran eliminados permanentemente. Estas seguro?',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -230,7 +173,7 @@ export default function SettingsScreen() {
             // TODO: Implement account deletion request
             Alert.alert(
               'Solicitud Enviada',
-              'Tu solicitud de eliminación de cuenta ha sido recibida. Te contactaremos pronto.'
+              'Tu solicitud de eliminacion de cuenta ha sido recibida. Te contactaremos pronto.'
             );
           },
         },
@@ -241,7 +184,7 @@ export default function SettingsScreen() {
   const handleManageAuthorizedPersons = () => {
     Alert.alert(
       'Personas Autorizadas',
-      'Esta funcionalidad estará disponible próximamente. Por ahora, usá la sección "Cambios" para autorizar retiros.',
+      'Esta funcionalidad estara disponible proximamente. Por ahora, usa la seccion "Cambios" para autorizar retiros.',
       [{ text: 'Entendido' }]
     );
   };
@@ -249,7 +192,7 @@ export default function SettingsScreen() {
   const handleThemeChange = () => {
     Alert.alert(
       'Tema de la App',
-      'Seleccioná el tema visual',
+      'Selecciona el tema visual',
       [
         {
           text: 'Claro',
@@ -279,15 +222,15 @@ export default function SettingsScreen() {
   const handleClearReadStatus = () => {
     if (!user?.id) return;
     Alert.alert(
-      'Marcar Todo Como No Leído',
-      '¿Estás seguro? Todas las novedades, eventos, mensajes y boletines aparecerán como no leídos.',
+      'Marcar Todo Como No Leido',
+      'Estas seguro? Todas las novedades, eventos, mensajes y boletines apareceran como no leidos.',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
-          text: 'Marcar No Leído',
+          text: 'Marcar No Leido',
           onPress: async () => {
             await clearAllReadStatus(user.id);
-            Alert.alert('Listo', 'Todo el contenido ha sido marcado como no leído.');
+            Alert.alert('Listo', 'Todo el contenido ha sido marcado como no leido.');
           },
         },
       ]
@@ -304,7 +247,7 @@ export default function SettingsScreen() {
       {/* Header - Modal style with X close button */}
       <View style={styles.header}>
         <View style={styles.headerSpacer} />
-        <Text style={styles.headerTitle}>Configuración</Text>
+        <Text style={styles.headerTitle}>Configuracion</Text>
         <TouchableOpacity
           onPress={() => router.back()}
           style={styles.closeButton}
@@ -424,7 +367,7 @@ export default function SettingsScreen() {
             label="Historial de Retiros"
             onPress={() => {
               // Navigate to CambiosScreen history tab
-              Alert.alert('Historial', 'Accedé desde la sección Cambios para ver el historial.');
+              Alert.alert('Historial', 'Accede desde la seccion Cambios para ver el historial.');
             }}
           />
         </View>
@@ -443,13 +386,13 @@ export default function SettingsScreen() {
           <SettingsRow
             icon={<Ionicons name="language-outline" size={22} color={COLORS.primary} style={styles.icon} />}
             label="Idioma"
-            value="Español"
-            onPress={() => Alert.alert('Idioma', 'Por ahora solo español está disponible.')}
+            value="Espanol"
+            onPress={() => Alert.alert('Idioma', 'Por ahora solo espanol esta disponible.')}
           />
 
           <SettingsRow
             icon={<Ionicons name="eye-off-outline" size={22} color={COLORS.primary} style={styles.icon} />}
-            label="Marcar Todo No Leído"
+            label="Marcar Todo No Leido"
             onPress={handleClearReadStatus}
           />
         </View>
@@ -461,7 +404,7 @@ export default function SettingsScreen() {
           <SettingsRow
             icon={<Ionicons name="help-circle-outline" size={22} color={COLORS.primary} style={styles.icon} />}
             label="Preguntas Frecuentes"
-            onPress={() => Alert.alert('FAQ', 'Próximamente: sección de preguntas frecuentes.')}
+            onPress={() => Alert.alert('FAQ', 'Proximamente: seccion de preguntas frecuentes.')}
           />
 
           <SettingsRow
@@ -487,7 +430,7 @@ export default function SettingsScreen() {
 
           <SettingsRow
             icon={<Ionicons name="location-outline" size={22} color={COLORS.primary} style={styles.icon} />}
-            label="Dirección"
+            label="Direccion"
             value={SCHOOL_INFO.address}
             showChevron={false}
             onPress={() => {
@@ -502,7 +445,7 @@ export default function SettingsScreen() {
 
           <SettingsRow
             icon={<Ionicons name="key-outline" size={22} color={COLORS.primary} style={styles.icon} />}
-            label="Cambiar Contraseña"
+            label="Cambiar Contrasena"
             onPress={handleChangePassword}
           />
 
@@ -510,14 +453,14 @@ export default function SettingsScreen() {
             <ToggleRow
               icon={<Ionicons name="finger-print-outline" size={22} color={COLORS.primary} style={styles.icon} />}
               label={biometricType}
-              description="Inicio de sesión rápido"
+              description="Inicio de sesion rapido"
               value={biometricEnabled}
               onValueChange={handleToggleBiometric}
             />
           ) : (
             <SettingsRow
               icon={<Ionicons name="finger-print-outline" size={22} color={COLORS.gray} style={styles.icon} />}
-              label="Autenticación Biométrica"
+              label="Autenticacion Biometrica"
               value="No disponible"
               showChevron={false}
             />
@@ -530,23 +473,23 @@ export default function SettingsScreen() {
 
           <SettingsRow
             icon={<Ionicons name="document-outline" size={22} color={COLORS.primary} style={styles.icon} />}
-            label="Términos y Condiciones"
-            onPress={() => Alert.alert('Términos', 'Próximamente: términos y condiciones.')}
+            label="Terminos y Condiciones"
+            onPress={() => Alert.alert('Terminos', 'Proximamente: terminos y condiciones.')}
           />
 
           <SettingsRow
             icon={<Ionicons name="shield-outline" size={22} color={COLORS.primary} style={styles.icon} />}
-            label="Política de Privacidad"
-            onPress={() => Alert.alert('Privacidad', 'Próximamente: política de privacidad.')}
+            label="Politica de Privacidad"
+            onPress={() => Alert.alert('Privacidad', 'Proximamente: politica de privacidad.')}
           />
         </View>
 
         {/* App Info Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Información de la App</Text>
+          <Text style={styles.sectionTitle}>Informacion de la App</Text>
 
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Versión</Text>
+            <Text style={styles.infoLabel}>Version</Text>
             <Text style={styles.infoValue}>{appVersion}</Text>
           </View>
 
@@ -562,10 +505,10 @@ export default function SettingsScreen() {
             style={styles.logoutButton}
             onPress={handleLogout}
             accessibilityRole="button"
-            accessibilityLabel="Cerrar sesión"
+            accessibilityLabel="Cerrar sesion"
           >
             <Ionicons name="log-out-outline" size={20} color={SETTINGS_COLORS.danger} />
-            <Text style={styles.logoutText}>Cerrar Sesión</Text>
+            <Text style={styles.logoutText}>Cerrar Sesion</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -595,8 +538,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.md,
     backgroundColor: COLORS.white,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
@@ -610,7 +553,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 17,
+    fontSize: FONT_SIZES['3xl'],
     fontWeight: '600',
     color: '#000',
   },
@@ -622,52 +565,52 @@ const styles = StyleSheet.create({
   },
   profileSection: {
     alignItems: 'center',
-    paddingVertical: 32,
+    paddingVertical: SPACING.xxxl,
     backgroundColor: COLORS.white,
-    marginBottom: 16,
+    marginBottom: SPACING.lg,
   },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: SIZES.avatarXl + SIZES.iconLg,
+    height: SIZES.avatarXl + SIZES.iconLg,
+    borderRadius: BORDERS.radius.xxl + BORDERS.radius.xxl,
     backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: SPACING.lg,
   },
   avatarText: {
-    fontSize: 28,
+    fontSize: FONT_SIZES['7xl'],
     fontWeight: '700',
     color: COLORS.white,
   },
   userName: {
-    fontSize: 20,
+    fontSize: FONT_SIZES['5xl'],
     fontWeight: '600',
     color: '#333',
-    marginBottom: 4,
+    marginBottom: SPACING.xs,
   },
   userEmail: {
-    fontSize: 14,
+    fontSize: FONT_SIZES.lg,
     color: COLORS.gray,
   },
   section: {
     backgroundColor: COLORS.white,
-    marginBottom: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    marginBottom: SPACING.lg,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.lg,
   },
   sectionTitle: {
-    fontSize: 13,
+    fontSize: FONT_SIZES.base,
     fontWeight: '600',
     color: COLORS.gray,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginBottom: 12,
+    marginBottom: SPACING.md,
   },
   childRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: SPACING.md,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
@@ -675,16 +618,16 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0,
   },
   childAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: SIZES.avatarMd,
+    height: SIZES.avatarMd,
+    borderRadius: BORDERS.radius.xxl,
     backgroundColor: COLORS.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: SPACING.md,
   },
   childAvatarText: {
-    fontSize: 16,
+    fontSize: FONT_SIZES['2xl'],
     fontWeight: '600',
     color: COLORS.primary,
   },
@@ -692,93 +635,35 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   childName: {
-    fontSize: 16,
+    fontSize: FONT_SIZES['2xl'],
     fontWeight: '500',
     color: '#333',
   },
-  // Settings Row styles
-  settingsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  settingsRowLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  settingsRowRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  settingsRowLabel: {
-    fontSize: 16,
-    color: '#333',
-  },
-  settingsRowValue: {
-    fontSize: 14,
-    color: COLORS.gray,
-    marginRight: 8,
-    maxWidth: 150,
-  },
-  destructiveText: {
-    color: SETTINGS_COLORS.danger,
-  },
   icon: {
-    marginRight: 12,
-    width: 24,
-  },
-  // Toggle Row styles
-  toggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  toggleRowLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    marginRight: 12,
-  },
-  toggleInfo: {
-    flex: 1,
-  },
-  toggleLabel: {
-    fontSize: 16,
-    color: '#333',
-  },
-  toggleDescription: {
-    fontSize: 12,
-    color: COLORS.gray,
-    marginTop: 2,
+    marginRight: SPACING.md,
+    width: SIZES.iconLg,
   },
   divider: {
-    height: 16,
+    height: SPACING.lg,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
-    marginBottom: 8,
+    marginBottom: SPACING.sm,
   },
   // Info Row styles
   infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: SPACING.md,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
   infoLabel: {
-    fontSize: 16,
+    fontSize: FONT_SIZES['2xl'],
     color: '#333',
   },
   infoValue: {
-    fontSize: 16,
+    fontSize: FONT_SIZES['2xl'],
     color: COLORS.gray,
   },
   // Action buttons
@@ -786,29 +671,29 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
+    paddingVertical: SPACING.listItemPadding,
     backgroundColor: SETTINGS_COLORS.dangerLight,
-    borderRadius: 8,
-    marginBottom: 12,
+    borderRadius: BORDERS.radius.md,
+    marginBottom: SPACING.md,
   },
   logoutText: {
-    fontSize: 16,
+    fontSize: FONT_SIZES['2xl'],
     fontWeight: '600',
     color: SETTINGS_COLORS.danger,
-    marginLeft: 8,
+    marginLeft: SPACING.sm,
   },
   deleteAccountButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
+    paddingVertical: SPACING.md,
   },
   deleteAccountText: {
-    fontSize: 14,
+    fontSize: FONT_SIZES.lg,
     color: SETTINGS_COLORS.danger,
-    marginLeft: 6,
+    marginLeft: SPACING.xs + SPACING.xxs,
   },
   bottomSpacing: {
-    height: 32,
+    height: SPACING.xxxl,
   },
 });
