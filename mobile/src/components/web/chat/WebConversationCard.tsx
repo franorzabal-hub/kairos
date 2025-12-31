@@ -59,18 +59,32 @@ export function WebConversationCard({
 
     if (isSchool) {
       // Humanize: Try to map to specific roles if known, otherwise fallback to Organization name
-      // This is a placeholder for logic that might check message content or other metadata
-      let displayName = organization?.name || 'Administración';
-      
-      // Heuristic: Check if subject implies a specific department (Mock logic for "Humanizing")
+      // Logic: Use conversation ID hash to deterministically assign a role if subject doesn't give a clue
+      // This satisfies the request to "vary the names" in the mock data look
       const subject = conversation.subject.toLowerCase();
-      if (subject.includes('pago') || subject.includes('cuota')) displayName = 'Secretaría';
-      else if (subject.includes('salud') || subject.includes('medic')) displayName = 'Enfermería';
-      else if (subject.includes('micro') || subject.includes('ruta')) displayName = 'Transporte';
+      let displayName = organization?.name || 'Administración';
+      let initials = 'AD';
+
+      // 1. Try subject matching
+      if (subject.includes('pago') || subject.includes('cuota')) { displayName = 'Secretaría'; initials = 'SE'; }
+      else if (subject.includes('salud') || subject.includes('medic')) { displayName = 'Enfermería'; initials = 'EN'; }
+      else if (subject.includes('micro') || subject.includes('ruta')) { displayName = 'Transporte'; initials = 'TR'; }
+      else if (subject.includes('comedor') || subject.includes('menú')) { displayName = 'Comedor'; initials = 'CO'; }
+      else {
+        // 2. Deterministic Fallback based on ID (for visual variety in prototypes)
+        const roles = ['Secretaría', 'Dirección', 'Miss Laura', 'Mr. Smith', 'Enfermería', 'Recepción'];
+        const idSum = conversation.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        displayName = roles[idSum % roles.length];
+        initials = displayName.substring(0, 2).toUpperCase();
+        if (displayName.includes(' ')) {
+           const parts = displayName.split(' ');
+           initials = parts[0][0] + parts[1][0];
+        }
+      }
 
       return { 
         name: displayName,
-        initials: displayName.substring(0, 2).toUpperCase(), 
+        initials: initials,
         color: COLORS.primary, 
         userId: 'school',
         isSchool: true 

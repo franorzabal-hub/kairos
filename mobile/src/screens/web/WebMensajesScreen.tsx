@@ -526,13 +526,85 @@ export default function WebMensajesScreen() {
       breadcrumbs={[{ label: 'Inicio', href: '/' }, { label: 'Mensajes', href: '/mensajes' }]}
       fullScreen={true}
     >
-      <View className="flex-1 flex-row h-full bg-white">
-        <MasterDetailLayout
-          master={renderMaster()}
-          detail={renderDetail()}
-          masterWidth={360}
-          gap={0}
-        />
+      {/* Page Wrapper - Full Height, No Global Scroll */}
+      <View className="h-screen overflow-hidden flex flex-row bg-white w-full">
+        
+        {/* LEFT COLUMN: Message List */}
+        <View className="w-1/3 border-r border-gray-200 flex flex-col h-full bg-white">
+          {/* Header (Sticky) */}
+          <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-100 bg-white z-10">
+            <Text className="text-lg font-bold text-gray-800">
+              Bandeja de entrada
+            </Text>
+            {/* New Conversation Button */}
+            <Pressable
+              onPress={() => setViewMode(viewMode === 'new' ? 'list' : 'new')}
+              style={(state) => ({
+                opacity: (state as WebPressableState).hovered ? 0.9 : 1,
+                transform: [{ scale: (state as WebPressableState).pressed ? 0.98 : 1 }],
+              })}
+              className="flex-row items-center bg-primary px-3 py-1.5 rounded-md shadow-sm transition-all"
+            >
+              <Ionicons name="add" size={16} color={COLORS.white} style={{ marginRight: 4 }} />
+              <Text className="text-white text-xs font-bold uppercase tracking-wide">
+                Nuevo
+              </Text>
+            </Pressable>
+          </View>
+
+          {/* Filter Bar */}
+          <View className="p-2 border-b border-gray-100 bg-gray-50/50">
+            <SegmentedControl
+              segments={[
+                { key: 'all', label: 'Todos' },
+                { key: 'unread', label: 'No leídos', count: unreadCount },
+              ]}
+              selectedKey={messageFilter}
+              onSelect={(key) => setMessageFilter(key as MessageFilter)}
+            />
+          </View>
+
+          {/* Scrollable List */}
+          <View className="flex-1 overflow-hidden">
+            {loadingConversations ? (
+              <View className="flex-1 items-center justify-center">
+                <ActivityIndicator size="small" color={COLORS.primary} />
+              </View>
+            ) : filteredConversations.length === 0 ? (
+              <View className="flex-1 items-center justify-center p-8">
+                <Ionicons name="chatbubbles-outline" size={40} color={COLORS.gray300} />
+                <Text className="text-gray-400 mt-2 text-center text-sm">
+                  {messageFilter === 'unread' ? 'No tienes mensajes sin leer' : 'Bandeja vacía'}
+                </Text>
+              </View>
+            ) : (
+              <ScrollView 
+                className="flex-1"
+                contentContainerStyle={{ paddingBottom: 20 }}
+                showsVerticalScrollIndicator={true}
+              >
+                <ResponsiveCardList gap={0}>
+                  {filteredConversations.map((conversation) => (
+                    <WebConversationCard
+                      key={conversation.id}
+                      conversation={conversation}
+                      children={children}
+                      currentUserId={user?.id}
+                      isSelected={conversation.id === selectedConversationId}
+                      onPress={handleSelectConversation}
+                    />
+                  ))}
+                </ResponsiveCardList>
+              </ScrollView>
+            )}
+          </View>
+        </View>
+
+        {/* RIGHT COLUMN: Detail / Chat */}
+        <View className="flex-1 flex flex-col h-full bg-gray-50/50">
+          {renderDetail()}
+        </View>
+
       </View>
     </WebLayout>
   );
