@@ -187,7 +187,7 @@ function EventCard({
                 size={12}
                 color={isPast ? COLORS.border : COLORS.gray}
               />
-              <Text style={[styles.metaText, isPast && styles.textPast]} numberOfLines={1}>
+              <Text style={[styles.metaText, styles.locationText, isPast && styles.textPast]} numberOfLines={1}>
                 {event.location_external}
               </Text>
             </>
@@ -304,6 +304,10 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.caption,
     color: COLORS.gray,
   },
+  locationText: {
+    flex: 1,        // Take remaining space and truncate if needed
+    flexShrink: 1,  // Allow shrinking to keep avatar on same line
+  },
   metaSeparator: {
     ...TYPOGRAPHY.caption,
     color: COLORS.border,
@@ -316,6 +320,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
+    marginLeft: 4,  // Breathing room from location text
   },
   childInitial: {
     fontSize: 9,
