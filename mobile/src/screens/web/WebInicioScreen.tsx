@@ -13,10 +13,9 @@ import { View, Text, Pressable, ActivityIndicator, Platform, PressableStateCallb
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import ScreenHeader from '../../components/ScreenHeader';
-import QuickAccess from '../../components/QuickAccess';
 import SegmentedControl from '../../components/SegmentedControl';
 import ChildSelector from '../../components/ChildSelector';
-import { WebLayout, WebAnnouncementCard, ResponsiveCardGrid, WebEventCard, EventStatus } from '../../components/web';
+import { WebLayout, WebAnnouncementCard, ResponsiveCardGrid, WebEventCard, EventStatus, WebQuickActions } from '../../components/web';
 import { useFilters, useUnreadCounts } from '../../context/AppContext';
 import {
   useAnnouncements,
@@ -180,10 +179,10 @@ export default function WebInicioScreen() {
 
   return (
     <WebLayout title="Inicio" breadcrumbs={[{ label: 'Inicio', href: '/' }]}>
-      <View className="flex-1 w-full max-w-[1600px] mx-auto">
+      <View className="flex-1 w-full max-w-[1600px] mx-auto pb-12">
         {/* Dashboard Header */}
-        <View className="mb-8">
-          <Text className="text-3xl font-bold text-gray-900 mb-1">
+        <View className="mb-10">
+          <Text className="text-3xl font-bold text-gray-900 mb-2">
             Hola, {user?.first_name || 'Usuario'} 👋
           </Text>
           <Text className="text-base text-gray-500">
@@ -192,8 +191,8 @@ export default function WebInicioScreen() {
         </View>
 
         {/* Quick Access - Horizontal Grid */}
-        <View className="mb-8">
-           <QuickAccess
+        <View className="mb-12">
+           <WebQuickActions
              onReportAbsence={handleReportAbsence}
              onPickupChange={handlePickupChange}
              onContactSchool={handleContactSchool}
@@ -202,8 +201,8 @@ export default function WebInicioScreen() {
 
         {/* Upcoming Events Section */}
         {upcomingEvents.length > 0 && (
-          <View className="mb-10">
-            <View className="flex-row justify-between items-center mb-4">
+          <View className="mb-12">
+            <View className="flex-row justify-between items-center mb-6">
               <Text className="text-xl font-bold text-gray-800">
                 Próximos Eventos
               </Text>
@@ -218,7 +217,7 @@ export default function WebInicioScreen() {
             </View>
 
             {/* Events Grid - 3 columns on web */}
-            <View className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <View className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {upcomingEvents.map((event) => (
                 <View key={event.id} className="w-full">
                   <WebEventCard
@@ -235,7 +234,7 @@ export default function WebInicioScreen() {
         {/* Announcements Section */}
         <View>
           {/* Header with filter */}
-          <View className="flex-row justify-between items-center mb-6">
+          <View className="flex-row justify-between items-center mb-8">
             <View className="flex-row items-center gap-4">
               <Text className="text-xl font-bold text-gray-800">
                 Novedades
@@ -271,7 +270,7 @@ export default function WebInicioScreen() {
               </Text>
             </View>
           ) : (
-            <ResponsiveCardGrid minColumnWidth={320} gap={24}>
+            <ResponsiveCardGrid minColumnWidth={320} gap={32}>
               {filteredAnnouncements.map((announcement) => {
                 const itemIsUnread = !isRead(announcement.id);
                 const itemIsPinned = pinnedIds.has(announcement.id) || Boolean(announcement.is_pinned);

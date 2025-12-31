@@ -124,9 +124,12 @@ export function WebAnnouncementCard({
         backgroundColor: COLORS.white,
         borderRadius: BORDERS.radius.lg,
         overflow: 'hidden',
-        borderTopWidth: 4,
-        borderTopColor: accentColor,
+        borderLeftWidth: 4,
+        borderLeftColor: accentColor,
         borderWidth: 1,
+        borderTopWidth: 1, // Reset top width to 1
+        borderRightWidth: 1,
+        borderBottomWidth: 1,
         borderColor: COLORS.border,
         ...(Platform.OS === 'web' ? {
           boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
