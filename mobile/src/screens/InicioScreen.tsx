@@ -1,5 +1,10 @@
-import React, { useMemo, useCallback } from 'react';
-import { View, Text, StyleSheet, RefreshControl, ActivityIndicator, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useMemo, useCallback, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, RefreshControl, ActivityIndicator, TouchableOpacity, ScrollView, LayoutAnimation, Platform, UIManager } from 'react-native';
+
+// Enable LayoutAnimation for Android
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { FlashList } from '@shopify/flash-list';
@@ -49,6 +54,16 @@ export default function InicioScreen() {
 
   // Get selected child's section for filtering
   const selectedChild = selectedChildId ? getChildById(selectedChildId) || null : null;
+
+  // Track previous child ID to detect changes and animate layout
+  const prevChildIdRef = useRef(selectedChildId);
+  useEffect(() => {
+    if (prevChildIdRef.current !== selectedChildId) {
+      // Animate layout change when child filter changes
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      prevChildIdRef.current = selectedChildId;
+    }
+  }, [selectedChildId]);
 
   // Calculate counts for filter badges
   const pinnedCount = pinnedIds.size;
@@ -242,7 +257,6 @@ export default function InicioScreen() {
       ) : (
         <FlashList
           data={filteredAnnouncements}
-          extraData={selectedChildId}
           keyExtractor={(item) => item.id}
           refreshControl={
             <RefreshControl refreshing={isRefetchingAnnouncements} onRefresh={onRefresh} />
