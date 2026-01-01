@@ -94,10 +94,10 @@ export function WebAnnouncementCard({
     >
       {/* Image Section - Full width at top like mobile cards */}
       {item.image ? (
-        <View className="relative">
+        <View className="relative w-full" style={{ height: 160 }}>
           <DirectusImage
             fileId={item.image}
-            style={{ width: '100%', height: 160 }}
+            style={{ width: '100%', height: '100%' }}
             contentFit="cover"
           />
           {/* Date Badge Overlay (matching mobile pattern) */}

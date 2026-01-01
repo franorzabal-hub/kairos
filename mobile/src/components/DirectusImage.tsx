@@ -5,7 +5,7 @@ import { directus, DIRECTUS_URL } from '../api/directus';
 import { imageDebugger } from '../services/imageDebugger';
 
 // DEBUG FLAG - set to true to see debug info on screen
-const DEBUG_MODE = true;
+const DEBUG_MODE = false;
 
 // Blur hash placeholder for loading state (soft gray gradient)
 const DEFAULT_BLUR_HASH = 'L5H2EC=PM+yV0g-mq.wG9c010J}I';

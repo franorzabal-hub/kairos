@@ -68,10 +68,10 @@ export function WebEventCard({
     >
       {/* Image Section - Full width at top like mobile cards */}
       {event.image ? (
-        <View className="relative">
+        <View className="relative w-full" style={{ height: 120 }}>
           <DirectusImage
             fileId={event.image}
-            style={{ width: '100%', height: 120 }}
+            style={{ width: '100%', height: '100%' }}
             contentFit="cover"
           />
           {/* Date Badge Overlay (like mobile announcement pattern) */}
