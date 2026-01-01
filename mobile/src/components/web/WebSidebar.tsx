@@ -114,7 +114,6 @@ export function WebSidebar() {
         >
           {organization?.name || 'Kairos'}
         </Text>
-        <Ionicons name="chevron-down" size={14} color={COLORS.sidebarMuted} />
       </Pressable>
 
       {/* Main Navigation */}
