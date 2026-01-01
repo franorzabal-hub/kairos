@@ -1,13 +1,14 @@
 /**
- * PermissionDebugPanel - Floating dev panel for permission debugging
+ * PermissionDebugPanel - Floating dev panel for debugging
  *
- * Shows missing permissions in real-time during development.
+ * Shows missing permissions and image loading errors in real-time during development.
  * Only renders in __DEV__ mode.
  *
  * Features:
  * - Collapsible floating panel
- * - Real-time updates when permissions are denied
- * - Export format for Directus configuration
+ * - Tabs for Permissions and Images
+ * - Real-time updates when permissions are denied or images fail
+ * - Export format for debugging
  * - Copy to clipboard
  *
  * @example
@@ -29,8 +30,11 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { permissionDebugger } from '../services/permissionDebugger';
+import { imageDebugger, ImageLoadResult } from '../services/imageDebugger';
 import { MissingPermission } from '../services/permissionService';
 import { COLORS, SPACING, TYPOGRAPHY, BORDERS } from '../theme';
+
+type DebugTab = 'permissions' | 'images';
 
 interface PermissionDebugPanelProps {
   /** Initial collapsed state */
@@ -44,7 +48,9 @@ export default function PermissionDebugPanel({
   mode = 'floating',
 }: PermissionDebugPanelProps) {
   const [collapsed, setCollapsed] = useState(initialCollapsed);
+  const [activeTab, setActiveTab] = useState<DebugTab>('images'); // Default to images since that's what we're debugging
   const [missing, setMissing] = useState<MissingPermission[]>([]);
+  const [imageResults, setImageResults] = useState<ImageLoadResult[]>([]);
   const [copied, setCopied] = useState(false);
 
   // Subscribe to missing permission updates
@@ -60,19 +66,43 @@ export default function PermissionDebugPanel({
     return unsubscribe;
   }, []);
 
-  // Copy export to clipboard
+  // Subscribe to image debug updates
+  useEffect(() => {
+    // Load existing image results
+    setImageResults(imageDebugger.getAll());
+
+    // Subscribe to new ones
+    const unsubscribe = imageDebugger.onResult((item) => {
+      setImageResults(imageDebugger.getAll());
+    });
+
+    return unsubscribe;
+  }, []);
+
+  // Copy export to clipboard (based on active tab)
   const handleCopy = useCallback(() => {
-    const exportText = permissionDebugger.exportAsText();
+    const exportText = activeTab === 'permissions'
+      ? permissionDebugger.exportAsText()
+      : imageDebugger.exportAsText();
     Clipboard.setString(exportText);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  }, []);
+  }, [activeTab]);
 
-  // Clear all logged permissions
+  // Clear all logged items (based on active tab)
   const handleClear = useCallback(() => {
-    permissionDebugger.clear();
-    setMissing([]);
-  }, []);
+    if (activeTab === 'permissions') {
+      permissionDebugger.clear();
+      setMissing([]);
+    } else {
+      imageDebugger.clear();
+      setImageResults([]);
+    }
+  }, [activeTab]);
+
+  // Count errors for badges
+  const imageErrorCount = imageResults.filter(r => r.status === 'error').length;
+  const totalIssues = missing.length + imageErrorCount;
 
   // Don't render in production
   if (!__DEV__) {
@@ -87,10 +117,10 @@ export default function PermissionDebugPanel({
           style={{ flexDirection: 'row', alignItems: 'center', gap: 6, opacity: 0.7 }}
           onPress={() => setCollapsed(!collapsed)}
         >
-          <Ionicons name="lock-closed" size={14} color={COLORS.white} />
-          {missing.length > 0 && (
+          <Ionicons name="bug-outline" size={14} color={COLORS.white} />
+          {totalIssues > 0 && (
             <View style={{ backgroundColor: COLORS.error, borderRadius: 6, paddingHorizontal: 4, height: 12, justifyContent: 'center' }}>
-              <Text style={{ fontSize: 8, color: 'white', fontWeight: 'bold' }}>{missing.length}</Text>
+              <Text style={{ fontSize: 8, color: 'white', fontWeight: 'bold' }}>{totalIssues}</Text>
             </View>
           )}
         </TouchableOpacity>
@@ -98,10 +128,23 @@ export default function PermissionDebugPanel({
         {/* Render panel absolute relative to the footer/screen if expanded */}
         {!collapsed && (
           <View style={[styles.container, { bottom: 40, right: 10 }]}>
-            {/* Re-use existing panel content structure */}
+            {/* Header with tabs */}
             <View style={styles.header}>
-              <View style={styles.headerLeft}>
-                <Text style={styles.headerTitle}>Permisos ({missing.length})</Text>
+              <View style={styles.tabContainer}>
+                <TouchableOpacity
+                  style={[styles.tab, activeTab === 'images' && styles.tabActive]}
+                  onPress={() => setActiveTab('images')}
+                >
+                  <Ionicons name="image-outline" size={12} color={COLORS.white} />
+                  <Text style={styles.tabText}>Imgs ({imageErrorCount})</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.tab, activeTab === 'permissions' && styles.tabActive]}
+                  onPress={() => setActiveTab('permissions')}
+                >
+                  <Ionicons name="lock-closed" size={12} color={COLORS.white} />
+                  <Text style={styles.tabText}>Perms ({missing.length})</Text>
+                </TouchableOpacity>
               </View>
               <View style={styles.headerRight}>
                 <TouchableOpacity onPress={handleCopy} style={styles.headerButton}>
@@ -116,15 +159,40 @@ export default function PermissionDebugPanel({
               </View>
             </View>
             <ScrollView style={styles.content} nestedScrollEnabled>
-              {missing.length === 0 ? (
-                <Text style={styles.emptyText}>Sin permisos faltantes</Text>
+              {activeTab === 'permissions' ? (
+                missing.length === 0 ? (
+                  <Text style={styles.emptyText}>Sin permisos faltantes</Text>
+                ) : (
+                  missing.map((item, index) => (
+                    <View key={index} style={styles.item}>
+                      <Text style={styles.itemAction}>{item.action} {item.collection}</Text>
+                      <Text style={styles.itemMessage}>{item.message}</Text>
+                    </View>
+                  ))
+                )
               ) : (
-                missing.map((item, index) => (
-                  <View key={index} style={styles.item}>
-                    <Text style={styles.itemAction}>{item.action} {item.collection}</Text>
-                    <Text style={styles.itemMessage}>{item.message}</Text>
-                  </View>
-                ))
+                imageResults.length === 0 ? (
+                  <Text style={styles.emptyText}>Sin intentos de carga de imágenes</Text>
+                ) : (
+                  imageResults.map((item, index) => (
+                    <View key={index} style={[styles.item, item.status === 'error' && styles.itemError]}>
+                      <View style={styles.itemHeader}>
+                        <Text style={[styles.itemAction, item.status === 'success' && { color: '#4ade80' }]}>
+                          {item.status.toUpperCase()}
+                        </Text>
+                        <Text style={styles.itemCollection}>{item.authMethod}</Text>
+                      </View>
+                      <Text style={styles.itemField}>ID: {item.fileId.substring(0, 8)}...</Text>
+                      {item.httpStatus && (
+                        <Text style={styles.itemField}>HTTP: {item.httpStatus} {item.httpStatusText}</Text>
+                      )}
+                      {item.errorMessage && (
+                        <Text style={[styles.itemMessage, { color: '#f87171' }]}>{item.errorMessage}</Text>
+                      )}
+                      <Text style={styles.itemUrl} numberOfLines={1}>{item.url}</Text>
+                    </View>
+                  ))
+                )
               )}
             </ScrollView>
           </View>
@@ -141,10 +209,10 @@ export default function PermissionDebugPanel({
         onPress={() => setCollapsed(false)}
         activeOpacity={0.8}
       >
-        <Ionicons name="lock-closed" size={16} color={COLORS.white} />
-        {missing.length > 0 && (
+        <Ionicons name="bug-outline" size={16} color={COLORS.white} />
+        {totalIssues > 0 && (
           <View style={styles.badge}>
-            <Text style={styles.badgeText}>{missing.length}</Text>
+            <Text style={styles.badgeText}>{totalIssues}</Text>
           </View>
         )}
       </TouchableOpacity>
@@ -154,11 +222,23 @@ export default function PermissionDebugPanel({
   // Expanded panel (Floating)
   return (
     <View style={styles.container}>
-      {/* Header */}
+      {/* Header with tabs */}
       <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Ionicons name="lock-closed" size={16} color={COLORS.white} />
-          <Text style={styles.headerTitle}>Permisos ({missing.length})</Text>
+        <View style={styles.tabContainer}>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'images' && styles.tabActive]}
+            onPress={() => setActiveTab('images')}
+          >
+            <Ionicons name="image-outline" size={14} color={COLORS.white} />
+            <Text style={styles.tabText}>Imgs ({imageErrorCount})</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'permissions' && styles.tabActive]}
+            onPress={() => setActiveTab('permissions')}
+          >
+            <Ionicons name="lock-closed" size={14} color={COLORS.white} />
+            <Text style={styles.tabText}>Perms ({missing.length})</Text>
+          </TouchableOpacity>
         </View>
         <View style={styles.headerRight}>
           <TouchableOpacity onPress={handleCopy} style={styles.headerButton}>
@@ -182,40 +262,75 @@ export default function PermissionDebugPanel({
 
       {/* Content */}
       <ScrollView style={styles.content} nestedScrollEnabled>
-        {missing.length === 0 ? (
-          <Text style={styles.emptyText}>
-            Sin permisos faltantes registrados
-          </Text>
-        ) : (
-          missing.map((item, index) => (
-            <View key={index} style={styles.item}>
-              <View style={styles.itemHeader}>
-                <Text style={styles.itemAction}>{item.action}</Text>
-                <Ionicons
-                  name="arrow-forward"
-                  size={12}
-                  color={COLORS.gray}
-                />
-                <Text style={styles.itemCollection}>{item.collection}</Text>
+        {activeTab === 'permissions' ? (
+          missing.length === 0 ? (
+            <Text style={styles.emptyText}>
+              Sin permisos faltantes registrados
+            </Text>
+          ) : (
+            missing.map((item, index) => (
+              <View key={index} style={styles.item}>
+                <View style={styles.itemHeader}>
+                  <Text style={styles.itemAction}>{item.action}</Text>
+                  <Ionicons
+                    name="arrow-forward"
+                    size={12}
+                    color={COLORS.gray}
+                  />
+                  <Text style={styles.itemCollection}>{item.collection}</Text>
+                </View>
+                {item.field && (
+                  <Text style={styles.itemField}>Campo: {item.field}</Text>
+                )}
+                {item.message && (
+                  <Text style={styles.itemMessage} numberOfLines={1}>
+                    {item.message}
+                  </Text>
+                )}
               </View>
-              {item.field && (
-                <Text style={styles.itemField}>Campo: {item.field}</Text>
-              )}
-              {item.message && (
-                <Text style={styles.itemMessage} numberOfLines={1}>
-                  {item.message}
-                </Text>
-              )}
-            </View>
-          ))
+            ))
+          )
+        ) : (
+          imageResults.length === 0 ? (
+            <Text style={styles.emptyText}>
+              Sin intentos de carga de imágenes
+            </Text>
+          ) : (
+            imageResults.map((item, index) => (
+              <View key={index} style={[styles.item, item.status === 'error' && styles.itemError]}>
+                <View style={styles.itemHeader}>
+                  <Text style={[styles.itemAction, item.status === 'success' && { color: '#4ade80' }]}>
+                    {item.status.toUpperCase()}
+                  </Text>
+                  <Ionicons name="arrow-forward" size={12} color={COLORS.gray} />
+                  <Text style={styles.itemCollection}>{item.authMethod}</Text>
+                </View>
+                <Text style={styles.itemField}>ID: {item.fileId.substring(0, 12)}...</Text>
+                {item.httpStatus && (
+                  <Text style={styles.itemField}>
+                    HTTP: {item.httpStatus} {item.httpStatusText}
+                  </Text>
+                )}
+                {item.contentType && (
+                  <Text style={styles.itemField}>Type: {item.contentType}</Text>
+                )}
+                {item.errorMessage && (
+                  <Text style={[styles.itemMessage, { color: '#f87171' }]}>
+                    {item.errorMessage}
+                  </Text>
+                )}
+                <Text style={styles.itemUrl} numberOfLines={2}>{item.url}</Text>
+              </View>
+            ))
+          )
         )}
       </ScrollView>
 
       {/* Footer with export hint */}
-      {missing.length > 0 && (
+      {(activeTab === 'permissions' ? missing.length : imageErrorCount) > 0 && (
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            Toca copiar para exportar config de Directus
+            Toca copiar para exportar info de debug
           </Text>
         </View>
       )}
@@ -371,5 +486,42 @@ const styles = StyleSheet.create({
     color: COLORS.gray,
     fontSize: 10,
     textAlign: 'center',
+  },
+
+  // Tabs
+  tabContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+  },
+  tab: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: BORDERS.radius.sm,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  tabActive: {
+    backgroundColor: 'rgba(255,255,255,0.25)',
+  },
+  tabText: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.white,
+    fontSize: 11,
+  },
+
+  // Error item styling
+  itemError: {
+    borderLeftWidth: 3,
+    borderLeftColor: '#f87171',
+  },
+  itemUrl: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.gray,
+    fontSize: 9,
+    marginTop: 4,
+    fontFamily: 'monospace',
   },
 });

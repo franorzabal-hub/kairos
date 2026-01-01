@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, ActivityIndicator, StyleSheet, Text } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, Text, Platform } from 'react-native';
 import { Image, ImageProps as ExpoImageProps, ImageContentFit } from 'expo-image';
 import { directus, DIRECTUS_URL } from '../api/directus';
+import { imageDebugger } from '../services/imageDebugger';
 
 // DEBUG FLAG - set to true to see debug info on screen
-const DEBUG_MODE = false;
+const DEBUG_MODE = true;
 
 // Blur hash placeholder for loading state (soft gray gradient)
 const DEFAULT_BLUR_HASH = 'L5H2EC=PM+yV0g-mq.wG9c010J}I';
@@ -56,6 +57,7 @@ function DirectusImage({
   ...props
 }: DirectusImageProps) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [authHeaders, setAuthHeaders] = useState<Record<string, string> | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string>('');
@@ -77,11 +79,68 @@ function DirectusImage({
         const accessToken = await directus.getToken();
         setHasToken(!!accessToken);
 
-        // Build URL with token
-        const url = accessToken
-          ? `${DIRECTUS_URL}/assets/${fileId}?access_token=${accessToken}`
-          : `${DIRECTUS_URL}/assets/${fileId}`;
+        // Platform-specific auth strategy:
+        // - Web: Use query string to avoid CORS preflight issues with custom headers
+        // - Mobile: Use headers (more secure, no URL logging concerns)
+        const isWeb = Platform.OS === 'web';
 
+        let url: string;
+        if (isWeb && accessToken) {
+          // Web: token in query string avoids CORS preflight
+          url = `${DIRECTUS_URL}/assets/${fileId}?access_token=${accessToken}`;
+          setAuthHeaders(undefined);
+        } else if (accessToken) {
+          // Mobile: token in header (more secure)
+          url = `${DIRECTUS_URL}/assets/${fileId}`;
+          setAuthHeaders({ Authorization: `Bearer ${accessToken}` });
+        } else {
+          // No token - public access
+          url = `${DIRECTUS_URL}/assets/${fileId}`;
+          setAuthHeaders(undefined);
+        }
+
+        // Log attempt to imageDebugger
+        const authMethod = isWeb && accessToken ? 'QUERY' : accessToken ? 'HEADER' : 'NONE';
+        imageDebugger.logAttempt(fileId, url, authMethod);
+
+        if (DEBUG_MODE) {
+          console.log('[DirectusImage] Loading:', {
+            fileId,
+            hasToken: !!accessToken,
+            platform: Platform.OS,
+            authMethod: isWeb ? 'query' : 'header',
+          });
+          // Log full URL separately so it's not truncated
+          console.log('[DirectusImage] Full URL:', url);
+        }
+
+        // On web, test fetch to see actual HTTP response
+        if (isWeb) {
+          fetch(url, { method: 'HEAD' })
+            .then(res => {
+              imageDebugger.logFetchResult(
+                fileId,
+                res.status,
+                res.statusText,
+                res.headers.get('content-type'),
+                res.headers.get('access-control-allow-origin')
+              );
+              if (DEBUG_MODE) {
+                console.log('[DirectusImage] Fetch test:', {
+                  status: res.status,
+                  statusText: res.statusText,
+                  contentType: res.headers.get('content-type'),
+                  cors: res.headers.get('access-control-allow-origin'),
+                });
+              }
+            })
+            .catch(err => {
+              imageDebugger.logFetchError(fileId, err.message);
+              if (DEBUG_MODE) {
+                console.error('[DirectusImage] Fetch error:', err.message);
+              }
+            });
+        }
         setImageUrl(url);
       } catch (e: any) {
         setErrorMsg(`token: ${e.message?.substring(0, 15) || 'error'}`);
@@ -95,23 +154,35 @@ function DirectusImage({
 
   const handleError = useCallback((e: { error: string }) => {
     const errText = e.error || 'unknown';
+    if (fileId) {
+      imageDebugger.logError(fileId, errText);
+    }
+    if (DEBUG_MODE) {
+      console.error('[DirectusImage] Error loading:', { fileId, error: errText, url: imageUrl });
+    }
     setErrorMsg(String(errText).substring(0, 20));
     setError(true);
     setLoading(false);
-  }, []);
+  }, [fileId, imageUrl]);
 
   const handleLoad = useCallback(() => {
+    if (fileId) {
+      imageDebugger.logSuccess(fileId);
+    }
     setLoading(false);
     setError(false);
-  }, []);
+  }, [fileId]);
 
   // Debug overlay component
+  const isWeb = Platform.OS === 'web';
+  const authMethod = hasToken === null ? '?' : hasToken ? (isWeb ? 'QUERY' : 'HEADER') : 'NONE';
+  // On web we use native <img>, on mobile we use expo-image
+  const imgType = isWeb ? 'IMG' : 'EXPO';
   const DebugOverlay = () => DEBUG_MODE ? (
     <View style={styles.debugOverlay}>
       <Text style={styles.debugText}>id: {fileId ? fileId.substring(0, 8) : 'NULL'}</Text>
-      <Text style={styles.debugText}>token: {hasToken === null ? '?' : hasToken ? 'YES' : 'NO'}</Text>
+      <Text style={styles.debugText}>auth: {authMethod} | {imgType}</Text>
       <Text style={styles.debugText}>err: {error ? errorMsg || 'YES' : 'no'}</Text>
-      <Text style={styles.debugText}>cache: {cachePolicy}</Text>
     </View>
   ) : null;
 
@@ -140,12 +211,56 @@ function DirectusImage({
   // Map our cache policy to expo-image's cachePolicy
   const expoCachePolicy = cachePolicy === 'none' ? 'none' : cachePolicy;
 
-  // On web, percentage dimensions (100%) don't work well with position:relative wrapper
-  // Pass the style to the wrapper to ensure proper dimensions
+  // On web, use native <img> element to avoid expo-image CORS/loading issues
+  // expo-image has known issues on web with certain auth scenarios
+  if (isWeb) {
+    // Map contentFit to CSS object-fit
+    const objectFit = contentFit === 'cover' ? 'cover' :
+                      contentFit === 'contain' ? 'contain' :
+                      contentFit === 'fill' ? 'fill' : 'cover';
+
+    return (
+      <View style={[{ position: 'relative', overflow: 'hidden' }, style]}>
+        <img
+          src={imageUrl}
+          alt=""
+          onLoad={handleLoad}
+          onError={() => {
+            if (fileId) {
+              imageDebugger.logError(fileId, 'Native img failed to load');
+            }
+            if (DEBUG_MODE) {
+              console.error('[DirectusImage] Native img error:', { fileId, url: imageUrl });
+            }
+            setErrorMsg('img failed');
+            setError(true);
+            setLoading(false);
+          }}
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit,
+            display: loading ? 'none' : 'block',
+          }}
+        />
+        {loading && showPlaceholder && (
+          <View style={[StyleSheet.absoluteFill, styles.loadingContainer]}>
+            <ActivityIndicator color="#8B1538" size="small" />
+          </View>
+        )}
+        <DebugOverlay />
+      </View>
+    );
+  }
+
+  // Mobile: use expo-image with headers for better performance and caching
   return (
     <View style={[{ position: 'relative' }, style]}>
       <Image
-        source={{ uri: imageUrl }}
+        source={{
+          uri: imageUrl,
+          headers: authHeaders,
+        }}
         style={{ width: '100%', height: '100%' }}
         contentFit={contentFit}
         placeholder={showPlaceholder ? { blurhash } : undefined}
