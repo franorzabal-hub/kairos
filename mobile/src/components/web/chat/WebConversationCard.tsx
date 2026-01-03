@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, Pressable, PressableStateCallbackType } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ConversationWithMeta } from '../../../api/hooks';
-import DirectusImage from '../../DirectusImage';
+import FrappeImage from '../../FrappeImage';
 import { useOrganization } from '../../../api/hooks';
 import { COLORS, AVATAR_COLORS } from '../../../theme';
 
@@ -185,7 +185,7 @@ export function WebConversationCard({
         
         {/* Avatar */}
         {participantInfo.isSchool && organization?.logo ? (
-           <DirectusImage
+           <FrappeImage
              fileId={organization.logo}
              style={{ width: 32, height: 32, borderRadius: 6 }}
              contentFit="cover"

@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native
 import { Swipeable } from 'react-native-gesture-handler';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import DirectusImage from './DirectusImage';
+import FrappeImage from './FrappeImage';
 import { Announcement } from '../api/frappe';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY, UNREAD_STYLES, SHADOWS, BADGE_STYLES, SIZES, FONT_SIZES } from '../theme';
 import { stripHtml } from '../utils';
@@ -202,7 +202,7 @@ function SwipeableAnnouncementCard({
         )}
 
         {/* Image */}
-        <DirectusImage
+        <FrappeImage
           fileId={item.image}
           style={styles.cardImage}
           resizeMode="cover"

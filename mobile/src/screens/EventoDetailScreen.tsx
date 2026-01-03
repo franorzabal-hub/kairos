@@ -17,7 +17,7 @@ import * as Calendar from 'expo-calendar';
 import ScreenHeader from '../components/ScreenHeader';
 import MapPreview from '../components/MapPreview';
 import RenderHtml from 'react-native-render-html';
-import DirectusImage from '../components/DirectusImage';
+import FrappeImage from '../components/FrappeImage';
 import Toast from '../components/Toast';
 import { useEvent } from '../api/hooks';
 import { Location } from '../api/frappe';
@@ -174,7 +174,7 @@ export default function EventoDetailScreen() {
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Event Image */}
         <View style={styles.imageContainer}>
-          <DirectusImage
+          <FrappeImage
             fileId={event.image}
             style={styles.eventImage}
             resizeMode="cover"

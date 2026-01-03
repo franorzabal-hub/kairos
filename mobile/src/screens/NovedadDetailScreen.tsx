@@ -12,7 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import RenderHtml from 'react-native-render-html';
-import DirectusImage from '../components/DirectusImage';
+import FrappeImage from '../components/FrappeImage';
 import ScreenHeader from '../components/ScreenHeader';
 import AttachmentsList from '../components/AttachmentsList';
 import VideoEmbed from '../components/VideoEmbed';
@@ -111,7 +111,7 @@ export default function NovedadDetailScreen() {
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Image or Placeholder */}
         <View style={styles.imageContainer}>
-          <DirectusImage
+          <FrappeImage
             fileId={announcement.image}
             style={styles.image}
             resizeMode="cover"

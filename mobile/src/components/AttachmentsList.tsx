@@ -13,7 +13,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { WebView } from 'react-native-webview';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AnnouncementAttachment } from '../api/frappe';
-import { useDirectusAsset, getDirectusAssetUrl } from '../hooks/useDirectusAsset';
+import { useFrappeAsset, getDirectusAssetUrl } from '../hooks/useFrappeAsset';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY, SIZES, FONT_SIZES } from '../theme';
 
 interface AttachmentsListProps {

@@ -19,24 +19,24 @@ Especificaciones funcionales de cada módulo de Kairos.
 
 | Módulo | Estado | Descripción |
 |--------|--------|-------------|
-| [[Specs - Anuncios]] | ✅ Live | Noticias y comunicados del colegio |
-| [[Specs - Eventos]] | ✅ Live | Calendario con RSVP |
-| [[Specs - Mensajería]] | ✅ Live | Chat estilo WhatsApp |
+| Anuncios | ✅ Live | Noticias y comunicados del colegio |
+| Eventos | ✅ Live | Calendario con RSVP |
+| Mensajería | ✅ Live | Chat estilo WhatsApp |
 
 ### Gestión Escolar
 
 | Módulo | Estado | Descripción |
 |--------|--------|-------------|
-| [[Specs - Retiros]] | ✅ Live | Solicitudes de retiro anticipado |
-| [[Specs - Reportes]] | 🚧 WIP | Libretas y documentos |
-| [[Specs - Asistencia]] | 📋 Planned | Control de asistencia |
+| Retiros | ✅ Live | Solicitudes de retiro anticipado |
+| Reportes | 🚧 WIP | Libretas y documentos |
+| Asistencia | 📋 Planned | Control de asistencia |
 
 ### Administración
 
 | Módulo | Estado | Descripción |
 |--------|--------|-------------|
-| [[Specs - Usuarios]] | ✅ Live | Gestión de padres, docentes, staff |
-| [[Specs - Organizaciones]] | ✅ Live | Multi-tenant (colegios) |
+| Usuarios | ✅ Live | Gestión de padres, docentes, staff |
+| Organizaciones | ✅ Live | Multi-tenant (colegios) |
 
 ---
 

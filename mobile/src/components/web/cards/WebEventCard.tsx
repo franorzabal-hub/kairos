@@ -11,7 +11,7 @@ import React from 'react';
 import { View, Text, Pressable, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import DirectusImage from '../../DirectusImage';
+import FrappeImage from '../../FrappeImage';
 import { Event } from '../../../api/frappe';
 import { useEventCardLogic } from '../../../hooks';
 import { COLORS } from '../../../theme';
@@ -69,7 +69,7 @@ export function WebEventCard({
       {/* Image Section - Full width at top like mobile cards */}
       {event.image ? (
         <View className="relative w-full" style={{ height: 120 }}>
-          <DirectusImage
+          <FrappeImage
             fileId={event.image}
             style={{ width: '100%', height: '100%' }}
             contentFit="cover"

@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import DirectusImage from './DirectusImage';
+import FrappeImage from './FrappeImage';
 import { useAuth } from '../context/AuthContext';
 import { useOrganization } from '../api/hooks';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY, SIZES, FONT_SIZES } from '../theme';
@@ -79,7 +79,7 @@ function ScreenHeader({ title, showBackButton = false, backTitle, rightAccessory
           accessibilityLabel="Configuración del colegio"
           accessibilityRole="button"
         >
-          <DirectusImage
+          <FrappeImage
             fileId={organization?.logo}
             style={styles.orgLogo}
             resizeMode="cover"

@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import DirectusImage from './DirectusImage';
+import FrappeImage from './FrappeImage';
 import { Student } from '../api/frappe';
 import { useChildren } from '../context/ChildrenContext';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY, SHADOWS, SIZES, FONT_SIZES } from '../theme';
@@ -81,7 +81,7 @@ function ChildSelector({
     return (
       <View style={styles.singleChildContainer}>
         <View style={styles.singleChildCard}>
-          <DirectusImage
+          <FrappeImage
             fileId={child.photo}
             style={styles.singleChildAvatar}
             resizeMode="cover"
@@ -156,7 +156,7 @@ function ChildSelector({
               ]}
               onPress={() => onSelectChild(child.id)}
             >
-              <DirectusImage
+              <FrappeImage
                 fileId={child.photo}
                 style={[styles.avatarSmall, { backgroundColor: avatarBgColor }]}
                 resizeMode="cover"

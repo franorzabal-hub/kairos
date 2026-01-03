@@ -29,7 +29,7 @@ Kairos es una plataforma de comunicación escuela-familia que conecta colegios c
 
 | Para Colegios | Para Familias |
 |---------------|---------------|
-| Panel centralizado (Directus) | App móvil unificada |
+| Panel centralizado (Frappe Desk) | App móvil unificada |
 | Envío de anuncios y eventos | Notificaciones push |
 | Gestión de retiros anticipados | Solicitud de retiros en 2 taps |
 | Reportes y libretas digitales | Acceso a documentos escolares |
@@ -43,9 +43,9 @@ Kairos es una plataforma de comunicación escuela-familia que conecta colegios c
 
 | Rol | Plataforma | Capacidades |
 |-----|------------|-------------|
-| **Admin** | Directus Web | Configuración completa del colegio |
-| **Docente** | Directus Web | Anuncios, eventos, mensajes de su sección |
-| **Staff** | Directus Web | Gestión de retiros, comunicados |
+| **Admin** | Frappe Desk | Configuración completa del colegio |
+| **Docente** | Frappe Desk | Anuncios, eventos, mensajes de su sección |
+| **Staff** | Frappe Desk | Gestión de retiros, comunicados |
 | **Padre/Tutor** | App Móvil | Recibir info, solicitar retiros, chatear |
 
 ---
@@ -54,12 +54,12 @@ Kairos es una plataforma de comunicación escuela-familia que conecta colegios c
 
 ```
 ┌─────────────────┐     ┌─────────────────┐
-│   App Móvil     │────▶│    Directus     │
-│ (React Native)  │     │   (Backend)     │
+│   App Móvil     │────▶│Frappe Framework │
+│ (React Native)  │     │      v15        │
 └─────────────────┘     └────────┬────────┘
                                  │
                         ┌────────▼────────┐
-                        │   PostgreSQL    │
+                        │    MariaDB      │
                         │   (Cloud SQL)   │
                         └─────────────────┘
 ```

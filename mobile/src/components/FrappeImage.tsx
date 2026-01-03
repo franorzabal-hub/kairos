@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, ActivityIndicator, StyleSheet, Text, Platform } from 'react-native';
 import { Image, ImageProps as ExpoImageProps, ImageContentFit } from 'expo-image';
-import { directus, DIRECTUS_URL } from '../api/frappe';
+import { frappe, FRAPPE_URL } from '../api/frappe';
 import { imageDebugger } from '../services/imageDebugger';
 
 // DEBUG FLAG - set to true to see debug info on screen
@@ -10,7 +10,7 @@ const DEBUG_MODE = false;
 // Blur hash placeholder for loading state (soft gray gradient)
 const DEFAULT_BLUR_HASH = 'L5H2EC=PM+yV0g-mq.wG9c010J}I';
 
-interface DirectusImageProps extends Omit<ExpoImageProps, 'source' | 'contentFit'> {
+interface FrappeImageProps extends Omit<ExpoImageProps, 'source' | 'contentFit'> {
   fileId: string | null | undefined;
   fallback?: React.ReactNode;
   /** How to resize the image to fit the container (default: 'cover') */
@@ -24,7 +24,7 @@ interface DirectusImageProps extends Omit<ExpoImageProps, 'source' | 'contentFit
 }
 
 /**
- * Optimized image component for Directus assets with built-in caching.
+ * Optimized image component for Frappe assets with built-in caching.
  *
  * Uses expo-image which provides:
  * - Automatic memory + disk caching
@@ -34,19 +34,19 @@ interface DirectusImageProps extends Omit<ExpoImageProps, 'source' | 'contentFit
  *
  * @example
  * // Basic usage
- * <DirectusImage fileId={user.avatar} style={{ width: 40, height: 40 }} />
+ * <FrappeImage fileId={user.avatar} style={{ width: 40, height: 40 }} />
  *
  * // With custom placeholder
- * <DirectusImage
+ * <FrappeImage
  *   fileId={announcement.image}
  *   blurhash="LGF5?xYk^6#M@-5c,1J5@[or[Q6."
  *   style={{ width: '100%', height: 200 }}
  * />
  *
  * // Disable caching for sensitive images
- * <DirectusImage fileId={document.file} cachePolicy="none" />
+ * <FrappeImage fileId={document.file} cachePolicy="none" />
  */
-function DirectusImage({
+function FrappeImage({
   fileId,
   fallback,
   style,
@@ -55,7 +55,7 @@ function DirectusImage({
   showPlaceholder = true,
   cachePolicy = 'memory-disk',
   ...props
-}: DirectusImageProps) {
+}: FrappeImageProps) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [authHeaders, setAuthHeaders] = useState<Record<string, string> | undefined>(undefined);
   const [loading, setLoading] = useState(true);
@@ -76,7 +76,7 @@ function DirectusImage({
 
       try {
         // Use SDK's getToken() which returns the current (potentially refreshed) token
-        const accessToken = await directus.getToken();
+        const accessToken = await frappe.getToken();
         setHasToken(!!accessToken);
 
         // Platform-specific auth strategy:
@@ -87,15 +87,15 @@ function DirectusImage({
         let url: string;
         if (isWeb && accessToken) {
           // Web: token in query string avoids CORS preflight
-          url = `${DIRECTUS_URL}/assets/${fileId}?access_token=${accessToken}`;
+          url = `${FRAPPE_URL}/assets/${fileId}?access_token=${accessToken}`;
           setAuthHeaders(undefined);
         } else if (accessToken) {
           // Mobile: token in header (more secure)
-          url = `${DIRECTUS_URL}/assets/${fileId}`;
+          url = `${FRAPPE_URL}/assets/${fileId}`;
           setAuthHeaders({ Authorization: `Bearer ${accessToken}` });
         } else {
           // No token - public access
-          url = `${DIRECTUS_URL}/assets/${fileId}`;
+          url = `${FRAPPE_URL}/assets/${fileId}`;
           setAuthHeaders(undefined);
         }
 
@@ -104,14 +104,14 @@ function DirectusImage({
         imageDebugger.logAttempt(fileId, url, authMethod);
 
         if (DEBUG_MODE) {
-          console.log('[DirectusImage] Loading:', {
+          console.log('[FrappeImage] Loading:', {
             fileId,
             hasToken: !!accessToken,
             platform: Platform.OS,
             authMethod: isWeb ? 'query' : 'header',
           });
           // Log full URL separately so it's not truncated
-          console.log('[DirectusImage] Full URL:', url);
+          console.log('[FrappeImage] Full URL:', url);
         }
 
         // On web, test fetch to see actual HTTP response
@@ -126,7 +126,7 @@ function DirectusImage({
                 res.headers.get('access-control-allow-origin')
               );
               if (DEBUG_MODE) {
-                console.log('[DirectusImage] Fetch test:', {
+                console.log('[FrappeImage] Fetch test:', {
                   status: res.status,
                   statusText: res.statusText,
                   contentType: res.headers.get('content-type'),
@@ -137,7 +137,7 @@ function DirectusImage({
             .catch(err => {
               imageDebugger.logFetchError(fileId, err.message);
               if (DEBUG_MODE) {
-                console.error('[DirectusImage] Fetch error:', err.message);
+                console.error('[FrappeImage] Fetch error:', err.message);
               }
             });
         }
@@ -158,7 +158,7 @@ function DirectusImage({
       imageDebugger.logError(fileId, errText);
     }
     if (DEBUG_MODE) {
-      console.error('[DirectusImage] Error loading:', { fileId, error: errText, url: imageUrl });
+      console.error('[FrappeImage] Error loading:', { fileId, error: errText, url: imageUrl });
     }
     setErrorMsg(String(errText).substring(0, 20));
     setError(true);
@@ -230,7 +230,7 @@ function DirectusImage({
               imageDebugger.logError(fileId, 'Native img failed to load');
             }
             if (DEBUG_MODE) {
-              console.error('[DirectusImage] Native img error:', { fileId, url: imageUrl });
+              console.error('[FrappeImage] Native img error:', { fileId, url: imageUrl });
             }
             setErrorMsg('img failed');
             setError(true);
@@ -297,4 +297,4 @@ const styles = StyleSheet.create({
 });
 
 // Memoize to prevent redundant image fetches when parent re-renders
-export default React.memo(DirectusImage);
+export default React.memo(FrappeImage);

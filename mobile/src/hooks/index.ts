@@ -1,4 +1,11 @@
-export { useDirectusAsset, getDirectusAssetUrl, buildDirectusAssetUrl } from './useDirectusAsset';
+export {
+  useFrappeAsset,
+  getFrappeAssetUrl,
+  buildFrappeAssetUrl,
+  // Backward compatibility aliases
+  getDirectusAssetUrl,
+  buildDirectusAssetUrl,
+} from './useFrappeAsset';
 export { useNotifications } from './useNotifications';
 export { useUnreadSync } from './useUnreadSync';
 export { useSession, useSelectedChild } from './useSession';

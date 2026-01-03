@@ -7,7 +7,7 @@ import { FlashList } from '@shopify/flash-list';
 import { CalendarProvider, ExpandableCalendar } from 'react-native-calendars';
 import ScreenHeader from '../components/ScreenHeader';
 import FilterBar from '../components/FilterBar';
-import DirectusImage from '../components/DirectusImage';
+import FrappeImage from '../components/FrappeImage';
 import { useFilters, useUnreadCounts } from '../context/UIContext';
 import { useEvents, useContentReadStatus } from '../api/hooks';
 import { Event } from '../api/frappe';
@@ -155,7 +155,7 @@ export default function EventosScreen() {
 
         {itemIsUnread && <View style={styles.unreadDot} />}
 
-        <DirectusImage
+        <FrappeImage
           fileId={item.image}
           style={styles.cardImage}
           resizeMode="cover"

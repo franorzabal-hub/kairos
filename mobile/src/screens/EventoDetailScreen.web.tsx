@@ -26,7 +26,7 @@ import * as Calendar from 'expo-calendar';
 import { WebLayout } from '../components/web/WebLayout';
 import MapPreview from '../components/MapPreview';
 import RenderHtml from 'react-native-render-html';
-import DirectusImage from '../components/DirectusImage';
+import FrappeImage from '../components/FrappeImage';
 import Toast from '../components/Toast';
 import { useEvent } from '../api/hooks';
 import { Location } from '../api/frappe';
@@ -205,7 +205,7 @@ export default function EventoDetailScreen() {
             {/* Visual Header */}
             {event.image ? (
               <View className="relative rounded-xl overflow-hidden mb-6" style={{ height: 280 }}>
-                <DirectusImage
+                <FrappeImage
                   fileId={event.image}
                   style={{ width: '100%', height: '100%' }}
                   contentFit="cover"

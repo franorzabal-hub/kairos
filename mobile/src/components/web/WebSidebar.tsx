@@ -13,7 +13,7 @@ import React, { useState } from 'react';
 import { View, Text, Pressable, PressableStateCallbackType } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import DirectusImage from '../DirectusImage';
+import FrappeImage from '../FrappeImage';
 import { useSession } from '../../hooks';
 import { useOrganization } from '../../api/hooks';
 import { CHILD_COLORS, COLORS } from '../../theme';
@@ -99,7 +99,7 @@ export function WebSidebar() {
              onPress={() => router.push('/(tabs)/inicio')}
              style={{ flexDirection: 'row', alignItems: 'center', flex: 1, overflow: 'hidden' }}
           >
-            <DirectusImage
+            <FrappeImage
               fileId={organization?.logo}
               style={{ width: 24, height: 24, borderRadius: 4, marginRight: 10 }}
               contentFit="cover"
@@ -140,7 +140,7 @@ export function WebSidebar() {
           })}
         >
            {isCollapsed ? (
-             <DirectusImage
+             <FrappeImage
               fileId={organization?.logo}
               style={{ width: 24, height: 24, borderRadius: 4 }}
               contentFit="cover"

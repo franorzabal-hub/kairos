@@ -12,7 +12,7 @@ import React from 'react';
 import { View, Text, Pressable, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import DirectusImage from '../../DirectusImage';
+import FrappeImage from '../../FrappeImage';
 import { Announcement } from '../../../api/frappe';
 import { COLORS } from '../../../theme';
 import { stripHtml } from '../../../utils';
@@ -95,7 +95,7 @@ export function WebAnnouncementCard({
       {/* Image Section - Full width at top like mobile cards */}
       {item.image ? (
         <View className="relative w-full" style={{ height: 160 }}>
-          <DirectusImage
+          <FrappeImage
             fileId={item.image}
             style={{ width: '100%', height: '100%' }}
             contentFit="cover"

@@ -47,15 +47,15 @@ Hoja de ruta del producto y registro de decisiones importantes.
 
 ## Decisiones de Arquitectura (ADRs)
 
-### ADR-001: Directus como Backend
+### ADR-001: Frappe Framework como Backend
 
 | | |
 |---|---|
 | **Fecha** | 2024-12 |
 | **Estado** | Aceptado |
 | **Contexto** | Necesitamos un backend rápido de implementar con panel admin incluido |
-| **Decisión** | Usar Directus v11 como headless CMS y backend API |
-| **Consecuencias** | + Rápido desarrollo, panel gratis, API automática. - Vendor lock-in moderado |
+| **Decisión** | Usar Frappe Framework v15 como backend y CMS |
+| **Consecuencias** | + Rápido desarrollo, panel admin incluido (Desk), API REST automática, DocTypes para datos. - Requiere aprender Frappe |
 
 ### ADR-002: React Native + Expo
 
@@ -76,6 +76,16 @@ Hoja de ruta del producto y registro de decisiones importantes.
 | **Contexto** | Múltiples colegios en una misma instancia |
 | **Decisión** | Filtrado por `organization_id` en todas las tablas |
 | **Consecuencias** | + Simple, económico. - Requiere políticas de acceso cuidadosas |
+
+### ADR-004: Migración Directus → Frappe
+
+| | |
+|---|---|
+| **Fecha** | 2025-12 |
+| **Estado** | Aceptado |
+| **Contexto** | Necesidad de mayor control sobre el modelo de datos y multi-tenancy |
+| **Decisión** | Migrar de Directus a Frappe Framework v15 |
+| **Consecuencias** | + DocTypes personalizables, multi-tenant nativo. - Esfuerzo de migración |
 
 ---
 
