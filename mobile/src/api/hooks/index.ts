@@ -20,6 +20,7 @@ export {
 // Announcement actions (pin, archive, acknowledge)
 export {
   useAnnouncementStates,
+  useNormalizedAnnouncementStates,
   useAnnouncementPin,
   useAnnouncementArchive,
   useAnnouncementAcknowledge,

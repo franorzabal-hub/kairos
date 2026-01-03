@@ -23,14 +23,36 @@ import {
   resetFrappeClient,
   guardianToAppUser,
 } from '../api/frappe';
+import { logger } from '../utils/logger';
+
+// Error classification helper
+type ErrorType = 'network' | 'permission' | 'auth_expired' | 'unknown';
+
+function classifyError(error: unknown): ErrorType {
+  if (error instanceof Error) {
+    const message = error.message.toLowerCase();
+    // Network errors
+    if (message.includes('network') || message.includes('fetch') || message.includes('timeout') || message.includes('connection')) {
+      return 'network';
+    }
+    // Permission/authorization errors
+    if (message.includes('permission') || message.includes('forbidden') || message.includes('403')) {
+      return 'permission';
+    }
+    // Token/session expired
+    if (message.includes('expired') || message.includes('invalid token') || message.includes('401') || message.includes('unauthorized')) {
+      return 'auth_expired';
+    }
+  }
+  return 'unknown';
+}
 
 // Maximum biometric attempts before lockout
 const MAX_BIOMETRIC_ATTEMPTS = 3;
 const LOCKOUT_DURATION_MS = 30000; // 30 seconds
 
-interface AuthContextType {
-  user: AppUser | null;
-  isAuthenticated: boolean;
+// Base type with common fields
+interface AuthContextBase {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -39,6 +61,13 @@ interface AuthContextType {
     remainingTime: number;
   };
 }
+
+// Discriminated union for auth states
+type AuthState =
+  | { isAuthenticated: false; user: null }
+  | { isAuthenticated: true; user: AppUser };
+
+type AuthContextType = AuthContextBase & AuthState;
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -49,7 +78,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [lockoutEndTime, setLockoutEndTime] = useState<number | null>(null);
   const [remainingLockoutTime, setRemainingLockoutTime] = useState(0);
 
-  const isAuthenticated = user !== null;
   const isLocked = lockoutEndTime !== null && Date.now() < lockoutEndTime;
 
   // Lockout timer
@@ -86,14 +114,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (guardians.length > 0) {
         const guardian = guardians[0];
-        if (__DEV__) console.log('[AuthContext] ✅ Found guardian:', guardian.name);
+        logger.debug('AuthContext', 'Found guardian:', guardian.name);
         return guardianToAppUser(guardian);
       }
 
-      if (__DEV__) console.log('[AuthContext] No guardian found for email:', email);
+      logger.debug('AuthContext', 'No guardian found for email:', email);
       return null;
     } catch (error: unknown) {
-      if (__DEV__) console.log('[AuthContext] fetchGuardian error:', error instanceof Error ? error.message : 'Unknown error');
+      const errorType = classifyError(error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+      // Log with appropriate severity based on error type
+      switch (errorType) {
+        case 'network':
+          logger.warn('AuthContext', 'Guardian fetch failed due to network', { email, error: errorMessage });
+          break;
+        case 'permission':
+          logger.warn('AuthContext', 'Guardian fetch failed due to permissions', { email, error: errorMessage });
+          break;
+        default:
+          logger.error('AuthContext', 'Guardian fetch failed unexpectedly', { email, errorType, error: errorMessage });
+      }
+
       return null;
     }
   };
@@ -105,7 +147,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (newAttempts >= MAX_BIOMETRIC_ATTEMPTS) {
       setLockoutEndTime(Date.now() + LOCKOUT_DURATION_MS);
       setRemainingLockoutTime(LOCKOUT_DURATION_MS);
-      if (__DEV__) console.log('[AuthContext] Biometric lockout activated');
+      logger.warn('AuthContext', 'Biometric lockout activated', { attempts: newAttempts, lockoutDurationMs: LOCKOUT_DURATION_MS });
     }
   }, [biometricAttempts]);
 
@@ -155,7 +197,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               setUser(appUser);
             } else {
               // Fallback: create minimal user from email
-              if (__DEV__) console.log('[AuthContext] ⚠️ Fallback to Frappe user');
+              logger.debug('AuthContext', 'Fallback to Frappe user (no guardian found)');
               setUser({
                 id: currentUser,
                 organization_id: '',
@@ -168,16 +210,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
           }
         } catch (authError) {
-          // Token is invalid, clear it
-          if (__DEV__) console.log('[AuthContext] Token validation failed:', authError);
-          await clearToken();
-          resetFrappeClient();
+          const errorType = classifyError(authError);
+          const errorMessage = authError instanceof Error ? authError.message : 'Unknown error';
+
+          // Only clear token on auth-related errors, not network errors
+          if (errorType === 'network') {
+            // Network error - don't clear token, let user retry
+            logger.warn('AuthContext', 'Token validation failed due to network, preserving session', { error: errorMessage });
+            // User can retry when network is available
+          } else if (errorType === 'auth_expired') {
+            // Token is expired or invalid - clear it
+            logger.info('AuthContext', 'Token expired, clearing session');
+            await clearToken();
+            resetFrappeClient();
+          } else {
+            // Unknown error - log and clear token to be safe
+            logger.error('AuthContext', 'Token validation failed unexpectedly', { errorType, error: errorMessage });
+            await clearToken();
+            resetFrappeClient();
+          }
         }
       }
     } catch (error) {
-      if (__DEV__) console.log('[AuthContext] No valid session');
-      await clearToken();
-      resetFrappeClient();
+      const errorType = classifyError(error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+      if (errorType === 'network') {
+        // Network error during initial check - don't clear token
+        logger.warn('AuthContext', 'Auth status check failed due to network', { error: errorMessage });
+      } else {
+        // Other errors - clear session
+        logger.info('AuthContext', 'No valid session, clearing token', { errorType, error: errorMessage });
+        await clearToken();
+        resetFrappeClient();
+      }
     } finally {
       setIsLoading(false);
     }
@@ -208,7 +274,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (appUser) {
             setUser(appUser);
           } else {
-            if (__DEV__) console.log('[AuthContext] ⚠️ Fallback to Frappe user');
+            logger.debug('AuthContext', 'Fallback to Frappe user during login (no guardian found)');
             setUser({
               id: currentUser,
               organization_id: '',
@@ -230,8 +296,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error('Login failed');
       }
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Error de autenticación';
-      if (__DEV__) console.error('[AuthContext] Login failed:', errorMessage);
+      const errorMessage = error instanceof Error ? error.message : 'Error de autenticacion';
+      const errorType = classifyError(error);
+      logger.error('AuthContext', 'Login failed', { errorType, error: errorMessage });
       throw new Error(errorMessage);
     }
   }, []);
@@ -241,7 +308,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Logout from Frappe
       await auth().logout();
     } catch (error) {
-      if (__DEV__) console.log('[AuthContext] Logout API call failed:', error);
+      // Log warning if server logout fails, but continue with local cleanup
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.warn('AuthContext', 'Server logout failed, continuing with local cleanup', { error: errorMessage });
     }
 
     // Clear local state regardless of API result
@@ -252,17 +321,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLockoutEndTime(null);
   }, []);
 
-  const contextValue = useMemo<AuthContextType>(() => ({
-    user,
-    isAuthenticated,
-    isLoading,
-    login,
-    logout,
-    biometricLockout: {
-      isLocked,
-      remainingTime: remainingLockoutTime,
-    },
-  }), [user, isAuthenticated, isLoading, login, logout, isLocked, remainingLockoutTime]);
+  const contextValue = useMemo<AuthContextType>(() => {
+    const base = {
+      isLoading,
+      login,
+      logout,
+      biometricLockout: {
+        isLocked,
+        remainingTime: remainingLockoutTime,
+      },
+    };
+
+    // Discriminated union: TypeScript now knows user and isAuthenticated are linked
+    if (user !== null) {
+      return { ...base, user, isAuthenticated: true as const };
+    }
+    return { ...base, user: null, isAuthenticated: false as const };
+  }, [user, isLoading, login, logout, isLocked, remainingLockoutTime]);
 
   return (
     <AuthContext.Provider value={contextValue}>

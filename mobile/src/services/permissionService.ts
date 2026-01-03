@@ -55,12 +55,14 @@ export interface MissingPermission {
   field?: string;
   message?: string;
   timestamp: string;
+  wasLoadError: boolean;
 }
 
 class PermissionService {
   private permissions: PermissionMap | null = null;
   private userRoles: string[] = [];
   private initialized = false;
+  private loadError: Error | null = null;
 
   /**
    * Initialize permissions by fetching from Frappe.
@@ -163,6 +165,7 @@ class PermissionService {
       logger.error('PermissionService', 'Failed to initialize permissions', error);
       // Initialize with empty permissions to prevent crashes
       this.permissions = {};
+      this.loadError = error instanceof Error ? error : new Error(String(error));
       this.initialized = true;
     }
   }
@@ -276,7 +279,22 @@ class PermissionService {
         ? `Missing field '${field}' read access on '${doctype}'`
         : `Missing '${action}' permission on '${doctype}'`,
       timestamp: new Date().toISOString(),
+      wasLoadError: this.loadError !== null,
     };
+  }
+
+  /**
+   * Check if there was an error loading permissions.
+   */
+  hasLoadError(): boolean {
+    return this.loadError !== null;
+  }
+
+  /**
+   * Get the error that occurred during permission loading, if any.
+   */
+  getLoadError(): Error | null {
+    return this.loadError;
   }
 
   /**
@@ -318,6 +336,7 @@ class PermissionService {
     this.permissions = null;
     this.userRoles = [];
     this.initialized = false;
+    this.loadError = null;
   }
 }
 

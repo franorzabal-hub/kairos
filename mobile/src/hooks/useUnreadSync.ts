@@ -86,5 +86,5 @@ export function useUnreadSync() {
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [announcements, events, conversations, cambios, boletines, setUnreadCounts, user?.id]);
+  }, [announcements, events, conversations, cambios, boletines, setUnreadCounts, user]);
 }

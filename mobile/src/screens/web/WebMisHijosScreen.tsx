@@ -68,7 +68,7 @@ export default function WebMisHijosScreen() {
   // Count unread reports for selected child
   const unreadReportsCount = useMemo(() => {
     if (!effectiveSelectedChildId) return 0;
-    const childReports = reports.filter(r => r.student_id === effectiveSelectedChildId);
+    const childReports = reports.filter(r => r.student === effectiveSelectedChildId);
     return filterUnreadReports(childReports).length;
   }, [reports, effectiveSelectedChildId, filterUnreadReports]);
 
@@ -76,7 +76,7 @@ export default function WebMisHijosScreen() {
   const pendingPickupCount = useMemo(() => {
     if (!effectiveSelectedChildId) return 0;
     return pickupRequests.filter(
-      r => r.student_id === effectiveSelectedChildId && r.status === 'pending'
+      r => r.student === effectiveSelectedChildId && r.status === 'pending'
     ).length;
   }, [pickupRequests, effectiveSelectedChildId]);
 
@@ -84,7 +84,7 @@ export default function WebMisHijosScreen() {
   const recentReports = useMemo(() => {
     if (!effectiveSelectedChildId) return [];
     return reports
-      .filter(r => r.student_id === effectiveSelectedChildId)
+      .filter(r => r.student === effectiveSelectedChildId)
       .slice(0, 6);
   }, [reports, effectiveSelectedChildId]);
 

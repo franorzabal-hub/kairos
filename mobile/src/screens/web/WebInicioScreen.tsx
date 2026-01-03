@@ -8,7 +8,7 @@
  * - Grid layout for upcoming events
  * - SegmentedControl for filtering
  */
-import React, { useMemo, useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { View, Text, Pressable, ActivityIndicator, Platform, PressableStateCallbackType } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -20,7 +20,7 @@ import { useFilters, useUnreadCounts } from '../../context/AppContext';
 import {
   useAnnouncements,
   useContentReadStatus,
-  useAnnouncementStates,
+  useNormalizedAnnouncementStates,
   useAnnouncementPin,
   useAnnouncementArchive,
   useEvents
@@ -43,14 +43,9 @@ export default function WebInicioScreen() {
   // Fetch data
   const { data: announcements = [], isLoading: announcementsLoading, refetch: refetchAnnouncements } = useAnnouncements();
   const { data: events = [], isLoading: eventsLoading, refetch: refetchEvents } = useEvents();
-  const { data: announcementStates, isLoading: statesLoading } = useAnnouncementStates();
 
-  // Process states
-  const { pinnedIds, archivedIds, acknowledgedIds } = useMemo(() => ({
-    pinnedIds: announcementStates?.pinnedIds instanceof Set ? announcementStates.pinnedIds : new Set<string>(),
-    archivedIds: announcementStates?.archivedIds instanceof Set ? announcementStates.archivedIds : new Set<string>(),
-    acknowledgedIds: announcementStates?.acknowledgedIds instanceof Set ? announcementStates.acknowledgedIds : new Set<string>(),
-  }), [announcementStates]);
+  // Fetch user's pinned/archived/acknowledged states (normalized to Sets)
+  const { pinnedIds, archivedIds, acknowledgedIds, isLoading: statesLoading } = useNormalizedAnnouncementStates();
 
   const { togglePin } = useAnnouncementPin();
   const { toggleArchive } = useAnnouncementArchive();

@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
 import { queryKeys } from './queryKeys';
@@ -38,6 +38,22 @@ export function useAnnouncementStates() {
     enabled: !!userId,
     staleTime: 0,
   });
+}
+
+/**
+ * Hook that normalizes announcement states to guaranteed Sets.
+ * Use this instead of manually extracting and checking if values are Sets.
+ */
+export function useNormalizedAnnouncementStates() {
+  const { data: announcementStates, isLoading, error } = useAnnouncementStates();
+
+  const { pinnedIds, archivedIds, acknowledgedIds } = useMemo(() => ({
+    pinnedIds: announcementStates?.pinnedIds instanceof Set ? announcementStates.pinnedIds : new Set<string>(),
+    archivedIds: announcementStates?.archivedIds instanceof Set ? announcementStates.archivedIds : new Set<string>(),
+    acknowledgedIds: announcementStates?.acknowledgedIds instanceof Set ? announcementStates.acknowledgedIds : new Set<string>(),
+  }), [announcementStates]);
+
+  return { pinnedIds, archivedIds, acknowledgedIds, isLoading, error };
 }
 
 /**

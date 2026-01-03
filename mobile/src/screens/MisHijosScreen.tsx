@@ -74,14 +74,14 @@ export default function MisHijosScreen() {
     }
 
     // Filter reports for selected child once
-    const childReports = reports.filter(r => r.student_id === effectiveId);
+    const childReports = reports.filter(r => r.student === effectiveId);
 
     return {
       effectiveSelectedChildId: effectiveId,
       selectedChild: child,
       unreadReportsCount: filterUnreadReports(childReports).length,
       pendingPickupCount: pickupRequests.filter(
-        r => r.student_id === effectiveId && r.status === 'pending'
+        r => r.student === effectiveId && r.status === 'pending'
       ).length,
       recentReports: childReports.slice(0, 3),
     };

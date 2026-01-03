@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useMemo } from 'react';
 import { View, Text, StyleSheet, RefreshControl, ActivityIndicator, TouchableOpacity, ScrollView, LayoutAnimation, Platform, UIManager } from 'react-native';
 
 // Enable LayoutAnimation for Android
@@ -18,7 +18,7 @@ import { useFilters, useUnreadCounts } from '../context/AppContext';
 import {
   useAnnouncements,
   useContentReadStatus,
-  useAnnouncementStates,
+  useNormalizedAnnouncementStates,
   useAnnouncementPin,
   useAnnouncementArchive,
   useEvents
@@ -26,7 +26,7 @@ import {
 import { useSession } from '../hooks';
 import { Announcement, Event } from '../api/frappe';
 import { COLORS, CHILD_COLORS, SPACING, BORDERS, TYPOGRAPHY, FONT_SIZES, SIZES } from '../theme';
-import { stripHtml, logger } from '../utils';
+import { stripHtml, logger, formatEventDay, formatEventMonth } from '../utils';
 
 export default function InicioScreen() {
   const router = useRouter();
@@ -42,15 +42,8 @@ export default function InicioScreen() {
   // Fetch events for upcoming section
   const { data: events = [], isLoading: eventsLoading, refetch: refetchEvents } = useEvents();
 
-  // Fetch user's pinned/archived/acknowledged states
-  const { data: announcementStates, isLoading: statesLoading } = useAnnouncementStates();
-
-  // OPTIMIZED: Consolidated 3 useMemo into 1 to reduce overhead
-  const { pinnedIds, archivedIds, acknowledgedIds } = useMemo(() => ({
-    pinnedIds: announcementStates?.pinnedIds instanceof Set ? announcementStates.pinnedIds : new Set<string>(),
-    archivedIds: announcementStates?.archivedIds instanceof Set ? announcementStates.archivedIds : new Set<string>(),
-    acknowledgedIds: announcementStates?.acknowledgedIds instanceof Set ? announcementStates.acknowledgedIds : new Set<string>(),
-  }), [announcementStates]);
+  // Fetch user's pinned/archived/acknowledged states (normalized to Sets)
+  const { pinnedIds, archivedIds, acknowledgedIds, isLoading: statesLoading } = useNormalizedAnnouncementStates();
 
   // Pin and archive mutations for swipe actions
   const { togglePin } = useAnnouncementPin();
@@ -160,16 +153,6 @@ export default function InicioScreen() {
 
   const onRefresh = async () => {
     await Promise.all([refetchAnnouncements(), refetchEvents()]);
-  };
-
-  const formatEventDay = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.getDate().toString().padStart(2, '0');
-  };
-
-  const formatEventMonth = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('es-AR', { month: 'short' }).toUpperCase().replace('.', '');
   };
 
   // Memoize handlers to prevent ListHeader re-renders

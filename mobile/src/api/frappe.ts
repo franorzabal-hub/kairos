@@ -99,6 +99,8 @@ export interface Section {
 
 export interface Student {
   name: string;
+  /** Alias for name - provided for backward compatibility with Directus migration */
+  id: string;
   institution: string;
   student_name: string;
   first_name: string;

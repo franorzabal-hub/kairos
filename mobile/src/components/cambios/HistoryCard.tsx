@@ -18,7 +18,7 @@ export interface HistoryCardProps {
 }
 
 const HistoryCard = React.memo(({ request, children, canEdit, onEdit }: HistoryCardProps) => {
-  const child = children.find(c => c.id === request.student_id);
+  const child = children.find(c => c.id === request.student);
   const childName = child ? `${child.first_name} ${child.last_name}` : 'Estudiante';
 
   const formatDate = (dateStr: string) => {

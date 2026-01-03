@@ -8,6 +8,9 @@ export { getPastelColor, getChildColor } from './colors';
 // Re-export logger utility
 export { logger } from './logger';
 
+// Re-export date formatting utilities
+export * from './dateFormatters';
+
 /**
  * Strip HTML tags and decode common HTML entities for preview text.
  * Useful for displaying clean text from rich HTML content.

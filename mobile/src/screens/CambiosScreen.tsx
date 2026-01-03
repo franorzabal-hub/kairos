@@ -47,7 +47,7 @@ export default function CambiosScreen() {
   // Apply child filter only (no read/unread filter for cambios)
   const filteredPickupRequests = useMemo(() => {
     if (selectedChildId) {
-      return pickupRequests.filter(req => req.student_id === selectedChildId);
+      return pickupRequests.filter(req => req.student === selectedChildId);
     }
     return pickupRequests;
   }, [pickupRequests, selectedChildId]);
@@ -100,7 +100,7 @@ export default function CambiosScreen() {
   // Populate form with existing request data for editing
   const startEditing = useCallback((request: PickupRequest) => {
     setEditingRequest(request);
-    setSelectedChildren([request.student_id]);
+    setSelectedChildren([request.student]);
     setSelectedDate(request.pickup_date);
     setSelectedTime(request.pickup_time || 'Al finalizar el dia');
     setMotivo(request.reason || '');
@@ -136,10 +136,10 @@ export default function CambiosScreen() {
       } else {
         for (const childId of selectedChildren) {
           await createPickupMutation.mutateAsync({
-            organization_id: '',
-            student_id: childId,
+            institution: '',
+            student: childId,
             requested_by: user.id,
-            request_type: 'different_person' as const,
+            request_type: 'Different Person',
             pickup_date: selectedDate || new Date().toISOString().split('T')[0],
             pickup_time: selectedTime,
             authorized_person: authorizedPerson,

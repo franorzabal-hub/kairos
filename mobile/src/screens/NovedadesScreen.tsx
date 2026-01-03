@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FlashList } from '@shopify/flash-list';
@@ -7,7 +7,7 @@ import FilterBar from '../components/FilterBar';
 import SwipeableAnnouncementCard from '../components/SwipeableAnnouncementCard';
 import { useFilters, useUnreadCounts } from '../context/UIContext';
 import { useSession } from '../hooks';
-import { useAnnouncements, useContentReadStatus, useAnnouncementStates, useAnnouncementPin, useAnnouncementArchive } from '../api/hooks';
+import { useAnnouncements, useContentReadStatus, useNormalizedAnnouncementStates, useAnnouncementPin, useAnnouncementArchive } from '../api/hooks';
 import { Announcement } from '../api/frappe';
 import { COLORS, SPACING, TYPOGRAPHY } from '../theme';
 
@@ -21,15 +21,8 @@ export default function NovedadesScreen() {
   // Fetch announcements
   const { data: announcements = [], isLoading, refetch, isRefetching } = useAnnouncements();
 
-  // Fetch user's pinned/archived/acknowledged states
-  const { data: announcementStates, isLoading: statesLoading } = useAnnouncementStates();
-
-  // OPTIMIZED: Consolidated 3 useMemo into 1 to reduce overhead
-  const { pinnedIds, archivedIds, acknowledgedIds } = useMemo(() => ({
-    pinnedIds: announcementStates?.pinnedIds instanceof Set ? announcementStates.pinnedIds : new Set<string>(),
-    archivedIds: announcementStates?.archivedIds instanceof Set ? announcementStates.archivedIds : new Set<string>(),
-    acknowledgedIds: announcementStates?.acknowledgedIds instanceof Set ? announcementStates.acknowledgedIds : new Set<string>(),
-  }), [announcementStates]);
+  // Fetch user's pinned/archived/acknowledged states (normalized to Sets)
+  const { pinnedIds, archivedIds, acknowledgedIds, isLoading: statesLoading } = useNormalizedAnnouncementStates();
 
   // Pin and archive mutations for swipe actions
   const { togglePin } = useAnnouncementPin();

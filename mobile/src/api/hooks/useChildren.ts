@@ -28,7 +28,7 @@ export function useChildren() {
 
       // Fetch students with section info (includes grade for content filtering)
       // The section relation is needed to properly filter announcements by grade
-      const students = await getDocList<Student>('Student', {
+      const students = await getDocList<Omit<Student, 'id'>>('Student', {
         filters: [
           ['name', 'in', studentNames],
           ['status', '=', 'Active'],
@@ -47,8 +47,11 @@ export function useChildren() {
         ],
       });
 
-      setChildren(students);
-      return students;
+      // Map students to include id as alias for name (backward compatibility with Directus migration)
+      const studentsWithId: Student[] = students.map(s => ({ ...s, id: s.name }));
+
+      setChildren(studentsWithId);
+      return studentsWithId;
     },
     enabled: !!user?.id,
   });

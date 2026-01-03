@@ -30,6 +30,7 @@ import {
   savePendingDeepLink,
   consumePendingDeepLink,
   navigateFromDeepLink,
+  isValidDeepLink,
 } from '../src/services/deepLinking';
 
 const queryClient = new QueryClient({
@@ -81,9 +82,19 @@ function RootContent() {
       let deepLinkUrl: string | null = null;
 
       if (data?.url && typeof data.url === 'string') {
-        deepLinkUrl = data.url;
+        // Only accept valid deep links
+        if (isValidDeepLink(data.url)) {
+          deepLinkUrl = data.url;
+        } else {
+          console.warn('[Security] Rejected invalid deep link from notification:', data.url);
+        }
       } else if (data?.path && typeof data.path === 'string') {
-        deepLinkUrl = `kairos:/${data.path}`;
+        const constructedUrl = `kairos:/${data.path}`;
+        if (isValidDeepLink(constructedUrl)) {
+          deepLinkUrl = constructedUrl;
+        } else {
+          console.warn('[Security] Rejected invalid deep link from notification path:', data.path);
+        }
       } else if (data?.type && data?.id) {
         // Map notification types to routes
         const typeToRoute: Record<string, string> = {

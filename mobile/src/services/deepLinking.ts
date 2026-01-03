@@ -48,6 +48,32 @@ function isAllowedRoute(path: string): boolean {
 }
 
 /**
+ * Validates that a URL is safe to navigate to.
+ * Only allows kairos:// scheme and internal paths.
+ */
+export function isValidDeepLink(url: string): boolean {
+  if (!url) return false;
+
+  // Allow kairos:// scheme
+  if (url.startsWith('kairos://')) return true;
+
+  // Allow relative paths starting with /
+  if (url.startsWith('/')) {
+    // Check against allowed routes
+    const path = url.split('?')[0]; // Remove query params
+    return ALLOWED_ROUTES.some(route => path.startsWith(`/${route}`));
+  }
+
+  // Block external URLs (http://, https://, etc.)
+  if (url.includes('://')) {
+    logger.warn('DeepLinking', 'Rejected external deep link URL', { url });
+    return false;
+  }
+
+  return false;
+}
+
+/**
  * Parse a deep link URL and return the route path
  */
 export function parseDeepLink(url: string): string | null {
@@ -101,6 +127,11 @@ export async function consumePendingDeepLink(): Promise<string | null> {
  * Validates and sanitizes the path before navigation to prevent security issues
  */
 export function navigateFromDeepLink(url: string): boolean {
+  if (!isValidDeepLink(url)) {
+    logger.warn('DeepLinking', 'Rejected invalid deep link', { url });
+    return false;
+  }
+
   const path = parseDeepLink(url);
   if (!path) return false;
 

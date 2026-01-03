@@ -38,7 +38,7 @@ export default function BoletinesScreen() {
     // Step 2: Group by student
     const byStudent: Record<string, Report[]> = {};
     filtered.forEach(report => {
-      const child = children.find(c => c.id === report.student_id);
+      const child = children.find(c => c.id === report.student);
       const childName = child ? `${child.first_name} ${child.last_name}` : 'Estudiante';
 
       if (!byStudent[childName]) {

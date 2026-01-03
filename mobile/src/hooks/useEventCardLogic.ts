@@ -7,7 +7,13 @@
 import { useMemo } from 'react';
 import { Event } from '../api/frappe';
 import { COLORS } from '../theme';
-import { getPastelColor } from '../utils';
+import {
+  getPastelColor,
+  formatEventMonth,
+  formatEventDay,
+  formatTime,
+  formatFullDate,
+} from '../utils';
 import { EventStatus, CTAConfig, EVENT_CTA_CONFIG } from '../types/events';
 
 export interface UseEventCardLogicProps {
@@ -19,10 +25,10 @@ export interface UseEventCardLogicProps {
 }
 
 export interface UseEventCardLogicReturn {
-  formatMonth: (dateStr: string) => string;
-  formatDay: (dateStr: string) => string;
-  formatTime: (dateStr: string) => string;
-  formatFullDate: (dateStr: string) => string;
+  formatMonth: typeof formatEventMonth;
+  formatDay: typeof formatEventDay;
+  formatTime: typeof formatTime;
+  formatFullDate: typeof formatFullDate;
   dateBlockBgColor: string;
   dateBlockTextColor: string;
   accessibilityLabel: string;
@@ -30,52 +36,6 @@ export interface UseEventCardLogicReturn {
   isCancelled: boolean;
   isPending: boolean;
   ctaConfig: CTAConfig | undefined;
-}
-
-/**
- * Format month abbreviation (uppercase, no period)
- * Example: "ENE", "FEB", "MAR"
- */
-function formatMonth(dateStr: string): string {
-  const date = new Date(dateStr);
-  return date
-    .toLocaleDateString('es-AR', { month: 'short' })
-    .toUpperCase()
-    .replace('.', '');
-}
-
-/**
- * Format day number with zero padding
- * Example: "01", "15", "31"
- */
-function formatDay(dateStr: string): string {
-  const date = new Date(dateStr);
-  return date.getDate().toString().padStart(2, '0');
-}
-
-/**
- * Format time as HH:MM
- * Example: "09:30", "14:00"
- */
-function formatTime(dateStr: string): string {
-  const date = new Date(dateStr);
-  return date.toLocaleTimeString('es-AR', {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
-/**
- * Format full date for accessibility
- * Example: "lunes, 15 de enero"
- */
-function formatFullDate(dateStr: string): string {
-  const date = new Date(dateStr);
-  return date.toLocaleDateString('es-AR', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-  });
 }
 
 /**
@@ -150,8 +110,8 @@ export function useEventCardLogic({
   );
 
   return {
-    formatMonth,
-    formatDay,
+    formatMonth: formatEventMonth,
+    formatDay: formatEventDay,
     formatTime,
     formatFullDate,
     dateBlockBgColor,

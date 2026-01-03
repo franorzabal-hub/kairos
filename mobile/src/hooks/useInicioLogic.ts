@@ -13,6 +13,7 @@ import { useMemo, useCallback } from 'react';
 import { Announcement, Event, Student } from '../api/frappe';
 import { FilterMode } from '../context/UIContext';
 import { CHILD_COLORS } from '../theme';
+import { formatEventDay, formatEventMonth } from '../utils';
 
 /**
  * Props for the useInicioLogic hook
@@ -61,9 +62,9 @@ export interface UseInicioLogicReturn {
   /** Get child name/color for an announcement (for multi-child display) */
   getChildInfo: (announcement: Announcement) => ChildInfo;
   /** Format event date to day number (e.g., "05", "31") */
-  formatEventDay: (dateStr: string) => string;
+  formatEventDay: typeof formatEventDay;
   /** Format event date to month abbreviation (e.g., "ENE", "DIC") */
-  formatEventMonth: (dateStr: string) => string;
+  formatEventMonth: typeof formatEventMonth;
 }
 
 /**
@@ -217,26 +218,6 @@ export function useInicioLogic({
 
     return result;
   }, [announcements, filterMode, filterUnread, selectedChild, pinnedIds, archivedIds]);
-
-  /**
-   * Format event day for display (e.g., "05", "31")
-   */
-  const formatEventDay = useCallback((dateStr: string): string => {
-    const date = new Date(dateStr);
-    return date.getDate().toString().padStart(2, '0');
-  }, []);
-
-  /**
-   * Format event month for display (e.g., "ENE", "DIC")
-   * Uses Spanish locale with uppercase formatting
-   */
-  const formatEventMonth = useCallback((dateStr: string): string => {
-    const date = new Date(dateStr);
-    return date
-      .toLocaleDateString('es-AR', { month: 'short' })
-      .toUpperCase()
-      .replace('.', '');
-  }, []);
 
   return {
     filteredAnnouncements,
