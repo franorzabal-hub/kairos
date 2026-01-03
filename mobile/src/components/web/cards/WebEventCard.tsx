@@ -12,7 +12,7 @@ import { View, Text, Pressable, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import DirectusImage from '../../DirectusImage';
-import { Event } from '../../../api/directus';
+import { Event } from '../../../api/frappe';
 import { useEventCardLogic } from '../../../hooks';
 import { COLORS } from '../../../theme';
 import { EventStatus } from '../../../types/events';

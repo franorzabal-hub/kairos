@@ -15,7 +15,7 @@ import ScreenHeader from '../components/ScreenHeader';
 import ChildSelector from '../components/ChildSelector';
 import DirectusImage from '../components/DirectusImage';
 import { useChildren, useReports, usePickupRequests } from '../api/hooks';
-import { Report, PickupRequest } from '../api/directus';
+import { Report, PickupRequest } from '../api/frappe';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY, SHADOWS, BADGE_STYLES, UNREAD_STYLES, FONT_SIZES, SIZES } from '../theme';
 import { useSession } from '../hooks';
 import { useContentReadStatus } from '../api/hooks';

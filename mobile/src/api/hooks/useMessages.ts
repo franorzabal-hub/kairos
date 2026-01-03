@@ -1,6 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { readItems, updateItem } from '@directus/sdk';
-import { directus, Message, MessageRecipient } from '../directus';
+import {
+  getDocList,
+  updateDoc,
+  Message,
+  MessageRecipient,
+} from '../frappe';
 import { useAuth } from '../../context/AuthContext';
 import { useChildren } from '../../context/ChildrenContext';
 import { useUI } from '../../context/UIContext';
@@ -14,65 +18,88 @@ export interface MessageWithReadStatus extends Message {
   delivered_at?: string;
 }
 
-// Fetch messages via message_recipients junction
+// Fetch messages via Message Recipient junction
 export function useMessages() {
   const { user } = useAuth();
   const { selectedChildId } = useChildren();
   const { filterMode } = useUI();
 
-  // message_recipients.user_id references directus_users, not app_users
-  const directusUserId = user?.directus_user_id ?? '';
+  // In Frappe, we use the user's name (email) as the user identifier
+  const frappeUserId = user?.directus_user_id ?? '';
 
   return useQuery({
-    queryKey: queryKeys.messageRecipients.filtered(directusUserId, selectedChildId ?? undefined, filterMode),
+    queryKey: queryKeys.messageRecipients.filtered(frappeUserId, selectedChildId ?? undefined, filterMode),
     queryFn: async () => {
-      if (!directusUserId) return [];
+      if (!frappeUserId) return [];
 
-      // Fetch message_recipients for current user with message details
-      const items = await directus.request(
-        readItems('message_recipients', {
-          filter: {
-            user_id: { _eq: directusUserId },
-          },
-          // Nested relational fields - SDK type limitation requires 'as any'
-          fields: ['*', { message_id: ['*'] }] as any,
-          sort: ['-date_created'],
-          limit: 50,
-        })
-      );
+      // Fetch Message Recipient records for current user
+      const recipients = await getDocList<MessageRecipient>('Message Recipient', {
+        filters: [
+          ['guardian', '=', frappeUserId],
+        ],
+        fields: ['name', 'message', 'guardian', 'student', 'delivered_at', 'read_at', 'creation'],
+        orderBy: { field: 'creation', order: 'desc' },
+        limit: 50,
+      });
+
+      // Fetch all related messages in a batch
+      const messageNames = recipients.map(r => r.message).filter(Boolean);
+      if (messageNames.length === 0) return [];
+
+      const messages = await getDocList<Message>('Message', {
+        filters: [
+          ['name', 'in', messageNames],
+        ],
+        fields: ['name', 'institution', 'subject', 'content', 'message_type', 'priority', 'status', 'owner', 'creation'],
+      });
+
+      // Create a map for quick message lookup
+      const messageMap = new Map<string, Message>();
+      for (const msg of messages) {
+        messageMap.set(msg.name, msg);
+      }
 
       // Transform to include read status with message data
-      return (items as unknown as MessageRecipient[]).map(recipient => ({
-        ...(recipient.message_id as Message),
-        recipientId: recipient.id,
-        read_at: recipient.read_at,
-        delivered_at: recipient.delivered_at,
-      }));
+      return recipients
+        .map(recipient => {
+          const message = messageMap.get(recipient.message);
+          if (!message) return null;
+
+          return {
+            ...message,
+            recipientId: recipient.name,
+            read_at: recipient.read_at,
+            delivered_at: recipient.delivered_at,
+          };
+        })
+        .filter((item): item is MessageWithReadStatus => item !== null);
     },
-    enabled: !!directusUserId,
+    enabled: !!frappeUserId,
   });
 }
 
-// Mark message as read by updating message_recipient
+// Mark message as read by updating Message Recipient
 export function useMarkMessageRead() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const directusUserId = user?.directus_user_id;
+  const frappeUserId = user?.directus_user_id;
 
   return useMutation({
     mutationFn: async (recipientId: string) => {
-      // Update the message_recipient record with read_at timestamp
-      const result = await directus.request(
-        updateItem('message_recipients', recipientId, {
+      // Update the Message Recipient record with read_at timestamp
+      const result = await updateDoc<MessageRecipient>(
+        'Message Recipient',
+        recipientId,
+        {
           read_at: new Date().toISOString(),
-        })
+        }
       );
       return result;
     },
     onSuccess: () => {
       // Scope invalidation to current user's messages
-      if (directusUserId) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.messageRecipients.user(directusUserId) });
+      if (frappeUserId) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.messageRecipients.user(frappeUserId) });
       }
     },
     onError: (error) => {

@@ -16,7 +16,7 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import { useAuth } from '../context/AppContext';
 import { useSession } from '../hooks';
 import { clearAllReadStatus } from '../services/readStatusService';
-import { isBiometricEnabled, setBiometricEnabled } from '../api/directus';
+import { isBiometricEnabled, setBiometricEnabled } from '../api/frappe';
 import Constants from 'expo-constants';
 import { SettingsRow, ToggleRow } from '../components/settings';
 import { COLORS, SPACING, BORDERS, FONT_SIZES, SIZES } from '../theme';

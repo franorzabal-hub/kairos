@@ -25,7 +25,7 @@ import {
   useArchiveConversation,
   useToggleParticipantBlocked,
 } from '../api/hooks';
-import { ConversationMessage, DirectusUser } from '../api/directus';
+import { ConversationMessage, DirectusUser } from '../api/frappe';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY, SIZES } from '../theme';
 import { ChatBubble, FirstMessageCard, MessageInput, DateSeparator } from '../components/chat';
 

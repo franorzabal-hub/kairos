@@ -26,7 +26,7 @@ import {
   useEvents
 } from '../../api/hooks';
 import { useSession } from '../../hooks';
-import { Announcement, Event } from '../../api/directus';
+import { Announcement, Event } from '../../api/frappe';
 import { COLORS, CHILD_COLORS, SPACING, BORDERS, TYPOGRAPHY } from '../../theme';
 import { logger } from '../../utils';
 

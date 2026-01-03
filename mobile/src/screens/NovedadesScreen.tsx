@@ -8,7 +8,7 @@ import SwipeableAnnouncementCard from '../components/SwipeableAnnouncementCard';
 import { useFilters, useUnreadCounts } from '../context/UIContext';
 import { useSession } from '../hooks';
 import { useAnnouncements, useContentReadStatus, useAnnouncementStates, useAnnouncementPin, useAnnouncementArchive } from '../api/hooks';
-import { Announcement } from '../api/directus';
+import { Announcement } from '../api/frappe';
 import { COLORS, SPACING, TYPOGRAPHY } from '../theme';
 
 export default function NovedadesScreen() {

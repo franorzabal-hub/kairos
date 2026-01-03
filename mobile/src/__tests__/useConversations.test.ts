@@ -16,69 +16,69 @@ import {
   Conversation,
   ConversationMessage,
   ConversationParticipant,
-  DirectusUser,
-} from '../api/directus';
+  FrappeUser,
+} from '../api/frappe';
 
 // Type the mocked functions
 const mockUseQuery = useQuery as jest.MockedFunction<typeof useQuery>;
 const mockUseMutation = useMutation as jest.MockedFunction<typeof useMutation>;
 const mockUseQueryClient = useQueryClient as jest.MockedFunction<typeof useQueryClient>;
 
-// Sample user data
-const mockDirectusUser: DirectusUser = {
-  id: 'directus-user-123',
+// Sample user data (Frappe uses email as user ID)
+const mockFrappeUser: FrappeUser = {
+  name: 'john@example.com',
   first_name: 'John',
   last_name: 'Doe',
   email: 'john@example.com',
 };
 
-const mockOtherUser: DirectusUser = {
-  id: 'directus-user-456',
+const mockOtherUser: FrappeUser = {
+  name: 'jane@example.com',
   first_name: 'Jane',
   last_name: 'Smith',
   email: 'jane@example.com',
 };
 
-// Sample conversation data
+// Sample conversation data (using Frappe types)
 const mockConversation: Conversation = {
-  id: 'conv-1',
-  organization_id: 'org-123',
-  type: 'private',
+  name: 'CONV-0001',
+  institution: 'institution-123',
+  conversation_type: 'Private',
   subject: 'Question about homework',
-  started_by: 'directus-user-123',
-  channel: 'profesores',
-  status: 'open',
-  date_created: '2024-01-15T10:00:00Z',
-  date_updated: '2024-01-15T14:30:00Z',
+  started_by: 'john@example.com',
+  channel: 'Profesores',
+  status: 'Open',
+  creation: '2024-01-15T10:00:00Z',
+  modified: '2024-01-15T14:30:00Z',
 };
 
 const mockParticipant: ConversationParticipant = {
-  id: 'part-1',
-  conversation_id: 'conv-1',
-  user_id: 'directus-user-123',
-  role: 'parent',
+  name: 'CONVPART-0001',
+  conversation: 'CONV-0001',
+  user: 'john@example.com',
+  role: 'Parent',
   can_reply: true,
   is_blocked: false,
   is_muted: false,
   last_read_at: '2024-01-15T14:00:00Z',
-  date_created: '2024-01-15T10:00:00Z',
+  creation: '2024-01-15T10:00:00Z',
 };
 
 const mockMessage: ConversationMessage = {
-  id: 'msg-1',
-  conversation_id: 'conv-1',
-  sender_id: mockDirectusUser,
+  name: 'CONVMSG-0001',
+  conversation: 'CONV-0001',
+  sender: 'john@example.com',
   content: 'Hello, I have a question about the math homework.',
-  content_type: 'text',
+  content_type: 'Text',
   is_urgent: false,
-  date_created: '2024-01-15T10:05:00Z',
+  creation: '2024-01-15T10:05:00Z',
 };
 
-// Mock auth context
+// Mock auth context (using Frappe Guardian mapping)
 const mockAuthUser = {
-  id: 'app-user-123',
-  organization_id: 'org-123',
-  directus_user_id: 'directus-user-123',
+  id: 'guardian-123',
+  organization_id: 'institution-123',
+  directus_user_id: 'john@example.com', // Frappe User
   role: 'parent' as const,
   first_name: 'John',
   last_name: 'Doe',
@@ -130,17 +130,17 @@ describe('useConversations hooks', () => {
   });
 
   describe('useConversations', () => {
-    it('should use directus_user_id for queries', () => {
-      // The hook uses user?.directus_user_id
-      expect(mockAuthUser.directus_user_id).toBe('directus-user-123');
+    it('should use Frappe user ID for queries', () => {
+      // The hook uses user?.directus_user_id (which maps to Frappe User email)
+      expect(mockAuthUser.directus_user_id).toBe('john@example.com');
     });
 
-    it('should be enabled when directusUserId exists', () => {
-      const directusUserId = mockAuthUser.directus_user_id;
-      expect(!!directusUserId).toBe(true);
+    it('should be enabled when frappeUserId exists', () => {
+      const frappeUserId = mockAuthUser.directus_user_id;
+      expect(!!frappeUserId).toBe(true);
     });
 
-    it('should be disabled when directusUserId is undefined', () => {
+    it('should be disabled when frappeUserId is undefined', () => {
       mockUseAuth.mockReturnValue({
         user: { ...mockAuthUser, directus_user_id: undefined },
         isAuthenticated: true,
@@ -150,14 +150,14 @@ describe('useConversations hooks', () => {
         biometricLockout: { isLocked: false, remainingTime: 0 },
       });
 
-      const directusUserId = undefined;
-      expect(!!directusUserId).toBe(false);
+      const frappeUserId = undefined;
+      expect(!!frappeUserId).toBe(false);
     });
 
     it('should generate user-scoped query key', () => {
-      const directusUserId = mockAuthUser.directus_user_id!;
-      const queryKey = queryKeys.conversations.user(directusUserId);
-      expect(queryKey).toEqual(['conversations', 'directus-user-123']);
+      const frappeUserId = mockAuthUser.directus_user_id!;
+      const queryKey = queryKeys.conversations.user(frappeUserId);
+      expect(queryKey).toEqual(['conversations', 'john@example.com']);
     });
   });
 
@@ -182,53 +182,54 @@ describe('useConversations hooks', () => {
 
   describe('useConversationMessages', () => {
     it('should generate correct query key', () => {
-      const conversationId = 'conv-1';
+      const conversationId = 'CONV-0001';
       const queryKey = queryKeys.conversationMessages(conversationId);
-      expect(queryKey).toEqual(['conversationMessages', 'conv-1']);
+      expect(queryKey).toEqual(['conversationMessages', 'CONV-0001']);
     });
 
     it('should filter out deleted messages', () => {
-      // The query includes: deleted_at: { _null: true }
-      const filter = {
-        conversation_id: { _eq: 'conv-1' },
-        deleted_at: { _null: true },
-      };
-      expect(filter.deleted_at._null).toBe(true);
+      // In Frappe, filters use array tuple format
+      const filters = [
+        ['conversation', '=', 'CONV-0001'],
+        ['deleted_at', 'is', 'not set'],
+      ];
+      expect(filters[1][2]).toBe('not set');
     });
 
-    it('should sort messages by date_created ascending', () => {
+    it('should sort messages by creation ascending', () => {
       // Messages are sorted chronologically for chat display
-      const sort = ['date_created'];
-      expect(sort).toEqual(['date_created']);
+      // In Frappe, the field is 'creation' not 'date_created'
+      const orderBy = { field: 'creation', order: 'asc' };
+      expect(orderBy.field).toBe('creation');
     });
   });
 
   describe('useSendMessage', () => {
     it('should require authentication', () => {
-      const directusUserId = mockAuthUser.directus_user_id;
-      expect(directusUserId).toBeDefined();
+      const frappeUserId = mockAuthUser.directus_user_id;
+      expect(frappeUserId).toBeDefined();
     });
 
     it('should throw error when not authenticated', () => {
-      const directusUserId = undefined;
+      const frappeUserId = undefined;
       const shouldThrow = () => {
-        if (!directusUserId) throw new Error('User not authenticated');
+        if (!frappeUserId) throw new Error('User not authenticated');
       };
       expect(shouldThrow).toThrow('User not authenticated');
     });
 
     it('should invalidate correct queries on success', () => {
-      const conversationId = 'conv-1';
-      const directusUserId = 'directus-user-123';
+      const conversationId = 'CONV-0001';
+      const frappeUserId = 'john@example.com';
 
       // On success, should invalidate:
       // 1. conversationMessages for this conversation
       // 2. conversations.user for current user
       const messagesToInvalidate = queryKeys.conversationMessages(conversationId);
-      const conversationsToInvalidate = queryKeys.conversations.user(directusUserId);
+      const conversationsToInvalidate = queryKeys.conversations.user(frappeUserId);
 
-      expect(messagesToInvalidate).toEqual(['conversationMessages', 'conv-1']);
-      expect(conversationsToInvalidate).toEqual(['conversations', 'directus-user-123']);
+      expect(messagesToInvalidate).toEqual(['conversationMessages', 'CONV-0001']);
+      expect(conversationsToInvalidate).toEqual(['conversations', 'john@example.com']);
     });
   });
 
@@ -239,45 +240,45 @@ describe('useConversations hooks', () => {
     });
 
     it('should invalidate user conversations on success', () => {
-      const directusUserId = 'directus-user-123';
-      const queryKey = queryKeys.conversations.user(directusUserId);
-      expect(queryKey).toEqual(['conversations', 'directus-user-123']);
+      const frappeUserId = 'john@example.com';
+      const queryKey = queryKeys.conversations.user(frappeUserId);
+      expect(queryKey).toEqual(['conversations', 'john@example.com']);
     });
   });
 
   describe('useCloseConversation', () => {
     it('should update conversation status to closed', () => {
       const updateData = {
-        status: 'closed',
-        closed_by: 'directus-user-123',
+        status: 'Closed',
+        closed_by: 'john@example.com',
         closed_at: new Date().toISOString(),
         closed_reason: 'Issue resolved',
       };
-      expect(updateData.status).toBe('closed');
+      expect(updateData.status).toBe('Closed');
       expect(updateData.closed_by).toBeDefined();
     });
 
     it('should invalidate both conversation and user conversations', () => {
-      const conversationId = 'conv-1';
-      const directusUserId = 'directus-user-123';
+      const conversationId = 'CONV-0001';
+      const frappeUserId = 'john@example.com';
 
       const convKey = queryKeys.conversation(conversationId);
-      const userConvsKey = queryKeys.conversations.user(directusUserId);
+      const userConvsKey = queryKeys.conversations.user(frappeUserId);
 
-      expect(convKey).toEqual(['conversation', 'conv-1']);
-      expect(userConvsKey).toEqual(['conversations', 'directus-user-123']);
+      expect(convKey).toEqual(['conversation', 'CONV-0001']);
+      expect(userConvsKey).toEqual(['conversations', 'john@example.com']);
     });
   });
 
   describe('useReopenConversation', () => {
     it('should reset conversation to open status', () => {
       const updateData = {
-        status: 'open',
+        status: 'Open',
         closed_by: null,
         closed_at: null,
         closed_reason: null,
       };
-      expect(updateData.status).toBe('open');
+      expect(updateData.status).toBe('Open');
       expect(updateData.closed_by).toBeNull();
     });
   });
@@ -285,18 +286,18 @@ describe('useConversations hooks', () => {
   describe('useArchiveConversation', () => {
     it('should update status to archived', () => {
       const updateData = {
-        status: 'archived',
+        status: 'Archived',
       };
-      expect(updateData.status).toBe('archived');
+      expect(updateData.status).toBe('Archived');
     });
   });
 
   describe('useUnarchiveConversation', () => {
     it('should update status to open', () => {
       const updateData = {
-        status: 'open',
+        status: 'Open',
       };
-      expect(updateData.status).toBe('open');
+      expect(updateData.status).toBe('Open');
     });
   });
 
@@ -346,7 +347,7 @@ describe('useConversations hooks', () => {
     it('should require all parameters', () => {
       const params = {
         subject: 'New question',
-        channelId: 'secretaria',
+        channelId: 'Secretaria',
         initialMessage: 'Hello, I need help with...',
         isUrgent: false,
       };
@@ -359,20 +360,20 @@ describe('useConversations hooks', () => {
     it('should create conversation with correct data', () => {
       const conversationData = {
         subject: 'New question',
-        status: 'open',
-        channel: 'secretaria',
-        started_by: 'directus-user-123',
-        organization_id: 'org-123',
+        status: 'Open',
+        channel: 'Secretaria',
+        started_by: 'john@example.com',
+        institution: 'institution-123',
       };
 
-      expect(conversationData.status).toBe('open');
-      expect(conversationData.channel).toBe('secretaria');
+      expect(conversationData.status).toBe('Open');
+      expect(conversationData.channel).toBe('Secretaria');
     });
 
     it('should add creator as participant', () => {
       const participantData = {
-        conversation_id: 'new-conv-id',
-        user_id: 'directus-user-123',
+        conversation: 'CONV-0001',
+        user: 'john@example.com',
         can_reply: true,
         is_blocked: false,
         is_muted: false,
@@ -384,39 +385,42 @@ describe('useConversations hooks', () => {
 
     it('should send initial message', () => {
       const messageData = {
-        conversation_id: 'new-conv-id',
-        sender_id: 'directus-user-123',
+        conversation: 'CONV-0001',
+        sender: 'john@example.com',
         content: 'Hello, I need help',
-        content_type: 'text',
+        content_type: 'Text',
         is_urgent: false,
       };
 
-      expect(messageData.content_type).toBe('text');
+      expect(messageData.content_type).toBe('Text');
     });
   });
 });
 
 describe('Conversation data types', () => {
-  it('should have correct type values', () => {
-    const types = ['private', 'group'];
-    expect(types).toContain(mockConversation.type);
+  it('should have correct conversation_type values', () => {
+    // In Frappe, 'type' is 'conversation_type' and uses Title Case
+    const types = ['Private', 'Group'];
+    expect(types).toContain(mockConversation.conversation_type);
   });
 
   it('should have correct status values', () => {
-    const statuses = ['open', 'closed', 'archived'];
+    // Frappe uses Title Case
+    const statuses = ['Open', 'Closed', 'Archived'];
     expect(statuses).toContain(mockConversation.status);
   });
 
   it('should have correct channel values', () => {
-    const channels = ['secretaria', 'profesores', 'general'];
+    // Frappe uses Title Case
+    const channels = ['Secretaria', 'Profesores', 'General'];
     expect(channels).toContain(mockConversation.channel);
   });
 
   it('should support optional closed fields', () => {
     const closedConversation: Conversation = {
       ...mockConversation,
-      status: 'closed',
-      closed_by: 'user-123',
+      status: 'Closed',
+      closed_by: 'john@example.com',
       closed_at: '2024-01-16T10:00:00Z',
       closed_reason: 'Issue resolved',
     };
@@ -429,7 +433,8 @@ describe('Conversation data types', () => {
 
 describe('ConversationParticipant data types', () => {
   it('should have correct role values', () => {
-    const roles = ['teacher', 'parent', 'admin'];
+    // Frappe uses Title Case
+    const roles = ['Teacher', 'Parent', 'Admin'];
     expect(roles).toContain(mockParticipant.role);
   });
 
@@ -442,7 +447,8 @@ describe('ConversationParticipant data types', () => {
 
 describe('ConversationMessage data types', () => {
   it('should have correct content_type values', () => {
-    const contentTypes = ['text', 'html'];
+    // Frappe uses Title Case
+    const contentTypes = ['Text', 'HTML'];
     expect(contentTypes).toContain(mockMessage.content_type);
   });
 
@@ -450,7 +456,7 @@ describe('ConversationMessage data types', () => {
     const messageWithAttachments: ConversationMessage = {
       ...mockMessage,
       attachments: [
-        { name: 'document.pdf', url: 'https://example.com/doc.pdf', size: 1024 },
+        { name: 'document.pdf', url: '/files/doc.pdf', size: 1024 },
       ],
     };
 

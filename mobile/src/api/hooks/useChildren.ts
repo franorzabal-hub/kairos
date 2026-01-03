@@ -1,12 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
-import { readItems } from '@directus/sdk';
-import { directus, Student } from '../directus';
+import { getDocList, Student, StudentGuardian, Guardian } from '../frappe';
 import { useAuth } from '../../context/AuthContext';
 import { useChildren as useChildrenContext } from '../../context/ChildrenContext';
 import { queryKeys } from './queryKeys';
 
 // Fetch children for the current user
-// Uses student_guardians junction table to find the parent's children
+// Uses Student Guardian junction DocType to find the parent's children
 export function useChildren() {
   const { user } = useAuth();
   const { setChildren } = useChildrenContext();
@@ -17,41 +16,39 @@ export function useChildren() {
     queryFn: async () => {
       if (!user?.id) return [];
 
-      // Get student_guardians for this user (user_id references app_users.id)
-      const guardians = await directus.request(
-        readItems('student_guardians', {
-          filter: { user_id: { _eq: user.id } },
-        })
-      );
+      // Get Student Guardian records for this guardian (user.id references Guardian.name)
+      const guardianLinks = await getDocList<StudentGuardian>('Student Guardian', {
+        filters: [['guardian', '=', user.id]],
+      });
 
-      if (!guardians.length) return [];
+      if (!guardianLinks.length) return [];
 
-      // Get students for these guardians
-      const studentIds = guardians.map(g => g.student_id);
+      // Get students for these guardian links
+      const studentNames = guardianLinks.map(g => g.student);
 
-      // Fetch students with section info (includes grade_id for content filtering)
+      // Fetch students with section info (includes grade for content filtering)
       // The section relation is needed to properly filter announcements by grade
-      const students = await directus.request(
-        readItems('students', {
-          filter: { id: { _in: studentIds }, status: { _eq: 'active' } },
-          fields: [
-            'id',
-            'organization_id',
-            'first_name',
-            'last_name',
-            'birth_date',
-            'photo',
-            'section_id',
-            'status',
-            // Include section with grade_id for filtering announcements by grade
-            { section_id: ['id', 'grade_id', 'name'] },
-          ] as any,
-        })
-      );
+      const students = await getDocList<Student>('Student', {
+        filters: [
+          ['name', 'in', studentNames],
+          ['status', '=', 'Active'],
+        ],
+        fields: [
+          'name',
+          'institution',
+          'student_name',
+          'first_name',
+          'last_name',
+          'birth_date',
+          'photo',
+          'current_section',
+          'current_grade',
+          'status',
+        ],
+      });
 
-      const typedStudents = students as unknown as Student[];
-      setChildren(typedStudents);
-      return typedStudents;
+      setChildren(students);
+      return students;
     },
     enabled: !!user?.id,
   });

@@ -1,102 +1,84 @@
-import { directus } from '../api/directus';
-import { readItems, createItem, deleteItems } from '@directus/sdk';
+import {
+  getDocList,
+  createDoc,
+  deleteDoc,
+  UserPinnedNews,
+  UserArchivedNews,
+  NewsAcknowledgment,
+  FrappeFilter,
+} from '../api/frappe';
 import { logger } from '../utils/logger';
-
-// Types for the new collections
-export interface UserPinnedAnnouncement {
-  id: string;
-  user_id: string;
-  announcement_id: string;
-  created_at: string;  // Directus uses created_at for this collection
-}
-
-export interface UserArchivedAnnouncement {
-  id: string;
-  user_id: string;
-  announcement_id: string;
-  created_at: string;  // Directus uses created_at for this collection
-}
-
-export interface AnnouncementAcknowledgment {
-  id: string;
-  user_id: string;
-  announcement_id: string;
-  acknowledged_at: string;
-}
 
 // ==========================================
 // PINNING
 // ==========================================
 
 /**
- * Get all pinned announcement IDs for a user
+ * Get all pinned news IDs for a user
  * Limited to 500 to prevent unbounded queries
  */
 export async function getPinnedIds(userId: string): Promise<Set<string>> {
   try {
-    const pinned = await directus.request(
-      readItems('user_pinned_announcements', {
-        filter: {
-          user_id: { _eq: userId },
-        },
-        fields: ['announcement_id'],
-        limit: 500,
-        sort: ['-created_at'],
-      })
-    );
-    return new Set(pinned.map((p: { announcement_id: string }) => p.announcement_id));
+    const pinned = await getDocList<UserPinnedNews>('User Pinned News', {
+      filters: [['user', '=', userId]],
+      fields: ['news'],
+      limit: 500,
+      orderBy: { field: 'creation', order: 'desc' },
+    });
+    return new Set(pinned.map((p) => p.news));
   } catch (error) {
-    logger.warn('Failed to fetch pinned announcements, returning empty fallback', error);
+    logger.warn('Failed to fetch pinned news, returning empty fallback', error);
     // Return empty fallback - UI will show no pinned items
     return new Set();
   }
 }
 
 /**
- * Pin an announcement for the user
+ * Pin a news item for the user
  */
 export async function pinAnnouncement(announcementId: string, userId: string): Promise<void> {
   try {
     // Check if already pinned
-    const existing = await directus.request(
-      readItems('user_pinned_announcements', {
-        filter: {
-          user_id: { _eq: userId },
-          announcement_id: { _eq: announcementId },
-        },
-        limit: 1,
-      })
-    );
+    const existing = await getDocList<UserPinnedNews>('User Pinned News', {
+      filters: [
+        ['user', '=', userId],
+        ['news', '=', announcementId],
+      ],
+      limit: 1,
+    });
 
     if (existing.length === 0) {
-      await directus.request(
-        createItem('user_pinned_announcements', {
-          user_id: userId,
-          announcement_id: announcementId,
-        })
-      );
+      await createDoc<UserPinnedNews>('User Pinned News', {
+        user: userId,
+        news: announcementId,
+      });
     }
   } catch (error) {
-    logger.error('Failed to pin announcement', error);
+    logger.error('Failed to pin news', error);
     throw error;
   }
 }
 
 /**
- * Unpin an announcement for the user
+ * Unpin a news item for the user
  */
 export async function unpinAnnouncement(announcementId: string, userId: string): Promise<void> {
   try {
-    await directus.request(
-      deleteItems('user_pinned_announcements', {
-        filter: {
-          user_id: { _eq: userId },
-          announcement_id: { _eq: announcementId },
-        },
-      })
-    );
+    // Find the record to delete
+    const existing = await getDocList<UserPinnedNews>('User Pinned News', {
+      filters: [
+        ['user', '=', userId],
+        ['news', '=', announcementId],
+      ],
+      fields: ['name'],
+      limit: 1,
+    });
+
+    if (existing.length > 0) {
+      await deleteDoc('User Pinned News', existing[0].name);
+    }
   } catch (error) {
-    logger.error('Failed to unpin announcement', error);
+    logger.error('Failed to unpin news', error);
     throw error;
   }
 }
@@ -106,74 +88,71 @@ export async function unpinAnnouncement(announcementId: string, userId: string):
 // ==========================================
 
 /**
- * Get all archived announcement IDs for a user
+ * Get all archived news IDs for a user
  * Limited to 500 to prevent unbounded queries
  */
 export async function getArchivedIds(userId: string): Promise<Set<string>> {
   try {
-    const archived = await directus.request(
-      readItems('user_archived_announcements', {
-        filter: {
-          user_id: { _eq: userId },
-        },
-        fields: ['announcement_id'],
-        limit: 500,
-        sort: ['-created_at'],
-      })
-    );
-    return new Set(archived.map((a: { announcement_id: string }) => a.announcement_id));
+    const archived = await getDocList<UserArchivedNews>('User Archived News', {
+      filters: [['user', '=', userId]],
+      fields: ['news'],
+      limit: 500,
+      orderBy: { field: 'creation', order: 'desc' },
+    });
+    return new Set(archived.map((a) => a.news));
   } catch (error) {
-    logger.warn('Failed to fetch archived announcements, returning empty fallback', error);
+    logger.warn('Failed to fetch archived news, returning empty fallback', error);
     // Return empty fallback - UI will show no archived items
     return new Set();
   }
 }
 
 /**
- * Archive an announcement for the user
+ * Archive a news item for the user
  */
 export async function archiveAnnouncement(announcementId: string, userId: string): Promise<void> {
   try {
     // Check if already archived
-    const existing = await directus.request(
-      readItems('user_archived_announcements', {
-        filter: {
-          user_id: { _eq: userId },
-          announcement_id: { _eq: announcementId },
-        },
-        limit: 1,
-      })
-    );
+    const existing = await getDocList<UserArchivedNews>('User Archived News', {
+      filters: [
+        ['user', '=', userId],
+        ['news', '=', announcementId],
+      ],
+      limit: 1,
+    });
 
     if (existing.length === 0) {
-      await directus.request(
-        createItem('user_archived_announcements', {
-          user_id: userId,
-          announcement_id: announcementId,
-        })
-      );
+      await createDoc<UserArchivedNews>('User Archived News', {
+        user: userId,
+        news: announcementId,
+      });
     }
   } catch (error) {
-    logger.error('Failed to archive announcement', error);
+    logger.error('Failed to archive news', error);
     throw error;
   }
 }
 
 /**
- * Unarchive an announcement for the user
+ * Unarchive a news item for the user
  */
 export async function unarchiveAnnouncement(announcementId: string, userId: string): Promise<void> {
   try {
-    await directus.request(
-      deleteItems('user_archived_announcements', {
-        filter: {
-          user_id: { _eq: userId },
-          announcement_id: { _eq: announcementId },
-        },
-      })
-    );
+    // Find the record to delete
+    const existing = await getDocList<UserArchivedNews>('User Archived News', {
+      filters: [
+        ['user', '=', userId],
+        ['news', '=', announcementId],
+      ],
+      fields: ['name'],
+      limit: 1,
+    });
+
+    if (existing.length > 0) {
+      await deleteDoc('User Archived News', existing[0].name);
+    }
   } catch (error) {
-    logger.error('Failed to unarchive announcement', error);
+    logger.error('Failed to unarchive news', error);
     throw error;
   }
 }
@@ -183,22 +162,18 @@ export async function unarchiveAnnouncement(announcementId: string, userId: stri
 // ==========================================
 
 /**
- * Get all acknowledged announcement IDs for a user
+ * Get all acknowledged news IDs for a user
  * Limited to 500 to prevent unbounded queries
  */
 export async function getAcknowledgedIds(userId: string): Promise<Set<string>> {
   try {
-    const acknowledged = await directus.request(
-      readItems('announcement_acknowledgments', {
-        filter: {
-          user_id: { _eq: userId },
-        },
-        fields: ['announcement_id'],
-        limit: 500,
-        sort: ['-acknowledged_at'],
-      })
-    );
-    return new Set(acknowledged.map((a: { announcement_id: string }) => a.announcement_id));
+    const acknowledged = await getDocList<NewsAcknowledgment>('News Acknowledgment', {
+      filters: [['user', '=', userId]],
+      fields: ['news'],
+      limit: 500,
+      orderBy: { field: 'acknowledged_at', order: 'desc' },
+    });
+    return new Set(acknowledged.map((a) => a.news));
   } catch (error) {
     logger.warn('Failed to fetch acknowledgments, returning empty fallback', error);
     // Return empty fallback - UI will show no acknowledged items
@@ -207,31 +182,28 @@ export async function getAcknowledgedIds(userId: string): Promise<Set<string>> {
 }
 
 /**
- * Acknowledge an announcement
+ * Acknowledge a news item
  */
 export async function acknowledgeAnnouncement(announcementId: string, userId: string): Promise<void> {
   try {
     // Check if already acknowledged
-    const existing = await directus.request(
-      readItems('announcement_acknowledgments', {
-        filter: {
-          user_id: { _eq: userId },
-          announcement_id: { _eq: announcementId },
-        },
-        limit: 1,
-      })
-    );
+    const existing = await getDocList<NewsAcknowledgment>('News Acknowledgment', {
+      filters: [
+        ['user', '=', userId],
+        ['news', '=', announcementId],
+      ],
+      limit: 1,
+    });
 
     if (existing.length === 0) {
-      await directus.request(
-        createItem('announcement_acknowledgments', {
-          user_id: userId,
-          announcement_id: announcementId,
-        })
-      );
+      await createDoc<NewsAcknowledgment>('News Acknowledgment', {
+        user: userId,
+        news: announcementId,
+        acknowledged_at: new Date().toISOString(),
+      });
     }
   } catch (error) {
-    logger.error('Failed to acknowledge announcement', error);
+    logger.error('Failed to acknowledge news', error);
     throw error;
   }
 }
@@ -262,7 +234,7 @@ export async function getAllUserAnnouncementStates(userId: string): Promise<{
       acknowledgedIds: acknowledged,
     };
   } catch (error) {
-    logger.warn('Failed to fetch user announcement states, returning empty fallback', error);
+    logger.warn('Failed to fetch user news states, returning empty fallback', error);
     // Return empty fallback - UI will show default states
     return {
       pinnedIds: new Set(),

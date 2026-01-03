@@ -27,22 +27,34 @@ import { Platform } from 'react-native';
  */
 export const API_CONFIG = {
   /**
-   * The production Directus API URL
+   * The production Frappe API URL
    * This is the only allowed endpoint for API calls
+   * TODO: Update with actual Frappe Cloud Run URL after deployment
    */
-  DIRECTUS_HOST: 'kairos-directus-684614817316.us-central1.run.app',
+  FRAPPE_HOST: 'kairos-frappe.example.com',
 
   /**
-   * Full HTTPS URL for the Directus API
-   * Used by the Directus SDK client
+   * Full HTTPS URL for the Frappe API
+   * Used by the Frappe SDK client
+   * TODO: Update with actual Frappe Cloud Run URL after deployment
    */
-  DIRECTUS_URL: 'https://kairos-directus-684614817316.us-central1.run.app',
+  FRAPPE_URL: 'https://kairos-frappe.example.com',
 
   /**
    * Allowed URL schemes
    * HTTPS only - no HTTP fallback
    */
   ALLOWED_SCHEMES: ['https'] as const,
+
+  /**
+   * @deprecated Use FRAPPE_HOST instead
+   */
+  DIRECTUS_HOST: 'kairos-directus-684614817316.us-central1.run.app',
+
+  /**
+   * @deprecated Use FRAPPE_URL instead
+   */
+  DIRECTUS_URL: 'https://kairos-directus-684614817316.us-central1.run.app',
 } as const;
 
 /**
@@ -150,13 +162,15 @@ export function isSecureUrl(url: string): boolean {
 /**
  * Validates that a URL points to our allowed API endpoint
  * @param url - The URL to validate
- * @returns true if the URL is our Directus API, false otherwise
+ * @returns true if the URL is our Frappe API, false otherwise
  */
 export function isAllowedApiUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
     return (
-      parsed.protocol === 'https:' && parsed.hostname === API_CONFIG.DIRECTUS_HOST
+      parsed.protocol === 'https:' &&
+      (parsed.hostname === API_CONFIG.FRAPPE_HOST ||
+        parsed.hostname === API_CONFIG.DIRECTUS_HOST) // Legacy support
     );
   } catch {
     return false;
@@ -177,8 +191,9 @@ export function sanitizeApiUrl(url: string): string | null {
       parsed.protocol = 'https:';
     }
 
-    // Only allow our API host
-    if (parsed.hostname !== API_CONFIG.DIRECTUS_HOST) {
+    // Only allow our API hosts (Frappe or legacy Directus)
+    const allowedHosts = [API_CONFIG.FRAPPE_HOST, API_CONFIG.DIRECTUS_HOST];
+    if (!allowedHosts.includes(parsed.hostname)) {
       console.warn(
         `[Security] Blocked request to unauthorized host: ${parsed.hostname}`
       );

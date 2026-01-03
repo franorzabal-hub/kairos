@@ -21,7 +21,7 @@ import {
 import { useFilters } from '../context/AppContext';
 import { useSession } from '../hooks';
 import { usePickupRequests, useCreatePickupRequest, useUpdatePickupRequest, useChildren } from '../api/hooks';
-import { PickupRequest } from '../api/directus';
+import { PickupRequest } from '../api/frappe';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY, SIZES } from '../theme';
 
 const MOTIVO_OPTIONS = [

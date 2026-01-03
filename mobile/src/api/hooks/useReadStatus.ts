@@ -54,7 +54,8 @@ export function useMarkAsRead(type: ContentType) {
       const previousReadIds = queryClient.getQueryData<Set<string>>(queryKey);
 
       queryClient.setQueryData<Set<string>>(queryKey, (old) => {
-        const next = new Set(old ?? []);
+        // Handle case where old might be serialized (not a Set) or undefined
+        const next = new Set<string>(old instanceof Set ? old : undefined);
         next.add(id);
         return next;
       });
@@ -97,7 +98,8 @@ export function useMarkAsUnread(type: ContentType) {
       const previousReadIds = queryClient.getQueryData<Set<string>>(queryKey);
 
       queryClient.setQueryData<Set<string>>(queryKey, (old) => {
-        const next = new Set(old ?? []);
+        // Handle case where old might be serialized (not a Set) or undefined
+        const next = new Set<string>(old instanceof Set ? old : undefined);
         next.delete(id);
         return next;
       });

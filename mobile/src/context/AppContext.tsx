@@ -10,7 +10,7 @@
  * @deprecated Prefer using specific context hooks
  */
 import React, { createContext, useContext, useMemo, ReactNode, useEffect, useCallback } from 'react';
-import { Student, AppUser } from '../api/directus';
+import { Student, AppUser } from '../api/frappe';
 import { clearAllReadStatus } from '../services/readStatusService';
 
 // Import split contexts

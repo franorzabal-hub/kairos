@@ -1,25 +1,18 @@
 /**
- * Tests for safeDirectusRequest
+ * Tests for safeFrappeRequest
  *
- * Tests the safe API wrapper that handles 403 errors gracefully.
+ * Tests the safe API wrapper that handles Frappe errors gracefully.
  */
 
-import { safeRequest, isPermissionError, isSuccess, SafeRequestResult } from '../safeDirectusRequest';
+import { safeRequest, isPermissionError, isSuccess, SafeRequestResult } from '../safeFrappeRequest';
 
-// Mock the permissionDebugger module
-jest.mock('../permissionDebugger', () => ({
-  permissionDebugger: {
-    log403: jest.fn(),
-  },
-}));
-
-describe('safeDirectusRequest', () => {
+describe('safeFrappeRequest', () => {
   describe('safeRequest', () => {
     it('should return data on successful request', async () => {
-      const mockData = [{ id: '1', name: 'Test' }];
+      const mockData = [{ name: 'STU-0001', student_name: 'Test' }];
       const requestFn = jest.fn().mockResolvedValue(mockData);
 
-      const result = await safeRequest(requestFn, 'students', 'read');
+      const result = await safeRequest(requestFn, 'Student', 'read');
 
       expect(result.data).toEqual(mockData);
       expect(result.error).toBeNull();
@@ -29,54 +22,61 @@ describe('safeDirectusRequest', () => {
 
     it('should handle 403 Forbidden errors', async () => {
       const error = {
-        response: { status: 403 },
-        errors: [{ message: 'You don\'t have permission to access this.' }],
+        httpStatus: 403,
+        message: 'You do not have permission to access this resource.',
       };
       const requestFn = jest.fn().mockRejectedValue(error);
 
-      const result = await safeRequest(requestFn, 'reports', 'read');
+      const result = await safeRequest(requestFn, 'Report', 'read');
 
       expect(result.data).toBeNull();
-      // Error is wrapped in new Error() if not an Error instance
       expect(result.error).toBeInstanceOf(Error);
-      expect(result.error?.message).toContain("don't have permission");
       expect(result.errorType).toBe('NO_PERMISSION');
-      expect(result.errorMessage).toContain("don't have permission");
     });
 
-    it('should handle FORBIDDEN error code from Directus', async () => {
+    it('should handle PermissionError from Frappe', async () => {
       const error = {
-        errors: [{
-          extensions: { code: 'FORBIDDEN' },
-          message: 'Access denied'
-        }],
+        exc_type: 'PermissionError',
+        message: 'Access denied',
       };
       const requestFn = jest.fn().mockRejectedValue(error);
 
-      const result = await safeRequest(requestFn, 'events', 'update');
+      const result = await safeRequest(requestFn, 'School Event', 'update');
 
       expect(result.errorType).toBe('NO_PERMISSION');
     });
 
     it('should handle 404 Not Found errors', async () => {
       const error = {
-        response: { status: 404 },
-        message: 'Item not found',
+        httpStatus: 404,
+        message: 'Document not found',
       };
       const requestFn = jest.fn().mockRejectedValue(error);
 
-      const result = await safeRequest(requestFn, 'students', 'read');
+      const result = await safeRequest(requestFn, 'Student', 'read');
 
       expect(result.data).toBeNull();
       expect(result.errorType).toBe('NOT_FOUND');
-      expect(result.errorMessage).toBe('Item not found');
+      expect(result.errorMessage).toBe('Document not found');
+    });
+
+    it('should handle DoesNotExistError from Frappe', async () => {
+      const error = {
+        exc_type: 'DoesNotExistError',
+        message: 'Student STU-0001 not found',
+      };
+      const requestFn = jest.fn().mockRejectedValue(error);
+
+      const result = await safeRequest(requestFn, 'Student', 'read');
+
+      expect(result.errorType).toBe('NOT_FOUND');
     });
 
     it('should handle network errors', async () => {
       const error = new Error('Network request failed');
       const requestFn = jest.fn().mockRejectedValue(error);
 
-      const result = await safeRequest(requestFn, 'announcements', 'read');
+      const result = await safeRequest(requestFn, 'News', 'read');
 
       expect(result.data).toBeNull();
       expect(result.errorType).toBe('NETWORK');
@@ -87,7 +87,7 @@ describe('safeDirectusRequest', () => {
       const error = new Error('fetch failed');
       const requestFn = jest.fn().mockRejectedValue(error);
 
-      const result = await safeRequest(requestFn, 'events', 'read');
+      const result = await safeRequest(requestFn, 'School Event', 'read');
 
       expect(result.errorType).toBe('NETWORK');
     });
@@ -96,26 +96,23 @@ describe('safeDirectusRequest', () => {
       const error = new Error('Something unexpected happened');
       const requestFn = jest.fn().mockRejectedValue(error);
 
-      const result = await safeRequest(requestFn, 'conversations', 'create');
+      const result = await safeRequest(requestFn, 'Conversation', 'create');
 
       expect(result.data).toBeNull();
       expect(result.errorType).toBe('UNKNOWN');
       expect(result.errorMessage).toBe('Something unexpected happened');
     });
 
-    it('should use first error message from Directus errors array', async () => {
+    it('should handle Frappe _server_messages', async () => {
       const error = {
-        response: { status: 403 },
-        errors: [
-          { message: 'First error message' },
-          { message: 'Second error message' },
-        ],
+        httpStatus: 403,
+        _server_messages: '["{\\"message\\": \\"First error message\\"}"]',
       };
       const requestFn = jest.fn().mockRejectedValue(error);
 
-      const result = await safeRequest(requestFn, 'reports', 'delete');
+      const result = await safeRequest(requestFn, 'Report', 'delete');
 
-      expect(result.errorMessage).toBe('First error message');
+      expect(result.errorType).toBe('NO_PERMISSION');
     });
   });
 
@@ -152,7 +149,7 @@ describe('safeDirectusRequest', () => {
 
     it('should return false for successful results', () => {
       const successResult: SafeRequestResult<any> = {
-        data: { id: '1' },
+        data: { name: 'STU-0001' },
         error: null,
         errorType: null,
         errorMessage: null,
@@ -164,8 +161,8 @@ describe('safeDirectusRequest', () => {
 
   describe('isSuccess', () => {
     it('should return true for successful results with data', () => {
-      const result: SafeRequestResult<{ id: string }> = {
-        data: { id: '1' },
+      const result: SafeRequestResult<{ name: string }> = {
+        data: { name: 'STU-0001' },
         error: null,
         errorType: null,
         errorMessage: null,

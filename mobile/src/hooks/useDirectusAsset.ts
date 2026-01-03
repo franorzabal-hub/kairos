@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getTokens, DIRECTUS_URL } from '../api/directus';
+import { getTokens, DIRECTUS_URL } from '../api/frappe';
 
 /**
  * Hook to get an authenticated Directus asset URL

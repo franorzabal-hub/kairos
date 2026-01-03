@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useChildren as useChildrenContext } from '../context/ChildrenContext';
 import { useChildren as useChildrenApi } from '../api/hooks';
-import { Student } from '../api/directus';
+import { Student } from '../api/frappe';
 
 /**
  * Session permissions derived from user and children data.

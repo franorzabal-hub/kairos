@@ -1,67 +1,62 @@
 /**
  * Tests for useAnnouncements hooks
  *
- * Tests data fetching hooks for announcements:
+ * Tests data fetching hooks for announcements (News in Frappe):
  * - useAnnouncements - fetch all announcements
  * - useAnnouncement - fetch single announcement
  * - useAnnouncementAttachments - fetch attachments
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { readItems, readItem } from '@directus/sdk';
 import { queryKeys } from '../api/hooks/queryKeys';
-import { Announcement, AnnouncementAttachment } from '../api/directus';
+import { News, NewsAttachment } from '../api/frappe';
 
 // Type the mocked functions
 const mockUseQuery = useQuery as jest.MockedFunction<typeof useQuery>;
-const mockReadItems = readItems as jest.MockedFunction<typeof readItems>;
-const mockReadItem = readItem as jest.MockedFunction<typeof readItem>;
 
-// Sample announcement data
-const mockAnnouncement: Announcement = {
-  id: 'ann-1',
-  organization_id: 'org-123',
-  author_id: 'user-456',
+// Sample announcement data (using Frappe News type)
+const mockAnnouncement: News = {
+  name: 'NEWS-0001',
+  institution: 'institution-123',
   title: 'School Closed Tomorrow',
   content: '<p>Due to weather conditions, school will be closed tomorrow.</p>',
-  priority: 'urgent',
-  target_type: 'all',
-  status: 'published',
-  created_at: '2024-01-15T10:00:00Z',
-  published_at: '2024-01-15T10:00:00Z',
+  priority: 'Urgent',
+  scope_type: 'Institution',
+  status: 'Published',
+  creation: '2024-01-15T10:00:00Z',
+  publish_date: '2024-01-15T10:00:00Z',
 };
 
-const mockAnnouncements: Announcement[] = [
+const mockAnnouncements: News[] = [
   mockAnnouncement,
   {
-    id: 'ann-2',
-    organization_id: 'org-123',
-    author_id: 'user-789',
+    name: 'NEWS-0002',
+    institution: 'institution-123',
     title: 'Parent-Teacher Conference',
     content: '<p>Please schedule your conference time.</p>',
-    priority: 'important',
-    target_type: 'all',
-    status: 'published',
-    created_at: '2024-01-14T09:00:00Z',
-    published_at: '2024-01-14T09:00:00Z',
+    priority: 'Important',
+    scope_type: 'Institution',
+    status: 'Published',
+    creation: '2024-01-14T09:00:00Z',
+    publish_date: '2024-01-14T09:00:00Z',
   },
 ];
 
-const mockAttachments: AnnouncementAttachment[] = [
+const mockAttachments: NewsAttachment[] = [
   {
-    id: 'attach-1',
-    announcement_id: 'ann-1',
-    file: 'file-123',
+    name: 'NEWSATT-0001',
+    news: 'NEWS-0001',
+    file: '/files/weather-alert.pdf',
     title: 'Weather Alert PDF',
     sort: 1,
   },
 ];
 
-// Mock auth context
+// Mock auth context (using Frappe Guardian mapping)
 const mockAuthUser = {
-  id: 'app-user-123',
-  organization_id: 'org-123',
-  directus_user_id: 'directus-user-789',
+  id: 'guardian-123',
+  organization_id: 'institution-123',
+  directus_user_id: 'john@example.com', // Frappe User
   role: 'parent' as const,
   first_name: 'John',
   last_name: 'Doe',
@@ -205,13 +200,13 @@ describe('useAnnouncements hooks', () => {
     });
 
     it('should filter by published status', () => {
-      // The filter should include: status: { _eq: 'published' }
-      const expectedFilter = {
-        status: { _eq: 'published' },
-        organization_id: { _eq: 'org-123' },
-      };
+      // In Frappe, filters use array tuple format: [field, operator, value]
+      const expectedFilters = [
+        ['status', '=', 'Published'],
+        ['institution', '=', 'institution-123'],
+      ];
 
-      expect(expectedFilter.status._eq).toBe('published');
+      expect(expectedFilters[0][2]).toBe('Published');
     });
   });
 
@@ -263,12 +258,13 @@ describe('useAnnouncements hooks', () => {
       expect(!!announcementId).toBe(false);
     });
 
-    it('should filter attachments by announcement_id', () => {
-      const announcementId = 'ann-1';
-      const expectedFilter = {
-        announcement_id: { _eq: announcementId },
-      };
-      expect(expectedFilter.announcement_id._eq).toBe('ann-1');
+    it('should filter attachments by news (announcement) id', () => {
+      const announcementId = 'NEWS-0001';
+      // In Frappe, filters use array tuple format
+      const expectedFilters = [
+        ['news', '=', announcementId],
+      ];
+      expect(expectedFilters[0][2]).toBe('NEWS-0001');
     });
 
     it('should sort attachments by sort field', () => {
@@ -278,42 +274,44 @@ describe('useAnnouncements hooks', () => {
   });
 });
 
-describe('Announcement data types', () => {
+describe('News (Announcement) data types', () => {
   it('should have correct priority values', () => {
-    const priorities = ['urgent', 'important', 'normal'];
+    // Frappe uses Title Case for select values
+    const priorities = ['Urgent', 'Important', 'Normal'];
     expect(priorities).toContain(mockAnnouncement.priority);
   });
 
-  it('should have correct target_type values', () => {
-    const targetTypes = ['all', 'grade', 'section'];
-    expect(targetTypes).toContain(mockAnnouncement.target_type);
+  it('should have correct scope_type values', () => {
+    // In Frappe, target_type is called scope_type
+    const scopeTypes = ['Institution', 'Campus', 'Grade', 'Section'];
+    expect(scopeTypes).toContain(mockAnnouncement.scope_type);
   });
 
   it('should have correct status values', () => {
-    const statuses = ['draft', 'published', 'archived'];
+    // Frappe uses Title Case
+    const statuses = ['Draft', 'Published', 'Archived'];
     expect(statuses).toContain(mockAnnouncement.status);
   });
 
   it('should have required fields', () => {
-    expect(mockAnnouncement.id).toBeDefined();
-    expect(mockAnnouncement.organization_id).toBeDefined();
-    expect(mockAnnouncement.author_id).toBeDefined();
+    expect(mockAnnouncement.name).toBeDefined();
+    expect(mockAnnouncement.institution).toBeDefined();
     expect(mockAnnouncement.title).toBeDefined();
     expect(mockAnnouncement.content).toBeDefined();
-    expect(mockAnnouncement.created_at).toBeDefined();
+    expect(mockAnnouncement.creation).toBeDefined();
   });
 
   it('should support optional fields', () => {
-    const announcementWithOptionals: Announcement = {
+    const announcementWithOptionals: News = {
       ...mockAnnouncement,
-      image: 'image-123',
+      image: '/files/image.jpg',
       is_pinned: true,
       requires_acknowledgment: true,
       video_url: 'https://youtube.com/watch?v=abc',
       attachments: mockAttachments,
     };
 
-    expect(announcementWithOptionals.image).toBe('image-123');
+    expect(announcementWithOptionals.image).toBe('/files/image.jpg');
     expect(announcementWithOptionals.is_pinned).toBe(true);
     expect(announcementWithOptionals.requires_acknowledgment).toBe(true);
     expect(announcementWithOptionals.video_url).toBeDefined();
@@ -321,11 +319,11 @@ describe('Announcement data types', () => {
   });
 });
 
-describe('AnnouncementAttachment data types', () => {
+describe('NewsAttachment data types', () => {
   it('should have required fields', () => {
     const attachment = mockAttachments[0];
-    expect(attachment.id).toBeDefined();
-    expect(attachment.announcement_id).toBeDefined();
+    expect(attachment.name).toBeDefined();
+    expect(attachment.news).toBeDefined();
     expect(attachment.file).toBeDefined();
   });
 

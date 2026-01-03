@@ -8,7 +8,7 @@ import ScreenHeader from '../components/ScreenHeader';
 import FilterBar from '../components/FilterBar';
 import { useFilters, useUnreadCounts } from '../context/AppContext';
 import { useReports, useChildren, useContentReadStatus } from '../api/hooks';
-import { Report, DIRECTUS_URL } from '../api/directus';
+import { Report, DIRECTUS_URL } from '../api/frappe';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY, UNREAD_STYLES, BADGE_STYLES, SHADOWS, FONT_SIZES, SIZES } from '../theme';
 
 type ReportListItem =

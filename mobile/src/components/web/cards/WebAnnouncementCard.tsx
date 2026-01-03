@@ -13,7 +13,7 @@ import { View, Text, Pressable, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import DirectusImage from '../../DirectusImage';
-import { Announcement } from '../../../api/directus';
+import { Announcement } from '../../../api/frappe';
 import { COLORS } from '../../../theme';
 import { stripHtml } from '../../../utils';
 

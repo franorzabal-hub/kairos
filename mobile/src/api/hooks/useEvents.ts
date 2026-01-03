@@ -1,13 +1,16 @@
 import { useQuery } from '@tanstack/react-query';
-import { readItems, readItem } from '@directus/sdk';
-import { directus, Event } from '../directus';
+import {
+  getDocList,
+  getDoc,
+  SchoolEvent,
+  FrappeFilter,
+} from '../frappe';
 import { useChildren } from '../../context/ChildrenContext';
 import { useUI } from '../../context/UIContext';
 import { useAuth } from '../../context/AuthContext';
 import { queryKeys } from './queryKeys';
-import { EventFilter } from '../../types/directus';
 
-// Fetch events
+// Fetch events (School Event in Frappe)
 export function useEvents() {
   const { user } = useAuth();
   const { selectedChildId } = useChildren();
@@ -16,43 +19,36 @@ export function useEvents() {
   return useQuery({
     queryKey: [...queryKeys.events, selectedChildId, filterMode, user?.organization_id],
     queryFn: async () => {
-      const filter: EventFilter = {
-        status: { _eq: 'published' },
-      };
+      const filters: FrappeFilter[] = [
+        ['status', '=', 'Published'],
+      ];
 
-      // Multi-tenant isolation: filter by organization_id
+      // Multi-tenant isolation: filter by institution
       if (user?.organization_id) {
-        filter.organization_id = { _eq: user.organization_id };
+        filters.push(['institution', '=', user.organization_id]);
       }
 
-      const items = await directus.request(
-        readItems('events', {
-          fields: ['*'],
-          filter,
-          sort: ['start_date'],
-          limit: 50,
-        })
-      );
+      const items = await getDocList<SchoolEvent>('School Event', {
+        fields: ['*'],
+        filters,
+        orderBy: { field: 'start_datetime', order: 'asc' },
+        limit: 50,
+      });
 
-      return items as Event[];
+      return items;
     },
     enabled: !!user?.organization_id,
   });
 }
 
-// Fetch single event
+// Fetch single event (School Event in Frappe)
 export function useEvent(id: string) {
   return useQuery({
     queryKey: queryKeys.event(id),
     queryFn: async () => {
       if (!id) return null;
-      const item = await directus.request(
-        readItem('events', id, {
-          // Nested relational fields - SDK type limitation requires 'as any'
-          fields: ['*', { location_id: ['*'] }] as any,
-        })
-      );
-      return item as unknown as Event;
+      const item = await getDoc<SchoolEvent>('School Event', id);
+      return item;
     },
     enabled: !!id,
   });

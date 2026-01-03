@@ -1,10 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
-import { readItem } from '@directus/sdk';
-import { directus, Organization } from '../directus';
+import { getDoc, Institution } from '../frappe';
 import { useAuth } from '../../context/AuthContext';
 import { queryKeys } from './queryKeys';
 
-// Fetch organization data
+// Fetch organization (institution) data
 export function useOrganization() {
   const { user } = useAuth();
 
@@ -13,12 +12,10 @@ export function useOrganization() {
     queryFn: async () => {
       if (!user?.organization_id) return null;
 
-      const org = await directus.request(
-        readItem('organizations', user.organization_id)
-      );
-      return org as Organization;
+      const institution = await getDoc<Institution>('Institution', user.organization_id);
+      return institution;
     },
     enabled: !!user?.organization_id,
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes - org data rarely changes
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes - institution data rarely changes
   });
 }

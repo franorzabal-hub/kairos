@@ -8,7 +8,7 @@ import SegmentedControl from '../components/SegmentedControl';
 import EventCard, { EventStatus } from '../components/EventCard';
 import { useEvents, useContentReadStatus } from '../api/hooks';
 import { useSession } from '../hooks';
-import { Event } from '../api/directus';
+import { Event } from '../api/frappe';
 import { COLORS, CHILD_COLORS, SPACING, TYPOGRAPHY, BORDERS, SIZES } from '../theme';
 
 type TimeFilter = 'upcoming' | 'past';

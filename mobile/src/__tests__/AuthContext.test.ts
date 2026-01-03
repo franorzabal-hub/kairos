@@ -5,10 +5,10 @@
  * - Login/logout functionality
  * - Token management
  * - Biometric authentication lockout
- * - App user fetching
+ * - App user fetching (Guardian)
  */
 
-import { AppUser } from '../api/directus';
+import { AppUser } from '../api/frappe';
 
 // Mock implementations that we'll control in tests
 const mockLogin = jest.fn();
@@ -17,17 +17,17 @@ const mockRequest = jest.fn();
 const mockSetToken = jest.fn();
 
 // Sample user data
-const mockDirectusUser = {
-  id: 'directus-user-123',
+const mockFrappeUser = {
+  name: 'john@example.com',
   first_name: 'John',
   last_name: 'Doe',
   email: 'john@example.com',
 };
 
 const mockAppUser: AppUser = {
-  id: 'app-user-456',
-  organization_id: 'org-789',
-  directus_user_id: 'directus-user-123',
+  id: 'guardian-456',
+  organization_id: 'institution-789',
+  directus_user_id: 'john@example.com', // In Frappe, this maps to the user field
   role: 'parent',
   first_name: 'John',
   last_name: 'Doe',
@@ -41,12 +41,11 @@ const mockGetItemAsync = Storage.getItemAsync as jest.MockedFunction<typeof Stor
 const mockSetItemAsync = Storage.setItemAsync as jest.MockedFunction<typeof Storage.setItemAsync>;
 const mockDeleteItemAsync = Storage.deleteItemAsync as jest.MockedFunction<typeof Storage.deleteItemAsync>;
 
-// Mock directus functions
-import { directus, getTokens, saveTokens, clearTokens, isBiometricEnabled } from '../api/directus';
-const mockDirectus = directus as jest.Mocked<typeof directus>;
-const mockGetTokens = getTokens as jest.MockedFunction<typeof getTokens>;
-const mockSaveTokens = saveTokens as jest.MockedFunction<typeof saveTokens>;
-const mockClearTokens = clearTokens as jest.MockedFunction<typeof clearTokens>;
+// Mock frappe functions
+import { getToken, saveToken, clearToken, isBiometricEnabled } from '../api/frappe';
+const mockGetToken = getToken as jest.MockedFunction<typeof getToken>;
+const mockSaveToken = saveToken as jest.MockedFunction<typeof saveToken>;
+const mockClearToken = clearToken as jest.MockedFunction<typeof clearToken>;
 const mockIsBiometricEnabled = isBiometricEnabled as jest.MockedFunction<typeof isBiometricEnabled>;
 
 // Mock expo-local-authentication
@@ -66,43 +65,34 @@ describe('AuthContext', () => {
   });
 
   describe('token management', () => {
-    it('should save tokens after successful login', async () => {
-      const accessToken = 'test-access-token';
-      const refreshToken = 'test-refresh-token';
+    it('should save token after successful login', async () => {
+      const token = 'session_active';
 
-      await mockSaveTokens(accessToken, refreshToken);
+      await mockSaveToken(token);
 
-      expect(mockSaveTokens).toHaveBeenCalledWith(accessToken, refreshToken);
+      expect(mockSaveToken).toHaveBeenCalledWith(token);
     });
 
-    it('should retrieve tokens on app start', async () => {
-      mockGetTokens.mockResolvedValue({
-        accessToken: 'stored-access-token',
-        refreshToken: 'stored-refresh-token',
-      });
+    it('should retrieve token on app start', async () => {
+      mockGetToken.mockResolvedValue('stored-token');
 
-      const tokens = await getTokens();
+      const token = await getToken();
 
-      expect(tokens.accessToken).toBe('stored-access-token');
-      expect(tokens.refreshToken).toBe('stored-refresh-token');
+      expect(token).toBe('stored-token');
     });
 
-    it('should return null tokens when not logged in', async () => {
-      mockGetTokens.mockResolvedValue({
-        accessToken: null,
-        refreshToken: null,
-      });
+    it('should return null token when not logged in', async () => {
+      mockGetToken.mockResolvedValue(null);
 
-      const tokens = await getTokens();
+      const token = await getToken();
 
-      expect(tokens.accessToken).toBeNull();
-      expect(tokens.refreshToken).toBeNull();
+      expect(token).toBeNull();
     });
 
-    it('should clear tokens on logout', async () => {
-      await mockClearTokens();
+    it('should clear token on logout', async () => {
+      await mockClearToken();
 
-      expect(mockClearTokens).toHaveBeenCalled();
+      expect(mockClearToken).toHaveBeenCalled();
     });
   });
 
@@ -246,22 +236,20 @@ describe('AuthContext', () => {
 
   describe('login flow', () => {
     it('should set user state after successful login', async () => {
+      // Frappe login returns message on success
       const loginResult = {
-        access_token: 'new-access-token',
-        refresh_token: 'new-refresh-token',
+        message: 'john@example.com',
       };
 
-      expect(loginResult.access_token).toBeDefined();
-      expect(loginResult.refresh_token).toBeDefined();
+      expect(loginResult.message).toBeDefined();
     });
 
-    it('should save tokens after login', async () => {
-      const accessToken = 'new-access-token';
-      const refreshToken = 'new-refresh-token';
+    it('should save token after login', async () => {
+      const token = 'session_active';
 
-      await mockSaveTokens(accessToken, refreshToken);
+      await mockSaveToken(token);
 
-      expect(mockSaveTokens).toHaveBeenCalledWith(accessToken, refreshToken);
+      expect(mockSaveToken).toHaveBeenCalledWith(token);
     });
 
     it('should reset biometric attempts on successful login', () => {
@@ -276,35 +264,36 @@ describe('AuthContext', () => {
       expect(lockoutEndTime).toBeNull();
     });
 
-    it('should fallback to Directus user when app_user not found', () => {
-      const directusUser = mockDirectusUser;
-      const appUserMatch = null;
+    it('should fallback to Frappe user when Guardian not found', () => {
+      const frappeUser = mockFrappeUser;
+      const guardianMatch = null;
 
       let resultUser: AppUser;
-      if (appUserMatch) {
-        resultUser = appUserMatch;
+      if (guardianMatch) {
+        resultUser = guardianMatch;
       } else {
+        // Fallback: create minimal user from email
         resultUser = {
-          id: directusUser.id,
+          id: frappeUser.name,
           organization_id: '',
           role: 'parent',
-          first_name: directusUser.first_name || '',
-          last_name: directusUser.last_name || '',
-          email: directusUser.email || '',
+          first_name: frappeUser.first_name || '',
+          last_name: frappeUser.last_name || '',
+          email: frappeUser.email || '',
           status: 'active',
         };
       }
 
-      expect(resultUser.id).toBe('directus-user-123');
+      expect(resultUser.id).toBe('john@example.com');
       expect(resultUser.organization_id).toBe('');
     });
   });
 
   describe('logout flow', () => {
-    it('should clear tokens on logout', async () => {
-      await mockClearTokens();
+    it('should clear token on logout', async () => {
+      await mockClearToken();
 
-      expect(mockClearTokens).toHaveBeenCalled();
+      expect(mockClearToken).toHaveBeenCalled();
     });
 
     it('should reset user state on logout', () => {
@@ -330,13 +319,15 @@ describe('AuthContext', () => {
   });
 
   describe('error handling', () => {
-    it('should handle Directus errors with message', () => {
-      const directusError = {
-        errors: [{ message: 'Invalid credentials' }],
-        message: 'Authentication failed',
+    it('should handle Frappe errors with message', () => {
+      // Frappe returns errors in the exc_type and message fields
+      const frappeError = {
+        exc_type: 'AuthenticationError',
+        message: 'Invalid credentials',
+        _server_messages: '["Invalid credentials"]',
       };
 
-      const errorMessage = directusError.errors?.[0]?.message ?? directusError.message ?? 'Error de autenticacion';
+      const errorMessage = frappeError.message ?? 'Error de autenticación';
 
       expect(errorMessage).toBe('Invalid credentials');
     });
@@ -344,7 +335,7 @@ describe('AuthContext', () => {
     it('should handle generic errors', () => {
       const error = new Error('Network error');
 
-      const errorMessage = error instanceof Error ? error.message : 'Error de autenticacion';
+      const errorMessage = error instanceof Error ? error.message : 'Error de autenticación';
 
       expect(errorMessage).toBe('Network error');
     });
@@ -352,15 +343,15 @@ describe('AuthContext', () => {
     it('should fallback to default error message', () => {
       const error = {};
 
-      const isDirectusError = false;
+      const isFrappeError = false;
       const isError = false;
-      const errorMessage = isDirectusError
-        ? 'Directus error'
+      const errorMessage = isFrappeError
+        ? 'Frappe error'
         : isError
           ? 'Generic error'
-          : 'Error de autenticacion';
+          : 'Error de autenticación';
 
-      expect(errorMessage).toBe('Error de autenticacion');
+      expect(errorMessage).toBe('Error de autenticación');
     });
   });
 

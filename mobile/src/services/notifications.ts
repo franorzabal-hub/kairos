@@ -2,8 +2,7 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
-import { directus } from '../api/directus';
-import { createItem, updateItem, readItems } from '@directus/sdk';
+import { getDocList, createDoc, updateDoc, PushToken } from '../api/frappe';
 import { logger } from '../utils';
 
 // Configure how notifications are handled when app is in foreground
@@ -17,12 +16,11 @@ Notifications.setNotificationHandler({
   }),
 });
 
-export interface PushToken {
-  id?: string;
-  user_id: string;
+export interface PushTokenData {
+  name?: string;
+  user: string;
   token: string;
-  platform: 'ios' | 'android';
-  device_id?: string;
+  platform: 'iOS' | 'Android';
 }
 
 /**
@@ -83,42 +81,35 @@ export async function registerForPushNotifications(): Promise<string | null> {
 }
 
 /**
- * Save push token to Directus backend
+ * Save push token to Frappe backend
  */
 export async function savePushToken(userId: string, token: string): Promise<void> {
   try {
-    const platform = Platform.OS as 'ios' | 'android';
+    const platform = Platform.OS === 'ios' ? 'iOS' : 'Android';
 
     // Check if token already exists for this user
-    const existingTokens = await directus.request(
-      readItems('push_tokens', {
-        filter: {
-          user_id: { _eq: userId },
-          platform: { _eq: platform },
-        },
-      })
-    );
+    const existingTokens = await getDocList<PushToken>('Push Token', {
+      filters: [
+        ['user', '=', userId],
+        ['platform', '=', platform],
+      ],
+    });
 
     if (existingTokens.length > 0) {
       // Update existing token
-      await directus.request(
-        updateItem('push_tokens', existingTokens[0].id, {
-          token,
-          updated_at: new Date().toISOString(),
-        })
-      );
+      await updateDoc<PushToken>('Push Token', existingTokens[0].name, {
+        token,
+      });
     } else {
       // Create new token record
-      await directus.request(
-        createItem('push_tokens', {
-          user_id: userId,
-          token,
-          platform,
-        })
-      );
+      await createDoc<PushToken>('Push Token', {
+        user: userId,
+        token,
+        platform,
+      });
     }
   } catch (error) {
-    // push_tokens collection might not exist yet - that's okay
+    // Push Token DocType might not exist yet - that's okay
     logger.warn('Could not save push token:', error);
   }
 }

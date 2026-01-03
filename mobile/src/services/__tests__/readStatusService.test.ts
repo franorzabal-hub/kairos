@@ -16,21 +16,20 @@ import {
   clearAllReadStatus,
 } from '../readStatusService';
 
-// Mock the directus module
-jest.mock('../../api/directus', () => ({
-  directus: {
-    request: jest.fn(),
-  },
+// Mock the frappe module
+jest.mock('../../api/frappe', () => ({
+  getDocList: jest.fn(),
+  createDoc: jest.fn(),
+  deleteDoc: jest.fn(),
+  getCount: jest.fn(),
 }));
 
-// Mock @directus/sdk
-jest.mock('@directus/sdk', () => ({
-  readItems: jest.fn((collection, options) => ({ collection, options, type: 'readItems' })),
-  createItem: jest.fn((collection, item) => ({ collection, item, type: 'createItem' })),
-  deleteItems: jest.fn((collection, options) => ({ collection, options, type: 'deleteItems' })),
-}));
+import { getDocList, createDoc, deleteDoc } from '../../api/frappe';
 
-import { directus } from '../../api/directus';
+// Create mock references
+const mockGetDocList = getDocList as jest.MockedFunction<typeof getDocList>;
+const mockCreateDoc = createDoc as jest.MockedFunction<typeof createDoc>;
+const mockDeleteDoc = deleteDoc as jest.MockedFunction<typeof deleteDoc>;
 
 describe('ReadStatusService', () => {
   const mockUserId = 'user-123';
@@ -41,7 +40,7 @@ describe('ReadStatusService', () => {
 
   describe('getReadIds', () => {
     it('should return a Set of read content IDs', async () => {
-      (directus.request as jest.Mock).mockResolvedValueOnce([
+      mockGetDocList.mockResolvedValueOnce([
         { content_id: 'item-1' },
         { content_id: 'item-2' },
         { content_id: 'item-3' },
@@ -57,7 +56,7 @@ describe('ReadStatusService', () => {
     });
 
     it('should return empty Set when no reads exist', async () => {
-      (directus.request as jest.Mock).mockResolvedValueOnce([]);
+      mockGetDocList.mockResolvedValueOnce([]);
 
       const result = await getReadIds('events', mockUserId);
 
@@ -65,7 +64,7 @@ describe('ReadStatusService', () => {
     });
 
     it('should return empty Set on error', async () => {
-      (directus.request as jest.Mock).mockRejectedValueOnce(new Error('Network error'));
+      mockGetDocList.mockRejectedValueOnce(new Error('Network error'));
 
       const result = await getReadIds('announcements', mockUserId);
 
@@ -73,7 +72,7 @@ describe('ReadStatusService', () => {
     });
 
     it('should map content types correctly', async () => {
-      (directus.request as jest.Mock).mockResolvedValue([]);
+      mockGetDocList.mockResolvedValue([]);
 
       // Test different content types
       await getReadIds('announcements', mockUserId);
@@ -81,35 +80,36 @@ describe('ReadStatusService', () => {
       await getReadIds('cambios', mockUserId);
       await getReadIds('boletines', mockUserId);
 
-      // All should call with content_reads collection
-      expect(directus.request).toHaveBeenCalledTimes(4);
+      // All should call Content Read doctype
+      expect(mockGetDocList).toHaveBeenCalledTimes(4);
     });
   });
 
   describe('markAsRead', () => {
     it('should create read record if not already read', async () => {
       // First call: check existing (none)
-      (directus.request as jest.Mock)
-        .mockResolvedValueOnce([]) // No existing read
-        .mockResolvedValueOnce({ id: 'new-read' }); // Create returns new record
+      mockGetDocList.mockResolvedValueOnce([]); // No existing read
+      mockCreateDoc.mockResolvedValueOnce({ name: 'new-read' }); // Create returns new record
 
       await markAsRead('announcements', 'item-1', mockUserId);
 
-      expect(directus.request).toHaveBeenCalledTimes(2);
+      expect(mockGetDocList).toHaveBeenCalledTimes(1);
+      expect(mockCreateDoc).toHaveBeenCalledTimes(1);
     });
 
     it('should not create duplicate read record', async () => {
       // Already exists
-      (directus.request as jest.Mock).mockResolvedValueOnce([{ id: 'existing-read' }]);
+      mockGetDocList.mockResolvedValueOnce([{ name: 'existing-read' }]);
 
       await markAsRead('announcements', 'item-1', mockUserId);
 
       // Should only check, not create
-      expect(directus.request).toHaveBeenCalledTimes(1);
+      expect(mockGetDocList).toHaveBeenCalledTimes(1);
+      expect(mockCreateDoc).not.toHaveBeenCalled();
     });
 
     it('should handle errors gracefully', async () => {
-      (directus.request as jest.Mock).mockRejectedValueOnce(new Error('DB error'));
+      mockGetDocList.mockRejectedValueOnce(new Error('DB error'));
 
       // Should not throw
       await expect(markAsRead('events', 'item-1', mockUserId)).resolves.toBeUndefined();
@@ -119,19 +119,20 @@ describe('ReadStatusService', () => {
   describe('markMultipleAsRead', () => {
     it('should batch create read records for new items', async () => {
       // First call: check existing
-      (directus.request as jest.Mock)
-        .mockResolvedValueOnce([{ content_id: 'item-1' }]) // item-1 already read
-        .mockResolvedValueOnce({ id: 'created-1' }) // item-2 created
-        .mockResolvedValueOnce({ id: 'created-2' }); // item-3 created
+      mockGetDocList.mockResolvedValueOnce([{ content_id: 'item-1' }]); // item-1 already read
+      mockCreateDoc
+        .mockResolvedValueOnce({ name: 'created-1' }) // item-2 created
+        .mockResolvedValueOnce({ name: 'created-2' }); // item-3 created
 
       await markMultipleAsRead('announcements', ['item-1', 'item-2', 'item-3'], mockUserId);
 
       // 1 read to check existing + 2 creates for new items
-      expect(directus.request).toHaveBeenCalledTimes(3);
+      expect(mockGetDocList).toHaveBeenCalledTimes(1);
+      expect(mockCreateDoc).toHaveBeenCalledTimes(2);
     });
 
     it('should skip if all items already read', async () => {
-      (directus.request as jest.Mock).mockResolvedValueOnce([
+      mockGetDocList.mockResolvedValueOnce([
         { content_id: 'item-1' },
         { content_id: 'item-2' },
       ]);
@@ -139,27 +140,29 @@ describe('ReadStatusService', () => {
       await markMultipleAsRead('events', ['item-1', 'item-2'], mockUserId);
 
       // Only the check query, no creates
-      expect(directus.request).toHaveBeenCalledTimes(1);
+      expect(mockGetDocList).toHaveBeenCalledTimes(1);
+      expect(mockCreateDoc).not.toHaveBeenCalled();
     });
 
     it('should handle empty array', async () => {
       await markMultipleAsRead('announcements', [], mockUserId);
 
-      expect(directus.request).not.toHaveBeenCalled();
+      expect(mockGetDocList).not.toHaveBeenCalled();
     });
   });
 
   describe('markAsUnread', () => {
     it('should delete read record', async () => {
-      (directus.request as jest.Mock).mockResolvedValueOnce({ deleted: 1 });
+      mockGetDocList.mockResolvedValueOnce([{ name: 'read-record-1' }]);
+      mockDeleteDoc.mockResolvedValueOnce(undefined);
 
       await markAsUnread('announcements', 'item-1', mockUserId);
 
-      expect(directus.request).toHaveBeenCalledTimes(1);
+      expect(mockDeleteDoc).toHaveBeenCalledTimes(1);
     });
 
     it('should handle errors gracefully', async () => {
-      (directus.request as jest.Mock).mockRejectedValueOnce(new Error('Delete failed'));
+      mockGetDocList.mockRejectedValueOnce(new Error('Delete failed'));
 
       await expect(markAsUnread('events', 'item-1', mockUserId)).resolves.toBeUndefined();
     });
@@ -167,7 +170,7 @@ describe('ReadStatusService', () => {
 
   describe('isRead', () => {
     it('should return true if item is read', async () => {
-      (directus.request as jest.Mock).mockResolvedValueOnce([{ content_id: 'item-1' }]);
+      mockGetDocList.mockResolvedValueOnce([{ content_id: 'item-1' }]);
 
       const result = await isRead('announcements', 'item-1', mockUserId);
 
@@ -175,7 +178,7 @@ describe('ReadStatusService', () => {
     });
 
     it('should return false if item is not read', async () => {
-      (directus.request as jest.Mock).mockResolvedValueOnce([]);
+      mockGetDocList.mockResolvedValueOnce([]);
 
       const result = await isRead('announcements', 'item-1', mockUserId);
 
@@ -185,7 +188,7 @@ describe('ReadStatusService', () => {
 
   describe('countUnread', () => {
     it('should count items not in read set', async () => {
-      (directus.request as jest.Mock).mockResolvedValueOnce([
+      mockGetDocList.mockResolvedValueOnce([
         { content_id: 'item-1' },
         { content_id: 'item-3' },
       ]);
@@ -197,7 +200,7 @@ describe('ReadStatusService', () => {
     });
 
     it('should return total count if nothing is read', async () => {
-      (directus.request as jest.Mock).mockResolvedValueOnce([]);
+      mockGetDocList.mockResolvedValueOnce([]);
 
       const result = await countUnread('events', ['item-1', 'item-2'], mockUserId);
 
@@ -205,7 +208,7 @@ describe('ReadStatusService', () => {
     });
 
     it('should return 0 if all items are read', async () => {
-      (directus.request as jest.Mock).mockResolvedValueOnce([
+      mockGetDocList.mockResolvedValueOnce([
         { content_id: 'item-1' },
         { content_id: 'item-2' },
       ]);
@@ -218,12 +221,12 @@ describe('ReadStatusService', () => {
 
   describe('getAllReadIds', () => {
     it('should return grouped read IDs by content type', async () => {
-      (directus.request as jest.Mock).mockResolvedValueOnce([
-        { content_type: 'announcement', content_id: 'ann-1' },
-        { content_type: 'announcement', content_id: 'ann-2' },
-        { content_type: 'event', content_id: 'evt-1' },
-        { content_type: 'message', content_id: 'msg-1' },
-        { content_type: 'report', content_id: 'rep-1' },
+      mockGetDocList.mockResolvedValueOnce([
+        { content_type: 'News', content_id: 'ann-1' },
+        { content_type: 'News', content_id: 'ann-2' },
+        { content_type: 'School Event', content_id: 'evt-1' },
+        { content_type: 'Message', content_id: 'msg-1' },
+        { content_type: 'Report', content_id: 'rep-1' },
       ]);
 
       const result = await getAllReadIds(mockUserId);
@@ -240,7 +243,7 @@ describe('ReadStatusService', () => {
     });
 
     it('should return empty sets on error', async () => {
-      (directus.request as jest.Mock).mockRejectedValueOnce(new Error('Fetch failed'));
+      mockGetDocList.mockRejectedValueOnce(new Error('Fetch failed'));
 
       const result = await getAllReadIds(mockUserId);
 
@@ -253,7 +256,7 @@ describe('ReadStatusService', () => {
 
   describe('getUnreadIds', () => {
     it('should return array of unread IDs', async () => {
-      (directus.request as jest.Mock).mockResolvedValueOnce([
+      mockGetDocList.mockResolvedValueOnce([
         { content_id: 'item-1' },
         { content_id: 'item-2' },
       ]);
@@ -266,15 +269,19 @@ describe('ReadStatusService', () => {
 
   describe('clearAllReadStatus', () => {
     it('should delete all read records for user', async () => {
-      (directus.request as jest.Mock).mockResolvedValueOnce({ deleted: 100 });
+      mockGetDocList.mockResolvedValueOnce([
+        { name: 'read-1' },
+        { name: 'read-2' },
+      ]);
+      mockDeleteDoc.mockResolvedValue(undefined);
 
       await clearAllReadStatus(mockUserId);
 
-      expect(directus.request).toHaveBeenCalledTimes(1);
+      expect(mockGetDocList).toHaveBeenCalledTimes(1);
     });
 
     it('should handle errors gracefully', async () => {
-      (directus.request as jest.Mock).mockRejectedValueOnce(new Error('Delete failed'));
+      mockGetDocList.mockRejectedValueOnce(new Error('Delete failed'));
 
       await expect(clearAllReadStatus(mockUserId)).resolves.toBeUndefined();
     });

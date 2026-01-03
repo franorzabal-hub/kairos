@@ -16,7 +16,7 @@ import ChildSelector from '../../components/ChildSelector';
 import { WebLayout, ResponsiveCardGrid } from '../../components/web';
 import { useSession } from '../../hooks';
 import { useChildren, useReports, usePickupRequests, useContentReadStatus } from '../../api/hooks';
-import { Report } from '../../api/directus';
+import { Report } from '../../api/frappe';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY, CHILD_COLORS } from '../../theme';
 import { logger } from '../../utils';
 

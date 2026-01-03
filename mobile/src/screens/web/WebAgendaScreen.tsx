@@ -18,7 +18,7 @@ import { WebLayout, WebEventCard, ResponsiveCardGrid } from '../../components/we
 import type { EventStatus } from '../../components/web';
 import { useEvents, useContentReadStatus } from '../../api/hooks';
 import { useSession } from '../../hooks';
-import { Event } from '../../api/directus';
+import { Event } from '../../api/frappe';
 import { COLORS, CHILD_COLORS, SPACING, BORDERS, TYPOGRAPHY } from '../../theme';
 
 // Web-specific pressable state type

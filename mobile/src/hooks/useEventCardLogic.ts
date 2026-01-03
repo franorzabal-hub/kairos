@@ -5,7 +5,7 @@
  * labels for the cross-platform EventCard.tsx
  */
 import { useMemo } from 'react';
-import { Event } from '../api/directus';
+import { Event } from '../api/frappe';
 import { COLORS } from '../theme';
 import { getPastelColor } from '../utils';
 import { EventStatus, CTAConfig, EVENT_CTA_CONFIG } from '../types/events';

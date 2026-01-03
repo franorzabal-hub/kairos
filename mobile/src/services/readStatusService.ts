@@ -1,17 +1,16 @@
-import { directus, ContentRead } from '../api/directus';
-import { readItems, createItem, deleteItems } from '@directus/sdk';
+import { getDocList, createDoc, deleteDoc, ContentRead } from '../api/frappe';
 import { CONTENT_TYPES, ContentTypeValue } from '../constants';
 import { logger } from '../utils/logger';
 
 // ContentType derives from CONTENT_TYPES constant values
 export type ContentType = ContentTypeValue;
-type DbContentType = 'announcement' | 'event' | 'message' | 'report';
+type DbContentType = 'News' | 'School Event' | 'Message' | 'Report';
 
 const contentTypeMap: Record<ContentType, DbContentType> = {
-  [CONTENT_TYPES.ANNOUNCEMENTS]: 'announcement',
-  [CONTENT_TYPES.EVENTS]: 'event',
-  [CONTENT_TYPES.CAMBIOS]: 'message', // pickup requests tracked as messages
-  [CONTENT_TYPES.BOLETINES]: 'report',
+  [CONTENT_TYPES.ANNOUNCEMENTS]: 'News',
+  [CONTENT_TYPES.EVENTS]: 'School Event',
+  [CONTENT_TYPES.CAMBIOS]: 'Message', // pickup requests tracked as messages
+  [CONTENT_TYPES.BOLETINES]: 'Report',
 };
 
 /**
@@ -20,16 +19,14 @@ const contentTypeMap: Record<ContentType, DbContentType> = {
 export async function getReadIds(type: ContentType, userId: string): Promise<Set<string>> {
   try {
     const dbType = contentTypeMap[type];
-    const reads = await directus.request(
-      readItems('content_reads', {
-        filter: {
-          user_id: { _eq: userId },
-          content_type: { _eq: dbType },
-        },
-        fields: ['content_id'],
-      })
-    );
-    return new Set(reads.map((r: Pick<ContentRead, 'content_id'>) => r.content_id));
+    const reads = await getDocList<ContentRead>('Content Read', {
+      filters: [
+        ['user', '=', userId],
+        ['content_type', '=', dbType],
+      ],
+      fields: ['content_id'],
+    });
+    return new Set(reads.map((r) => r.content_id));
   } catch (error) {
     logger.warn(`Failed to fetch ${type} read status, returning empty fallback`, error);
     // Return empty fallback - UI will treat items as unread
@@ -45,25 +42,22 @@ export async function markAsRead(type: ContentType, id: string, userId: string):
     const dbType = contentTypeMap[type];
 
     // Check if already marked as read
-    const existing = await directus.request(
-      readItems('content_reads', {
-        filter: {
-          user_id: { _eq: userId },
-          content_type: { _eq: dbType },
-          content_id: { _eq: id },
-        },
-        limit: 1,
-      })
-    );
+    const existing = await getDocList<ContentRead>('Content Read', {
+      filters: [
+        ['user', '=', userId],
+        ['content_type', '=', dbType],
+        ['content_id', '=', id],
+      ],
+      limit: 1,
+    });
 
     if (existing.length === 0) {
-      await directus.request(
-        createItem('content_reads', {
-          user_id: userId,
-          content_type: dbType,
-          content_id: id,
-        })
-      );
+      await createDoc<ContentRead>('Content Read', {
+        user: userId,
+        content_type: dbType,
+        content_id: id,
+        read_at: new Date().toISOString(),
+      });
     }
   } catch (error) {
     // Log but don't throw - marking as read is non-critical and shouldn't block UI
@@ -81,31 +75,28 @@ export async function markMultipleAsRead(type: ContentType, ids: string[], userI
 
   try {
     // First, get existing reads to avoid duplicates
-    const existing = await directus.request(
-      readItems('content_reads', {
-        filter: {
-          user_id: { _eq: userId },
-          content_type: { _eq: dbType },
-          content_id: { _in: ids },
-        },
-        fields: ['content_id'],
-      })
-    );
+    const existing = await getDocList<ContentRead>('Content Read', {
+      filters: [
+        ['user', '=', userId],
+        ['content_type', '=', dbType],
+        ['content_id', 'in', ids],
+      ],
+      fields: ['content_id'],
+    });
 
-    const existingIds = new Set(existing.map((r: Pick<ContentRead, 'content_id'>) => r.content_id));
+    const existingIds = new Set(existing.map((r) => r.content_id));
     const newIds = ids.filter(id => !existingIds.has(id));
 
     // Batch create new read records
     if (newIds.length > 0) {
-      const records = newIds.map(id => ({
-        user_id: userId,
-        content_type: dbType,
-        content_id: id,
-      }));
-
       // Create all at once using Promise.all for better performance
-      await Promise.all(records.map(record =>
-        directus.request(createItem('content_reads', record))
+      await Promise.all(newIds.map(id =>
+        createDoc<ContentRead>('Content Read', {
+          user: userId,
+          content_type: dbType,
+          content_id: id,
+          read_at: new Date().toISOString(),
+        })
       ));
     }
   } catch (error) {
@@ -121,15 +112,20 @@ export async function markAsUnread(type: ContentType, id: string, userId: string
   try {
     const dbType = contentTypeMap[type];
 
-    await directus.request(
-      deleteItems('content_reads', {
-        filter: {
-          user_id: { _eq: userId },
-          content_type: { _eq: dbType },
-          content_id: { _eq: id },
-        },
-      })
-    );
+    // Find the read record to delete
+    const existing = await getDocList<ContentRead>('Content Read', {
+      filters: [
+        ['user', '=', userId],
+        ['content_type', '=', dbType],
+        ['content_id', '=', id],
+      ],
+      fields: ['name'],
+      limit: 1,
+    });
+
+    if (existing.length > 0) {
+      await deleteDoc('Content Read', existing[0].name);
+    }
   } catch (error) {
     // Log but don't throw - marking as unread is non-critical and shouldn't block UI
     logger.warn(`Failed to mark ${type} as unread`, error);
@@ -157,14 +153,12 @@ export async function countUnread(type: ContentType, allIds: string[], userId: s
  */
 export async function getAllReadIds(userId: string): Promise<Record<ContentType, Set<string>>> {
   try {
-    const reads = await directus.request(
-      readItems('content_reads', {
-        filter: {
-          user_id: { _eq: userId },
-        },
-        fields: ['content_type', 'content_id'],
-      })
-    );
+    const reads = await getDocList<ContentRead>('Content Read', {
+      filters: [
+        ['user', '=', userId],
+      ],
+      fields: ['content_type', 'content_id'],
+    });
 
     // Group by content type
     const result: Record<ContentType, Set<string>> = {
@@ -176,14 +170,14 @@ export async function getAllReadIds(userId: string): Promise<Record<ContentType,
 
     // Reverse map from DB types to UI types
     const reverseMap: Record<DbContentType, ContentType> = {
-      announcement: 'announcements',
-      event: 'events',
-      message: 'cambios',
-      report: 'boletines',
+      'News': 'announcements',
+      'School Event': 'events',
+      'Message': 'cambios',
+      'Report': 'boletines',
     };
 
-    for (const read of reads as { content_type: DbContentType; content_id: string }[]) {
-      const uiType = reverseMap[read.content_type];
+    for (const read of reads) {
+      const uiType = reverseMap[read.content_type as DbContentType];
       if (uiType) {
         result[uiType].add(read.content_id);
       }
@@ -215,14 +209,16 @@ export async function getUnreadIds(type: ContentType, allIds: string[], userId: 
  */
 export async function clearAllReadStatus(userId: string): Promise<void> {
   try {
-    // Delete all content_reads for this user
-    await directus.request(
-      deleteItems('content_reads', {
-        filter: {
-          user_id: { _eq: userId },
-        },
-      })
-    );
+    // Get all read records for this user
+    const allReads = await getDocList<ContentRead>('Content Read', {
+      filters: [
+        ['user', '=', userId],
+      ],
+      fields: ['name'],
+    });
+
+    // Delete all read records
+    await Promise.all(allReads.map(read => deleteDoc('Content Read', read.name)));
   } catch (error) {
     // Log but don't throw - clearing read status is non-critical
     logger.warn('Failed to clear read status', error);

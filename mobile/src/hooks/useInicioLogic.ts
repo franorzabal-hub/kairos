@@ -10,7 +10,7 @@
  * - Event formatting functions
  */
 import { useMemo, useCallback } from 'react';
-import { Announcement, Event, Student } from '../api/directus';
+import { Announcement, Event, Student } from '../api/frappe';
 import { FilterMode } from '../context/UIContext';
 import { CHILD_COLORS } from '../theme';
 

@@ -10,7 +10,7 @@ import FilterBar from '../components/FilterBar';
 import DirectusImage from '../components/DirectusImage';
 import { useFilters, useUnreadCounts } from '../context/UIContext';
 import { useEvents, useContentReadStatus } from '../api/hooks';
-import { Event } from '../api/directus';
+import { Event } from '../api/frappe';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY, UNREAD_STYLES, SHADOWS, BADGE_STYLES, FONT_SIZES, SIZES } from '../theme';
 import { stripHtml } from '../utils';
 

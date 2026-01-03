@@ -12,7 +12,7 @@ import {
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { WebView } from 'react-native-webview';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { AnnouncementAttachment } from '../api/directus';
+import { AnnouncementAttachment } from '../api/frappe';
 import { useDirectusAsset, getDirectusAssetUrl } from '../hooks/useDirectusAsset';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY, SIZES, FONT_SIZES } from '../theme';
 

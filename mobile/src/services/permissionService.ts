@@ -1,44 +1,56 @@
 /**
- * Permission Service - Syncs and manages permissions from Directus
+ * Permission Service - Syncs and manages permissions from Frappe
  *
- * This service fetches the user's role permissions from Directus at login
+ * This service fetches the user's role permissions from Frappe at login
  * and provides fast lookups for UI/API permission checks.
  *
  * @example
  * ```typescript
- * await permissionService.init(directus);
- * permissionService.can('reports', 'read'); // true/false
- * permissionService.canField('students', 'legajo_medico'); // true/false
+ * await permissionService.init();
+ * permissionService.can('Report', 'read'); // true/false
+ * permissionService.canField('Student', 'medical_file'); // true/false
  * ```
  */
 
-import { readMe } from '@directus/sdk';
-import { directus, getTokens, DIRECTUS_URL } from '../api/directus';
+import { getFrappeApp, getToken, FRAPPE_URL } from '../api/frappe';
 import { logger } from '../utils/logger';
 
-// Directus permission structure
-interface DirectusPermission {
-  id: string;
-  role: string | null;
-  collection: string;
-  action: 'create' | 'read' | 'update' | 'delete';
-  fields: string[] | null; // null means all fields ('*')
-  permissions: Record<string, any> | null; // Row-level filter conditions
-  validation: Record<string, any> | null;
+// Frappe permission structure
+interface FrappeDocPerm {
+  name: string;
+  parent: string; // DocType name
+  role: string;
+  permlevel: number;
+  read: 0 | 1;
+  write: 0 | 1;
+  create: 0 | 1;
+  delete: 0 | 1;
+  submit: 0 | 1;
+  cancel: 0 | 1;
+  amend: 0 | 1;
+  report: 0 | 1;
+  export: 0 | 1;
+  import: 0 | 1;
+  share: 0 | 1;
+  print: 0 | 1;
+  email: 0 | 1;
+  if_owner: 0 | 1;
 }
 
 // Internal permission map structure
 interface PermissionEntry {
-  fields: string[] | null; // null = all fields
-  conditions: Record<string, any> | null; // Row-level conditions
+  read: boolean;
+  write: boolean;
+  create: boolean;
+  delete: boolean;
+  ifOwner: boolean;
 }
 
-type ActionMap = Partial<Record<'create' | 'read' | 'update' | 'delete', PermissionEntry>>;
-type PermissionMap = Record<string, ActionMap>;
+type PermissionMap = Record<string, PermissionEntry>;
 
 // Missing permission info for debugging
 export interface MissingPermission {
-  collection: string;
+  doctype: string;
   action: string;
   field?: string;
   message?: string;
@@ -47,84 +59,106 @@ export interface MissingPermission {
 
 class PermissionService {
   private permissions: PermissionMap | null = null;
-  private roleId: string | null = null;
+  private userRoles: string[] = [];
   private initialized = false;
 
   /**
-   * Initialize permissions by fetching from Directus.
+   * Initialize permissions by fetching from Frappe.
    * Call this after successful login.
    */
   async init(): Promise<void> {
     try {
-      // Get current user's role using readMe
-      const currentUser = await directus.request(
-        readMe({ fields: ['role'] })
-      ) as { role: string | null };
-
-      if (!currentUser?.role) {
-        logger.warn('PermissionService', 'User has no role assigned');
+      const token = await getToken();
+      if (!token) {
+        logger.warn('PermissionService', 'No token available');
         this.permissions = {};
         this.initialized = true;
         return;
       }
 
-      this.roleId = currentUser.role;
-
-      // Fetch permissions for this role using raw fetch
-      // In Directus v11: Role -> Policy (via access table) -> Permissions
-      const { accessToken } = await getTokens();
-      if (!accessToken) {
-        throw new Error('No access token available');
-      }
-
-      const baseUrl = DIRECTUS_URL;
-
-      // Step 1: Get the policy ID for this role from the access table
-      const accessResponse = await fetch(
-        `${baseUrl}/access?filter[role][_eq]=${this.roleId}&limit=1`,
+      // Fetch current user's roles
+      const userResponse = await fetch(
+        `${FRAPPE_URL}/api/method/frappe.auth.get_logged_user`,
         {
           headers: {
-            'Authorization': `Bearer ${accessToken}`,
+            'Authorization': `token ${token}`,
+            'Content-Type': 'application/json',
           },
         }
       );
 
-      if (!accessResponse.ok) {
-        throw new Error(`Failed to fetch access: ${accessResponse.status}`);
+      if (!userResponse.ok) {
+        throw new Error(`Failed to get logged user: ${userResponse.status}`);
       }
 
-      const accessResult = await accessResponse.json();
-      const policyId = accessResult.data?.[0]?.policy;
+      const userResult = await userResponse.json();
+      const userName = userResult.message;
 
-      if (!policyId) {
-        logger.warn('PermissionService', 'No policy found for role');
+      if (!userName) {
+        logger.warn('PermissionService', 'No user found');
         this.permissions = {};
         this.initialized = true;
         return;
       }
 
-      // Step 2: Fetch permissions for this policy
-      const response = await fetch(
-        `${baseUrl}/permissions?filter[policy][_eq]=${policyId}&limit=-1`,
+      // Fetch user's roles
+      const rolesResponse = await fetch(
+        `${FRAPPE_URL}/api/method/frappe.client.get_list?doctype=Has Role&filters=[["parent","=","${userName}"]]&fields=["role"]&limit_page_length=0`,
         {
           headers: {
-            'Authorization': `Bearer ${accessToken}`,
+            'Authorization': `token ${token}`,
+            'Content-Type': 'application/json',
           },
         }
       );
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch permissions: ${response.status}`);
+      if (!rolesResponse.ok) {
+        throw new Error(`Failed to fetch roles: ${rolesResponse.status}`);
       }
 
-      const result = await response.json();
-      const permissions = (result.data || []) as DirectusPermission[];
+      const rolesResult = await rolesResponse.json();
+      this.userRoles = (rolesResult.message || []).map((r: { role: string }) => r.role);
+
+      if (this.userRoles.length === 0) {
+        logger.warn('PermissionService', 'User has no roles assigned');
+        this.permissions = {};
+        this.initialized = true;
+        return;
+      }
+
+      // Fetch DocPerms for user's roles
+      // In Frappe, permissions are defined per DocType in DocPerm child table
+      const rolesFilter = this.userRoles.map(r => `"${r}"`).join(',');
+      const permsResponse = await fetch(
+        `${FRAPPE_URL}/api/method/frappe.client.get_list?doctype=DocPerm&filters=[["role","in",[${rolesFilter}]],["permlevel","=",0]]&fields=["parent","role","read","write","create","delete","if_owner"]&limit_page_length=0`,
+        {
+          headers: {
+            'Authorization': `token ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!permsResponse.ok) {
+        throw new Error(`Failed to fetch permissions: ${permsResponse.status}`);
+      }
+
+      const permsResult = await permsResponse.json();
+      const docPerms = (permsResult.message || []) as Array<{
+        parent: string;
+        role: string;
+        read: 0 | 1;
+        write: 0 | 1;
+        create: 0 | 1;
+        delete: 0 | 1;
+        if_owner: 0 | 1;
+      }>;
 
       // Build permission map for fast lookups
-      this.permissions = this.buildPermissionMap(permissions);
+      this.permissions = this.buildPermissionMap(docPerms);
       this.initialized = true;
 
-      logger.debug('PermissionService', `Initialized with ${Object.keys(this.permissions).length} collections`);
+      logger.debug('PermissionService', `Initialized with ${Object.keys(this.permissions).length} DocTypes`);
     } catch (error: unknown) {
       logger.error('PermissionService', 'Failed to initialize permissions', error);
       // Initialize with empty permissions to prevent crashes
@@ -134,82 +168,113 @@ class PermissionService {
   }
 
   /**
-   * Build a fast-lookup permission map from Directus permissions array.
+   * Build a fast-lookup permission map from Frappe DocPerms.
+   * Merges permissions from all roles (OR logic).
    */
-  private buildPermissionMap(permissions: DirectusPermission[]): PermissionMap {
+  private buildPermissionMap(docPerms: Array<{
+    parent: string;
+    role: string;
+    read: 0 | 1;
+    write: 0 | 1;
+    create: 0 | 1;
+    delete: 0 | 1;
+    if_owner: 0 | 1;
+  }>): PermissionMap {
     const map: PermissionMap = {};
 
-    for (const p of permissions) {
-      if (!map[p.collection]) {
-        map[p.collection] = {};
+    for (const p of docPerms) {
+      const doctype = p.parent;
+
+      if (!map[doctype]) {
+        map[doctype] = {
+          read: false,
+          write: false,
+          create: false,
+          delete: false,
+          ifOwner: false,
+        };
       }
 
-      map[p.collection][p.action] = {
-        fields: p.fields,
-        conditions: p.permissions,
-      };
+      // OR logic: if any role has permission, user has permission
+      if (p.read === 1) map[doctype].read = true;
+      if (p.write === 1) map[doctype].write = true;
+      if (p.create === 1) map[doctype].create = true;
+      if (p.delete === 1) map[doctype].delete = true;
+      if (p.if_owner === 1) map[doctype].ifOwner = true;
     }
 
     return map;
   }
 
   /**
-   * Check if user can perform an action on a collection.
+   * Check if user can perform an action on a DocType.
    *
-   * @param collection - Directus collection name
+   * @param doctype - Frappe DocType name
    * @param action - CRUD action
    * @returns true if permitted
    */
-  can(collection: string, action: 'create' | 'read' | 'update' | 'delete' = 'read'): boolean {
+  can(doctype: string, action: 'create' | 'read' | 'update' | 'delete' = 'read'): boolean {
     if (!this.initialized || !this.permissions) {
       logger.warn('PermissionService', 'Not initialized, denying access');
       return false;
     }
 
-    return !!this.permissions[collection]?.[action];
+    const perm = this.permissions[doctype];
+    if (!perm) return false;
+
+    switch (action) {
+      case 'create':
+        return perm.create;
+      case 'read':
+        return perm.read;
+      case 'update':
+        return perm.write;
+      case 'delete':
+        return perm.delete;
+      default:
+        return false;
+    }
   }
 
   /**
-   * Check if user can read a specific field in a collection.
+   * Check if user can read a specific field in a DocType.
+   * In Frappe, field-level permissions are controlled by permlevel.
+   * For simplicity, we check if user has read permission on the DocType.
    *
-   * @param collection - Directus collection name
+   * @param doctype - Frappe DocType name
    * @param field - Field name
    * @returns true if field is readable
    */
-  canField(collection: string, field: string): boolean {
+  canField(doctype: string, field: string): boolean {
     if (!this.initialized || !this.permissions) {
       return false;
     }
 
-    const readPermission = this.permissions[collection]?.read;
-    if (!readPermission) return false;
-
-    // null fields means all fields ('*')
-    if (readPermission.fields === null) return true;
-
-    return readPermission.fields.includes('*') || readPermission.fields.includes(field);
+    // In Frappe, permlevel 0 means base-level access
+    // Higher permlevels require additional role permissions
+    // For now, we assume permlevel 0 for all fields
+    return this.can(doctype, 'read');
   }
 
   /**
-   * Get the row-level conditions for a collection action.
-   * Useful for understanding what filter Directus applies.
+   * Check if permission is restricted to owner only.
    */
-  getConditions(collection: string, action: 'create' | 'read' | 'update' | 'delete' = 'read'): Record<string, any> | null {
-    if (!this.permissions) return null;
-    return this.permissions[collection]?.[action]?.conditions || null;
+  isOwnerOnly(doctype: string): boolean {
+    if (!this.permissions) return false;
+    return this.permissions[doctype]?.ifOwner || false;
   }
 
   /**
    * Get info about a missing permission (for debugging).
    */
-  getMissingInfo(collection: string, action: string, field?: string): MissingPermission {
+  getMissingInfo(doctype: string, action: string, field?: string): MissingPermission {
     return {
-      collection,
+      doctype,
       action,
       field,
       message: field
-        ? `Missing field '${field}' read access on '${collection}'`
-        : `Missing '${action}' permission on '${collection}'`,
+        ? `Missing field '${field}' read access on '${doctype}'`
+        : `Missing '${action}' permission on '${doctype}'`,
       timestamp: new Date().toISOString(),
     };
   }
@@ -230,11 +295,20 @@ class PermissionService {
   }
 
   /**
-   * Get list of all collections user has access to.
+   * Get user's roles.
    */
-  getAccessibleCollections(): string[] {
+  getRoles(): string[] {
+    return this.userRoles;
+  }
+
+  /**
+   * Get list of all DocTypes user has access to.
+   */
+  getAccessibleDocTypes(): string[] {
     if (!this.permissions) return [];
-    return Object.keys(this.permissions);
+    return Object.keys(this.permissions).filter(
+      doctype => this.permissions![doctype].read
+    );
   }
 
   /**
@@ -242,7 +316,7 @@ class PermissionService {
    */
   reset(): void {
     this.permissions = null;
-    this.roleId = null;
+    this.userRoles = [];
     this.initialized = false;
   }
 }

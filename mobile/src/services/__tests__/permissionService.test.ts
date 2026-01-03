@@ -6,16 +6,20 @@
 
 import { permissionService } from '../permissionService';
 
-// Mock the directus module
-jest.mock('../../api/directus', () => ({
-  directus: {
-    request: jest.fn(),
-  },
-  getTokens: jest.fn().mockResolvedValue({ accessToken: 'mock-token' }),
+// Mock the frappe module
+jest.mock('../../api/frappe', () => ({
+  auth: jest.fn(() => ({
+    getLoggedInUser: jest.fn().mockResolvedValue('john@example.com'),
+  })),
+  getDocList: jest.fn(),
+  getToken: jest.fn().mockResolvedValue('mock-token'),
 }));
 
 // Import mocked modules
-import { directus, getTokens } from '../../api/directus';
+import { auth, getDocList, getToken } from '../../api/frappe';
+const mockAuth = auth as jest.MockedFunction<typeof auth>;
+const mockGetDocList = getDocList as jest.MockedFunction<typeof getDocList>;
+const mockGetToken = getToken as jest.MockedFunction<typeof getToken>;
 
 describe('PermissionService', () => {
   beforeEach(() => {

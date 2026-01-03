@@ -4,7 +4,7 @@ import { Swipeable } from 'react-native-gesture-handler';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import DirectusImage from './DirectusImage';
-import { Announcement } from '../api/directus';
+import { Announcement } from '../api/frappe';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY, UNREAD_STYLES, SHADOWS, BADGE_STYLES, SIZES, FONT_SIZES } from '../theme';
 import { stripHtml } from '../utils';
 

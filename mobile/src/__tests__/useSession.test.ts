@@ -3,7 +3,7 @@
  *
  * The useSession hook is critical for centralized session management:
  * - Combines auth state, children data, and derived permissions
- * - Ensures correct user ID is used (app_user.id, not directus_user.id)
+ * - Ensures correct user ID is used (Guardian.name, not Frappe User)
  * - Provides helper methods for child lookup
  *
  * NOTE: These tests verify the logic patterns without directly calling
@@ -11,13 +11,13 @@
  * composition is tested through the patterns and data flows.
  */
 
-import { Student, AppUser } from '../api/directus';
+import { Student, AppUser } from '../api/frappe';
 
 // Sample user data for tests
 const mockAuthUser: AppUser = {
-  id: 'app-user-123',
-  organization_id: 'org-456',
-  directus_user_id: 'directus-user-789',
+  id: 'guardian-123',
+  organization_id: 'institution-456',
+  directus_user_id: 'john@example.com', // In Frappe, this is the User (email)
   role: 'parent',
   first_name: 'John',
   last_name: 'Doe',
@@ -25,24 +25,36 @@ const mockAuthUser: AppUser = {
   status: 'active',
 };
 
-const mockChildren: Student[] = [
+// Note: In Frappe, we use a simpler Student interface that maps from the original
+// For test purposes, we use a simplified version compatible with the hook
+interface TestStudent {
+  id: string;
+  organization_id: string;
+  first_name: string;
+  last_name: string;
+  birth_date?: string;
+  section_id?: string;
+  status: string;
+}
+
+const mockChildren: TestStudent[] = [
   {
-    id: 'student-1',
-    organization_id: 'org-456',
+    id: 'STU-0001',
+    organization_id: 'institution-456',
     first_name: 'Emma',
     last_name: 'Doe',
     birth_date: '2015-03-15',
-    section_id: 'section-a',
-    status: 'active',
+    section_id: 'SEC-A',
+    status: 'Active',
   },
   {
-    id: 'student-2',
-    organization_id: 'org-456',
+    id: 'STU-0002',
+    organization_id: 'institution-456',
     first_name: 'Noah',
     last_name: 'Doe',
     birth_date: '2017-06-20',
-    section_id: 'section-b',
-    status: 'active',
+    section_id: 'SEC-B',
+    status: 'Active',
   },
 ];
 
@@ -325,25 +337,25 @@ describe('SessionPermissions interface', () => {
 });
 
 describe('User ID distinction', () => {
-  it('should distinguish app_user.id from directus_user_id', () => {
-    // CRITICAL: Directus has TWO user IDs
-    // - directus_users.id - for authentication
-    // - app_users.id - for business relations (student_guardians, etc.)
-    expect(mockAuthUser.id).toBe('app-user-123');
-    expect(mockAuthUser.directus_user_id).toBe('directus-user-789');
+  it('should distinguish Guardian.name from Frappe User', () => {
+    // CRITICAL: Frappe has TWO user IDs
+    // - User (email) - for authentication
+    // - Guardian.name - for business relations (Student Guardian, etc.)
+    expect(mockAuthUser.id).toBe('guardian-123');
+    expect(mockAuthUser.directus_user_id).toBe('john@example.com');
     expect(mockAuthUser.id).not.toBe(mockAuthUser.directus_user_id);
   });
 
-  it('should use app_user.id for business relations', () => {
-    // When querying student_guardians, use app_user.id
+  it('should use Guardian.name for business relations', () => {
+    // When querying Student Guardian, use Guardian.name (stored as id)
     const userId = mockAuthUser.id; // Correct!
-    expect(userId).toBe('app-user-123');
+    expect(userId).toBe('guardian-123');
   });
 
-  it('should use directus_user_id for Directus auth operations', () => {
-    // When dealing with Directus authentication, use directus_user_id
-    const directusUserId = mockAuthUser.directus_user_id;
-    expect(directusUserId).toBe('directus-user-789');
+  it('should use Frappe User for auth operations', () => {
+    // When dealing with Frappe authentication, use the User (email)
+    const frappeUserId = mockAuthUser.directus_user_id;
+    expect(frappeUserId).toBe('john@example.com');
   });
 });
 
@@ -394,7 +406,8 @@ describe('Student data type', () => {
   });
 
   it('should have valid status values', () => {
-    const validStatuses = ['active', 'inactive', 'transferred'];
+    // Frappe uses Title Case for status values
+    const validStatuses = ['Active', 'Inactive', 'Graduated', 'Transferred'];
     expect(validStatuses).toContain(mockChildren[0].status);
   });
 });

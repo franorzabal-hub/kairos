@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Event } from '../api/directus';
+import { Event } from '../api/frappe';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY, SHADOWS, SIZES } from '../theme';
 
 interface PendingEventsBannerProps {

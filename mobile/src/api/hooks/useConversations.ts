@@ -1,17 +1,15 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { readItems, readItem, createItem, updateItem } from '@directus/sdk';
 import {
-  getAggregateCount,
-  GroupedAggregateResult,
-  ConversationMessageFilter,
-} from '../../types/directus';
-import {
-  directus,
+  getDocList,
+  getDoc,
+  createDoc,
+  updateDoc,
+  getCount,
   Conversation,
   ConversationParticipant,
   ConversationMessage,
-  DirectusUser,
-} from '../directus';
+  FrappeUser,
+} from '../frappe';
 import { useAuth } from '../../context/AuthContext';
 import { queryKeys } from './queryKeys';
 import { logger } from '../../utils/logger';
@@ -21,7 +19,7 @@ export interface ConversationWithMeta extends Conversation {
   participantId: string;
   unreadCount: number;
   lastMessage?: ConversationMessage;
-  otherParticipants: DirectusUser[];
+  otherParticipants: FrappeUser[];
   canReply: boolean;
   isBlocked: boolean;
 }
@@ -30,155 +28,161 @@ export interface ConversationWithMeta extends Conversation {
 // OPTIMIZED: Replaced N+1 query pattern with batch queries
 export function useConversations() {
   const { user } = useAuth();
-  const directusUserId = user?.directus_user_id;
+  const frappeUserId = user?.directus_user_id;
 
-  const isEnabled = !!directusUserId;
-  const queryKey = queryKeys.conversations.user(directusUserId ?? '');
+  const isEnabled = !!frappeUserId;
+  const queryKey = queryKeys.conversations.user(frappeUserId ?? '');
 
   return useQuery({
     queryKey,
     queryFn: async (): Promise<ConversationWithMeta[]> => {
-      if (!directusUserId) {
+      if (!frappeUserId) {
         return [];
       }
 
-      // Step 1: Fetch all participations with conversation data
-      const participations = await directus.request(
-        readItems('conversation_participants', {
-          filter: {
-            user_id: { _eq: directusUserId },
-            is_blocked: { _eq: false },
-          },
-          // Nested relational fields - SDK type limitation requires 'as any'
-          fields: [
-            '*',
-            { conversation_id: ['*', { participants: ['*', { user_id: ['*'] }] }] },
-          ] as any,
-          sort: ['-date_created'],
-        })
-      );
+      // Step 1: Fetch all participations for current user
+      const participations = await getDocList<ConversationParticipant>('Conversation Participant', {
+        filters: [
+          ['user', '=', frappeUserId],
+          ['is_blocked', '=', false],
+        ],
+        fields: ['name', 'conversation', 'user', 'role', 'can_reply', 'is_blocked', 'is_muted', 'last_read_at', 'creation'],
+        orderBy: { field: 'creation', order: 'desc' },
+      });
 
       if (!participations.length) {
         return [];
       }
 
-      const typedParticipations = participations as unknown as ConversationParticipant[];
-      const conversationIds = typedParticipations.map(
-        p => (p.conversation_id as Conversation).id
-      );
+      const conversationNames = participations.map(p => p.conversation);
 
-      // Step 2: Batch fetch last messages for ALL conversations in ONE request
-      const allMessages = await directus.request(
-        readItems('conversation_messages', {
-          filter: {
-            conversation_id: { _in: conversationIds },
-            deleted_at: { _null: true },
-          },
-          // Nested relational fields - SDK type limitation requires 'as any'
-          fields: ['*', { sender_id: ['*'] }] as any,
-          sort: ['-date_created'],
-          limit: conversationIds.length * 2,
-        })
-      );
+      // Step 2: Batch fetch conversations
+      const conversations = await getDocList<Conversation>('Conversation', {
+        filters: [
+          ['name', 'in', conversationNames],
+        ],
+        fields: ['name', 'institution', 'conversation_type', 'subject', 'started_by', 'channel', 'status', 'closed_by', 'closed_at', 'closed_reason', 'creation', 'modified'],
+      });
 
-      // Group messages by conversation_id, keep only the latest per conversation
+      // Create conversation lookup map
+      const conversationMap = new Map<string, Conversation>();
+      for (const conv of conversations) {
+        conversationMap.set(conv.name, conv);
+      }
+
+      // Step 3: Batch fetch all participants for these conversations
+      const allParticipants = await getDocList<ConversationParticipant>('Conversation Participant', {
+        filters: [
+          ['conversation', 'in', conversationNames],
+        ],
+        fields: ['name', 'conversation', 'user', 'role', 'can_reply', 'is_blocked', 'is_muted', 'last_read_at', 'creation'],
+      });
+
+      // Get unique user IDs to fetch user details
+      const userIds = [...new Set(allParticipants.map(p => p.user))];
+      const users = await getDocList<FrappeUser>('User', {
+        filters: [
+          ['name', 'in', userIds],
+        ],
+        fields: ['name', 'first_name', 'last_name', 'email', 'user_image', 'full_name'],
+      });
+
+      // Create user lookup map
+      const userMap = new Map<string, FrappeUser>();
+      for (const u of users) {
+        userMap.set(u.name, u);
+      }
+
+      // Group participants by conversation
+      const participantsByConversation = new Map<string, ConversationParticipant[]>();
+      for (const p of allParticipants) {
+        const list = participantsByConversation.get(p.conversation) || [];
+        list.push(p);
+        participantsByConversation.set(p.conversation, list);
+      }
+
+      // Step 4: Batch fetch last messages for ALL conversations in ONE request
+      const allMessages = await getDocList<ConversationMessage>('Conversation Message', {
+        filters: [
+          ['conversation', 'in', conversationNames],
+          ['deleted_at', 'is', 'not set'],
+        ],
+        fields: ['name', 'conversation', 'sender', 'content', 'content_type', 'is_urgent', 'deleted_at', 'creation'],
+        orderBy: { field: 'creation', order: 'desc' },
+        limit: conversationNames.length * 2,
+      });
+
+      // Group messages by conversation, keep only the latest per conversation
       const lastMessageByConversation = new Map<string, ConversationMessage>();
-      for (const msg of allMessages as unknown as ConversationMessage[]) {
-        const convId = typeof msg.conversation_id === 'string'
-          ? msg.conversation_id
-          : (msg.conversation_id as Conversation)?.id;
+      for (const msg of allMessages) {
+        const convId = msg.conversation;
         if (convId && !lastMessageByConversation.has(convId)) {
           lastMessageByConversation.set(convId, msg);
         }
       }
 
-      // Step 3: Batch fetch unread counts
+      // Step 5: Calculate unread counts
       const unreadCountsMap = new Map<string, number>();
 
-      const participationsWithReadAt = typedParticipations.filter(p => p.last_read_at);
-      const participationsWithoutReadAt = typedParticipations.filter(p => !p.last_read_at);
+      const participationsWithReadAt = participations.filter(p => p.last_read_at);
+      const participationsWithoutReadAt = participations.filter(p => !p.last_read_at);
 
       // For participations without last_read_at, count all messages from others
       if (participationsWithoutReadAt.length > 0) {
-        const convIdsWithoutReadAt = participationsWithoutReadAt.map(
-          p => (p.conversation_id as Conversation).id
-        );
+        const convIdsWithoutReadAt = participationsWithoutReadAt.map(p => p.conversation);
 
-        const unreadAll = await directus.request(
-          readItems('conversation_messages', {
-            filter: {
-              conversation_id: { _in: convIdsWithoutReadAt },
-              deleted_at: { _null: true },
-              sender_id: { _neq: directusUserId },
-            },
-            aggregate: { countDistinct: ['id'] },
-            groupBy: ['conversation_id'],
-          })
-        );
-
-        for (const item of unreadAll as unknown as GroupedAggregateResult[]) {
-          const convId = item.conversation_id;
-          // countDistinct returns an object like { id: "5" } when using field-specific aggregates
-          const countDistinct = item.countDistinct as { id?: string | number } | undefined;
-          const count = parseInt(String(countDistinct?.id ?? '0'), 10);
-          if (convId) {
+        // Count unread messages for each conversation
+        await Promise.all(
+          convIdsWithoutReadAt.map(async (convId) => {
+            const count = await getCount('Conversation Message', [
+              ['conversation', '=', convId],
+              ['deleted_at', 'is', 'not set'],
+              ['sender', '!=', frappeUserId],
+            ]);
             unreadCountsMap.set(convId, count);
-          }
-        }
-      }
-
-      // For participations with last_read_at, batch with Promise.all
-      if (participationsWithReadAt.length > 0) {
-        const unreadCounts = await Promise.all(
-          participationsWithReadAt.map(async (participation) => {
-            const conversation = participation.conversation_id as Conversation;
-            const unreadMessages = await directus.request(
-              readItems('conversation_messages', {
-                filter: {
-                  conversation_id: { _eq: conversation.id },
-                  deleted_at: { _null: true },
-                  sender_id: { _neq: directusUserId },
-                  date_created: { _gt: participation.last_read_at },
-                } as ConversationMessageFilter, // Directus SDK type limitation for date comparison operators
-                aggregate: { count: ['*'] },
-              })
-            );
-            return {
-              conversationId: conversation.id,
-              count: getAggregateCount(unreadMessages),
-            };
           })
         );
-
-        for (const { conversationId, count } of unreadCounts) {
-          unreadCountsMap.set(conversationId, count);
-        }
       }
 
-      // Step 4: Build final result
-      const conversationsWithMeta = typedParticipations.map((participation) => {
-        const conversation = participation.conversation_id as Conversation;
-
-        const otherParticipants = (conversation.participants ?? [])
-          .filter(p => {
-            const userId = typeof p.user_id === 'string' ? p.user_id : (p.user_id as DirectusUser)?.id;
-            return userId !== directusUserId;
+      // For participations with last_read_at, count messages after that date
+      if (participationsWithReadAt.length > 0) {
+        await Promise.all(
+          participationsWithReadAt.map(async (participation) => {
+            const convId = participation.conversation;
+            const count = await getCount('Conversation Message', [
+              ['conversation', '=', convId],
+              ['deleted_at', 'is', 'not set'],
+              ['sender', '!=', frappeUserId],
+              ['creation', '>', participation.last_read_at!],
+            ]);
+            unreadCountsMap.set(convId, count);
           })
-          .map(p => (typeof p.user_id === 'object' ? p.user_id : null) as DirectusUser | null)
-          .filter((u): u is DirectusUser => u !== null);
+        );
+      }
+
+      // Step 6: Build final result
+      const conversationsWithMeta = participations.map((participation) => {
+        const conversation = conversationMap.get(participation.conversation);
+        if (!conversation) return null;
+
+        const convParticipants = participantsByConversation.get(conversation.name) || [];
+        const otherParticipants = convParticipants
+          .filter(p => p.user !== frappeUserId)
+          .map(p => userMap.get(p.user))
+          .filter((u): u is FrappeUser => u !== null && u !== undefined);
 
         return {
           ...conversation,
-          participantId: participation.id,
-          unreadCount: unreadCountsMap.get(conversation.id) || 0,
-          lastMessage: lastMessageByConversation.get(conversation.id),
+          participantId: participation.name,
+          unreadCount: unreadCountsMap.get(conversation.name) || 0,
+          lastMessage: lastMessageByConversation.get(conversation.name),
           otherParticipants,
           canReply: participation.can_reply,
           isBlocked: participation.is_blocked,
         };
       });
 
-      return conversationsWithMeta;
+      return conversationsWithMeta.filter((c): c is ConversationWithMeta => c !== null);
     },
     enabled: isEnabled,
   });
@@ -187,52 +191,94 @@ export function useConversations() {
 // Fetch single conversation with messages
 export function useConversation(conversationId: string) {
   const { user } = useAuth();
-  const directusUserId = user?.directus_user_id;
+  const frappeUserId = user?.directus_user_id;
 
   return useQuery({
     queryKey: queryKeys.conversation(conversationId),
     queryFn: async () => {
-      if (!directusUserId || !conversationId) return null;
+      if (!frappeUserId || !conversationId) return null;
 
-      const conversation = await directus.request(
-        readItem('conversations', conversationId, {
-          // Nested relational fields - SDK type limitation requires 'as any'
-          fields: ['*', { participants: ['*', { user_id: ['*'] }] }] as any,
-        })
-      );
+      // Fetch the conversation
+      const conversation = await getDoc<Conversation>('Conversation', conversationId);
 
-      return conversation as unknown as Conversation;
+      // Fetch participants with user details
+      const participants = await getDocList<ConversationParticipant>('Conversation Participant', {
+        filters: [
+          ['conversation', '=', conversationId],
+        ],
+        fields: ['name', 'conversation', 'user', 'role', 'can_reply', 'is_blocked', 'is_muted', 'last_read_at', 'creation'],
+      });
+
+      // Fetch user details for all participants
+      const userIds = participants.map(p => p.user);
+      const users = await getDocList<FrappeUser>('User', {
+        filters: [
+          ['name', 'in', userIds],
+        ],
+        fields: ['name', 'first_name', 'last_name', 'email', 'user_image', 'full_name'],
+      });
+
+      const userMap = new Map<string, FrappeUser>();
+      for (const u of users) {
+        userMap.set(u.name, u);
+      }
+
+      // Attach user details to participants
+      const participantsWithDetails = participants.map(p => ({
+        ...p,
+        user_details: userMap.get(p.user),
+      }));
+
+      return {
+        ...conversation,
+        participants: participantsWithDetails,
+      } as Conversation;
     },
-    enabled: !!directusUserId && !!conversationId,
+    enabled: !!frappeUserId && !!conversationId,
   });
 }
 
 // Fetch messages for a conversation
 export function useConversationMessages(conversationId: string) {
   const { user } = useAuth();
-  const directusUserId = user?.directus_user_id;
+  const frappeUserId = user?.directus_user_id;
 
   return useQuery({
     queryKey: queryKeys.conversationMessages(conversationId),
     queryFn: async () => {
-      if (!directusUserId || !conversationId) return [];
+      if (!frappeUserId || !conversationId) return [];
 
-      const messages = await directus.request(
-        readItems('conversation_messages', {
-          filter: {
-            conversation_id: { _eq: conversationId },
-            deleted_at: { _null: true },
-          },
-          // Nested relational fields - SDK type limitation requires 'as any'
-          fields: ['*', { sender_id: ['*'] }] as any,
-          sort: ['date_created'],
-          limit: 100,
-        })
-      );
+      const messages = await getDocList<ConversationMessage>('Conversation Message', {
+        filters: [
+          ['conversation', '=', conversationId],
+          ['deleted_at', 'is', 'not set'],
+        ],
+        fields: ['name', 'conversation', 'sender', 'content', 'content_type', 'is_urgent', 'deleted_at', 'creation'],
+        orderBy: { field: 'creation', order: 'asc' },
+        limit: 100,
+      });
 
-      return messages as unknown as ConversationMessage[];
+      // Fetch sender details
+      const senderIds = [...new Set(messages.map(m => m.sender))];
+      const senders = await getDocList<FrappeUser>('User', {
+        filters: [
+          ['name', 'in', senderIds],
+        ],
+        fields: ['name', 'first_name', 'last_name', 'email', 'user_image', 'full_name'],
+      });
+
+      const senderMap = new Map<string, FrappeUser>();
+      for (const s of senders) {
+        senderMap.set(s.name, s);
+      }
+
+      // Attach sender details to messages
+      return messages.map(msg => ({
+        ...msg,
+        sender_details: senderMap.get(msg.sender),
+      })) as ConversationMessage[];
     },
-    enabled: !!directusUserId && !!conversationId,
+    enabled: !!frappeUserId && !!conversationId,
   });
 }
 
@@ -240,7 +286,7 @@ export function useConversationMessages(conversationId: string) {
 export function useSendMessage() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const directusUserId = user?.directus_user_id;
+  const frappeUserId = user?.directus_user_id;
 
   return useMutation({
     mutationFn: async ({
@@ -252,24 +298,22 @@ export function useSendMessage() {
       content: string;
       isUrgent?: boolean;
     }) => {
-      if (!directusUserId) throw new Error('User not authenticated');
+      if (!frappeUserId) throw new Error('User not authenticated');
 
-      const result = await directus.request(
-        createItem('conversation_messages', {
-          conversation_id: conversationId,
-          sender_id: directusUserId,
-          content,
-          content_type: 'text',
-          is_urgent: isUrgent,
-        })
-      );
+      const result = await createDoc<ConversationMessage>('Conversation Message', {
+        conversation: conversationId,
+        sender: frappeUserId,
+        content,
+        content_type: 'Text',
+        is_urgent: isUrgent,
+      });
       return result;
     },
     onSuccess: (_, { conversationId }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.conversationMessages(conversationId) });
       // Scope invalidation to current user's conversations
-      if (directusUserId) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.conversations.user(directusUserId) });
+      if (frappeUserId) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.conversations.user(frappeUserId) });
       }
     },
     onError: (error) => {
@@ -282,20 +326,22 @@ export function useSendMessage() {
 export function useMarkConversationRead() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const directusUserId = user?.directus_user_id;
+  const frappeUserId = user?.directus_user_id;
 
   return useMutation({
     mutationFn: async (participantId: string) => {
-      const result = await directus.request(
-        updateItem('conversation_participants', participantId, {
+      const result = await updateDoc<ConversationParticipant>(
+        'Conversation Participant',
+        participantId,
+        {
           last_read_at: new Date().toISOString(),
-        })
+        }
       );
       return result;
     },
     onSuccess: () => {
-      if (directusUserId) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.conversations.user(directusUserId) });
+      if (frappeUserId) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.conversations.user(frappeUserId) });
       }
     },
     onError: (error) => {
@@ -312,7 +358,7 @@ export function useMarkConversationRead() {
 export function useCloseConversation() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const directusUserId = user?.directus_user_id;
+  const frappeUserId = user?.directus_user_id;
 
   return useMutation({
     mutationFn: async ({
@@ -322,22 +368,20 @@ export function useCloseConversation() {
       conversationId: string;
       reason?: string;
     }) => {
-      if (!directusUserId) throw new Error('User not authenticated');
+      if (!frappeUserId) throw new Error('User not authenticated');
 
-      const result = await directus.request(
-        updateItem('conversations', conversationId, {
-          status: 'closed',
-          closed_by: directusUserId,
-          closed_at: new Date().toISOString(),
-          closed_reason: reason,
-        })
-      );
+      const result = await updateDoc<Conversation>('Conversation', conversationId, {
+        status: 'Closed',
+        closed_by: frappeUserId,
+        closed_at: new Date().toISOString(),
+        closed_reason: reason,
+      });
       return result;
     },
     onSuccess: (_, { conversationId }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.conversation(conversationId) });
-      if (directusUserId) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.conversations.user(directusUserId) });
+      if (frappeUserId) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.conversations.user(frappeUserId) });
       }
     },
     onError: (error) => {
@@ -350,24 +394,22 @@ export function useCloseConversation() {
 export function useReopenConversation() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const directusUserId = user?.directus_user_id;
+  const frappeUserId = user?.directus_user_id;
 
   return useMutation({
     mutationFn: async (conversationId: string) => {
-      const result = await directus.request(
-        updateItem('conversations', conversationId, {
-          status: 'open',
-          closed_by: null,
-          closed_at: null,
-          closed_reason: null,
-        })
-      );
+      const result = await updateDoc<Conversation>('Conversation', conversationId, {
+        status: 'Open',
+        closed_by: undefined,
+        closed_at: undefined,
+        closed_reason: undefined,
+      });
       return result;
     },
     onSuccess: (_, conversationId) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.conversation(conversationId) });
-      if (directusUserId) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.conversations.user(directusUserId) });
+      if (frappeUserId) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.conversations.user(frappeUserId) });
       }
     },
     onError: (error) => {
@@ -380,7 +422,7 @@ export function useReopenConversation() {
 export function useToggleParticipantReply() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const directusUserId = user?.directus_user_id;
+  const frappeUserId = user?.directus_user_id;
 
   return useMutation({
     mutationFn: async ({
@@ -390,16 +432,18 @@ export function useToggleParticipantReply() {
       participantId: string;
       canReply: boolean;
     }) => {
-      const result = await directus.request(
-        updateItem('conversation_participants', participantId, {
+      const result = await updateDoc<ConversationParticipant>(
+        'Conversation Participant',
+        participantId,
+        {
           can_reply: canReply,
-        })
+        }
       );
       return result;
     },
     onSuccess: () => {
-      if (directusUserId) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.conversations.user(directusUserId) });
+      if (frappeUserId) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.conversations.user(frappeUserId) });
       }
     },
     onError: (error) => {
@@ -412,7 +456,7 @@ export function useToggleParticipantReply() {
 export function useToggleParticipantBlocked() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const directusUserId = user?.directus_user_id;
+  const frappeUserId = user?.directus_user_id;
 
   return useMutation({
     mutationFn: async ({
@@ -422,16 +466,18 @@ export function useToggleParticipantBlocked() {
       participantId: string;
       isBlocked: boolean;
     }) => {
-      const result = await directus.request(
-        updateItem('conversation_participants', participantId, {
+      const result = await updateDoc<ConversationParticipant>(
+        'Conversation Participant',
+        participantId,
+        {
           is_blocked: isBlocked,
-        })
+        }
       );
       return result;
     },
     onSuccess: () => {
-      if (directusUserId) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.conversations.user(directusUserId) });
+      if (frappeUserId) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.conversations.user(frappeUserId) });
       }
     },
     onError: (error) => {
@@ -444,7 +490,7 @@ export function useToggleParticipantBlocked() {
 export function useMuteConversation() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const directusUserId = user?.directus_user_id;
+  const frappeUserId = user?.directus_user_id;
 
   return useMutation({
     mutationFn: async ({
@@ -454,16 +500,18 @@ export function useMuteConversation() {
       participantId: string;
       isMuted: boolean;
     }) => {
-      const result = await directus.request(
-        updateItem('conversation_participants', participantId, {
+      const result = await updateDoc<ConversationParticipant>(
+        'Conversation Participant',
+        participantId,
+        {
           is_muted: isMuted,
-        })
+        }
       );
       return result;
     },
     onSuccess: () => {
-      if (directusUserId) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.conversations.user(directusUserId) });
+      if (frappeUserId) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.conversations.user(frappeUserId) });
       }
     },
     onError: (error) => {
@@ -476,21 +524,19 @@ export function useMuteConversation() {
 export function useArchiveConversation() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const directusUserId = user?.directus_user_id;
+  const frappeUserId = user?.directus_user_id;
 
   return useMutation({
     mutationFn: async (conversationId: string) => {
-      const result = await directus.request(
-        updateItem('conversations', conversationId, {
-          status: 'archived',
-        })
-      );
+      const result = await updateDoc<Conversation>('Conversation', conversationId, {
+        status: 'Archived',
+      });
       return result;
     },
     onSuccess: (_, conversationId) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.conversation(conversationId) });
-      if (directusUserId) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.conversations.user(directusUserId) });
+      if (frappeUserId) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.conversations.user(frappeUserId) });
       }
     },
     onError: (error) => {
@@ -503,21 +549,19 @@ export function useArchiveConversation() {
 export function useUnarchiveConversation() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const directusUserId = user?.directus_user_id;
+  const frappeUserId = user?.directus_user_id;
 
   return useMutation({
     mutationFn: async (conversationId: string) => {
-      const result = await directus.request(
-        updateItem('conversations', conversationId, {
-          status: 'open',
-        })
-      );
+      const result = await updateDoc<Conversation>('Conversation', conversationId, {
+        status: 'Open',
+      });
       return result;
     },
     onSuccess: (_, conversationId) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.conversation(conversationId) });
-      if (directusUserId) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.conversations.user(directusUserId) });
+      if (frappeUserId) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.conversations.user(frappeUserId) });
       }
     },
     onError: (error) => {
@@ -532,7 +576,7 @@ export function useUnarchiveConversation() {
 
 export interface CreateConversationParams {
   subject: string;
-  channelId: string; // e.g., 'secretaria', 'enfermeria', etc.
+  channelId: string; // e.g., 'Secretaria', 'Profesores', etc.
   initialMessage: string;
   isUrgent?: boolean;
 }
@@ -541,7 +585,7 @@ export interface CreateConversationParams {
 export function useCreateConversation() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const directusUserId = user?.directus_user_id;
+  const frappeUserId = user?.directus_user_id;
 
   return useMutation({
     mutationFn: async ({
@@ -550,49 +594,45 @@ export function useCreateConversation() {
       initialMessage,
       isUrgent = false,
     }: CreateConversationParams) => {
-      if (!directusUserId) throw new Error('User not authenticated');
+      if (!frappeUserId) throw new Error('User not authenticated');
 
       // Step 1: Create the conversation
-      const conversation = await directus.request(
-        createItem('conversations', {
-          subject,
-          status: 'open',
-          channel: channelId,
-          started_by: directusUserId,
-          organization_id: user?.organization_id,
-        })
-      );
+      const conversation = await createDoc<Conversation>('Conversation', {
+        subject,
+        status: 'Open',
+        channel: channelId,
+        started_by: frappeUserId,
+        institution: user?.organization_id,
+        conversation_type: 'Private',
+      });
 
-      const conversationId = (conversation as Conversation).id;
+      const conversationId = conversation.name;
 
       // Step 2: Add the creator as a participant
-      await directus.request(
-        createItem('conversation_participants', {
-          conversation_id: conversationId,
-          user_id: directusUserId,
-          can_reply: true,
-          is_blocked: false,
-          is_muted: false,
-        })
-      );
+      await createDoc<ConversationParticipant>('Conversation Participant', {
+        conversation: conversationId,
+        user: frappeUserId,
+        role: 'Parent',
+        can_reply: true,
+        is_blocked: false,
+        is_muted: false,
+      });
 
       // Step 3: Send the initial message
-      await directus.request(
-        createItem('conversation_messages', {
-          conversation_id: conversationId,
-          sender_id: directusUserId,
-          content: initialMessage,
-          content_type: 'text',
-          is_urgent: isUrgent,
-        })
-      );
+      await createDoc<ConversationMessage>('Conversation Message', {
+        conversation: conversationId,
+        sender: frappeUserId,
+        content: initialMessage,
+        content_type: 'Text',
+        is_urgent: isUrgent,
+      });
 
       return { conversationId };
     },
     onSuccess: () => {
       // Invalidate conversations list to show the new conversation
-      if (directusUserId) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.conversations.user(directusUserId) });
+      if (frappeUserId) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.conversations.user(frappeUserId) });
       }
     },
     onError: (error) => {

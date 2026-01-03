@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { readItems, createItem, updateItem } from '@directus/sdk';
-import { directus, PickupRequest } from '../directus';
+import { getDocList, createDoc, updateDoc, PickupRequest } from '../frappe';
 import { useAuth } from '../../context/AuthContext';
 import { useChildren } from '../../context/ChildrenContext';
 import { queryKeys } from './queryKeys';
@@ -21,18 +20,16 @@ export function usePickupRequests() {
         ? [selectedChildId]
         : children.map(c => c.id);
 
-      const items = await directus.request(
-        readItems('pickup_requests', {
-          filter: {
-            student_id: { _in: studentIds },
-            requested_by: { _eq: user.id },
-          },
-          sort: ['-created_at'],
-          limit: 50,
-        })
-      );
+      const items = await getDocList<PickupRequest>('Pickup Request', {
+        filters: [
+          ['student', 'in', studentIds],
+          ['requested_by', '=', user.id],
+        ],
+        orderBy: { field: 'creation', order: 'desc' },
+        limit: 50,
+      });
 
-      return items as PickupRequest[];
+      return items;
     },
     enabled: !!user?.id && children.length > 0,
   });
@@ -45,13 +42,11 @@ export function useCreatePickupRequest() {
   const userId = user?.id;
 
   return useMutation({
-    mutationFn: async (data: Omit<PickupRequest, 'id' | 'created_at' | 'status'>) => {
-      const result = await directus.request(
-        createItem('pickup_requests', {
-          ...data,
-          status: 'pending',
-        })
-      );
+    mutationFn: async (data: Omit<PickupRequest, 'name' | 'creation' | 'status'>) => {
+      const result = await createDoc<PickupRequest>('Pickup Request', {
+        ...data,
+        status: 'Pending',
+      });
       return result;
     },
     onSuccess: () => {
@@ -80,9 +75,7 @@ export function useUpdatePickupRequest() {
       id: string;
       data: Partial<Pick<PickupRequest, 'pickup_date' | 'pickup_time' | 'authorized_person' | 'reason' | 'notes'>>;
     }) => {
-      const result = await directus.request(
-        updateItem('pickup_requests', id, data)
-      );
+      const result = await updateDoc<PickupRequest>('Pickup Request', id, data);
       return result;
     },
     onSuccess: () => {

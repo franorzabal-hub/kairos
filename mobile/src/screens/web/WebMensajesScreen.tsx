@@ -24,7 +24,7 @@ import {
   useCreateConversation,
 } from '../../api/hooks';
 import { useSession } from '../../hooks';
-import { Conversation, ConversationMessage, DirectusUser } from '../../api/directus';
+import { Conversation, ConversationMessage, DirectusUser } from '../../api/frappe';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY, SHADOWS } from '../../theme';
 
 // Web-specific pressable state type

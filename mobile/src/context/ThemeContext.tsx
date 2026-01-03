@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useMemo, ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import directus, { Organization } from '../api/directus';
-import { readItem } from '@directus/sdk';
+import { getDoc, Institution } from '../api/frappe';
 import { useAuth } from './AppContext';
 import { COLORS as DEFAULT_COLORS } from '../theme';
 
@@ -63,11 +62,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     queryKey: ['organization', organizationId],
     queryFn: async () => {
       if (!organizationId) return null;
-      return directus.request(
-        readItem('organizations', organizationId, {
-          fields: ['id', 'name', 'logo', 'primary_color'],
-        })
-      ) as Promise<Organization>;
+      return getDoc<Institution>('Institution', organizationId);
     },
     enabled: !!organizationId,
     staleTime: 1000 * 60 * 60, // 1 hour - org colors rarely change
@@ -84,7 +79,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
           : DEFAULT_COLORS.primaryLight,
       },
       isLoading,
-      organizationName: organization?.name || null,
+      organizationName: organization?.institution_name || null,
       organizationLogo: organization?.logo || null,
     };
   }, [organization, isLoading]);

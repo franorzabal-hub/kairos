@@ -6,7 +6,7 @@
  * - Child selection state (when needed across screens)
  */
 import React, { createContext, useContext, useState, useMemo, ReactNode, useCallback } from 'react';
-import { Student } from '../api/directus';
+import { Student } from '../api/frappe';
 
 interface ChildrenContextType {
   children: Student[];

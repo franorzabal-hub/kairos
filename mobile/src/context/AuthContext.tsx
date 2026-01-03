@@ -5,14 +5,24 @@
  * - User authentication (login/logout)
  * - Token management
  * - Biometric authentication
- * - AppUser fetching
+ * - Guardian (AppUser) fetching
  */
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import { Platform } from 'react-native';
 import * as LocalAuthentication from 'expo-local-authentication';
-import { AppUser, directus, saveTokens, getTokens, clearTokens, isBiometricEnabled, setBiometricEnabled } from '../api/directus';
-import { readMe, readItems } from '@directus/sdk';
-import { isDirectusError } from '../types/directus';
+import {
+  AppUser,
+  Guardian,
+  auth,
+  getDocList,
+  saveToken,
+  getToken,
+  clearToken,
+  isBiometricEnabled,
+  setBiometricEnabled,
+  resetFrappeClient,
+  guardianToAppUser,
+} from '../api/frappe';
 
 // Maximum biometric attempts before lockout
 const MAX_BIOMETRIC_ATTEMPTS = 3;
@@ -64,31 +74,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkAuthStatus();
   }, []);
 
-  // Helper to fetch app_user for current user
-  const fetchAppUser = async (email: string): Promise<AppUser | null> => {
+  // Helper to fetch Guardian for current user
+  const fetchGuardian = async (email: string): Promise<AppUser | null> => {
     try {
-      const appUsers = await directus.request(
-        readItems('app_users', { limit: 10 })
-      );
+      // Fetch guardian by email
+      const guardians = await getDocList<Guardian>('Guardian', {
+        filters: [['email', '=', email]],
+        fields: ['name', 'user', 'guardian_name', 'first_name', 'last_name', 'email', 'phone', 'status', 'institution'],
+        limit: 1,
+      });
 
-      if (!Array.isArray(appUsers) || appUsers.length === 0) {
-        if (__DEV__) console.log('[AuthContext] No app_users returned');
-        return null;
+      if (guardians.length > 0) {
+        const guardian = guardians[0];
+        if (__DEV__) console.log('[AuthContext] ✅ Found guardian:', guardian.name);
+        return guardianToAppUser(guardian);
       }
 
-      let match = appUsers.find(u => u.email === email);
-      if (!match && appUsers.length > 0) {
-        match = appUsers[0];
-      }
-
-      if (match) {
-        if (__DEV__) console.log('[AuthContext] ✅ Found app_user:', match.id);
-        return match as AppUser;
-      }
-
+      if (__DEV__) console.log('[AuthContext] No guardian found for email:', email);
       return null;
     } catch (error: unknown) {
-      if (__DEV__) console.log('[AuthContext] fetchAppUser error:', error instanceof Error ? error.message : 'Unknown error');
+      if (__DEV__) console.log('[AuthContext] fetchGuardian error:', error instanceof Error ? error.message : 'Unknown error');
       return null;
     }
   };
@@ -106,8 +111,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const checkAuthStatus = async () => {
     try {
-      const { accessToken, refreshToken } = await getTokens();
-      if (accessToken && refreshToken) {
+      const token = await getToken();
+      if (token) {
         const biometricEnabled = await isBiometricEnabled();
 
         // Biometric auth is only available on native platforms
@@ -139,31 +144,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         }
 
-        await directus.setToken(accessToken);
-        const currentUser = await directus.request(readMe());
+        // Get current user info from Frappe
+        try {
+          const currentUser = await auth().getLoggedInUser();
 
-        if (currentUser && currentUser.email) {
-          const appUser = await fetchAppUser(currentUser.email);
+          if (currentUser) {
+            const appUser = await fetchGuardian(currentUser);
 
-          if (appUser) {
-            setUser(appUser);
-          } else {
-            if (__DEV__) console.log('[AuthContext] ⚠️ Fallback to Directus user');
-            setUser({
-              id: currentUser.id,
-              organization_id: '',
-              role: 'parent',
-              first_name: currentUser.first_name || '',
-              last_name: currentUser.last_name || '',
-              email: currentUser.email || '',
-              status: 'active',
-            });
+            if (appUser) {
+              setUser(appUser);
+            } else {
+              // Fallback: create minimal user from email
+              if (__DEV__) console.log('[AuthContext] ⚠️ Fallback to Frappe user');
+              setUser({
+                id: currentUser,
+                organization_id: '',
+                role: 'parent',
+                first_name: '',
+                last_name: '',
+                email: currentUser,
+                status: 'active',
+              });
+            }
           }
+        } catch (authError) {
+          // Token is invalid, clear it
+          if (__DEV__) console.log('[AuthContext] Token validation failed:', authError);
+          await clearToken();
+          resetFrappeClient();
         }
       }
     } catch (error) {
       if (__DEV__) console.log('[AuthContext] No valid session');
-      await clearTokens();
+      await clearToken();
+      resetFrappeClient();
     } finally {
       setIsLoading(false);
     }
@@ -171,43 +185,68 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (email: string, password: string) => {
     try {
-      const result = await directus.login({ email, password });
+      // Login with Frappe
+      const result = await auth().loginWithUsernamePassword({
+        username: email,
+        password: password,
+      });
 
-      if (result.access_token && result.refresh_token) {
-        await saveTokens(result.access_token, result.refresh_token);
-        const currentUser = await directus.request(readMe());
-        const appUser = currentUser.email ? await fetchAppUser(currentUser.email) : null;
+      if (result.message) {
+        // Frappe returns the user email in the message on successful login
+        // For token-based auth, we need to get an API key
+        // For now, we'll use session-based auth which uses cookies
 
-        if (appUser) {
-          setUser(appUser);
+        // Try to get current user
+        const currentUser = await auth().getLoggedInUser();
+
+        if (currentUser) {
+          // Save a session indicator (Frappe uses cookies for session)
+          await saveToken('session_active');
+
+          const appUser = await fetchGuardian(currentUser);
+
+          if (appUser) {
+            setUser(appUser);
+          } else {
+            if (__DEV__) console.log('[AuthContext] ⚠️ Fallback to Frappe user');
+            setUser({
+              id: currentUser,
+              organization_id: '',
+              role: 'parent',
+              first_name: '',
+              last_name: '',
+              email: currentUser,
+              status: 'active',
+            });
+          }
+
+          // Reset biometric attempts on successful login
+          setBiometricAttempts(0);
+          setLockoutEndTime(null);
         } else {
-          if (__DEV__) console.log('[AuthContext] ⚠️ Fallback to Directus user');
-          setUser({
-            id: currentUser.id,
-            organization_id: '',
-            role: 'parent',
-            first_name: currentUser.first_name || '',
-            last_name: currentUser.last_name || '',
-            email: currentUser.email || '',
-            status: 'active',
-          });
+          throw new Error('Login succeeded but could not get user info');
         }
-
-        // Reset biometric attempts on successful login
-        setBiometricAttempts(0);
-        setLockoutEndTime(null);
+      } else {
+        throw new Error('Login failed');
       }
     } catch (error: unknown) {
-      const errorMessage = isDirectusError(error)
-        ? error.errors?.[0]?.message ?? error.message ?? 'Error de autenticación'
-        : error instanceof Error ? error.message : 'Error de autenticación';
+      const errorMessage = error instanceof Error ? error.message : 'Error de autenticación';
       if (__DEV__) console.error('[AuthContext] Login failed:', errorMessage);
       throw new Error(errorMessage);
     }
   }, []);
 
   const logout = useCallback(async () => {
-    await clearTokens();
+    try {
+      // Logout from Frappe
+      await auth().logout();
+    } catch (error) {
+      if (__DEV__) console.log('[AuthContext] Logout API call failed:', error);
+    }
+
+    // Clear local state regardless of API result
+    await clearToken();
+    resetFrappeClient();
     setUser(null);
     setBiometricAttempts(0);
     setLockoutEndTime(null);

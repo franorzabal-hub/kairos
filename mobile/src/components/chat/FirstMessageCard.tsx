@@ -14,7 +14,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Platform, ViewStyle, TextStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { ConversationMessage, DirectusUser } from '../../api/directus';
+import { ConversationMessage, DirectusUser } from '../../api/frappe';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY, SHADOWS, SIZES } from '../../theme';
 
 interface FirstMessageCardProps {

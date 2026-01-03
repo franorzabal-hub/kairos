@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import DirectusImage from './DirectusImage';
-import { Student } from '../api/directus';
+import { Student } from '../api/frappe';
 import { useChildren } from '../context/ChildrenContext';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY, SHADOWS, SIZES, FONT_SIZES } from '../theme';
 import { getPastelColor, getChildColor } from '../utils';

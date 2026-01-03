@@ -20,7 +20,7 @@ import RenderHtml from 'react-native-render-html';
 import DirectusImage from '../components/DirectusImage';
 import Toast from '../components/Toast';
 import { useEvent } from '../api/hooks';
-import { Location } from '../api/directus';
+import { Location } from '../api/frappe';
 import { useContentReadStatus } from '../api/hooks';
 import { COLORS, SPACING, BORDERS, FONT_SIZES, SIZES } from '../theme';
 import { stripHtml } from '../utils';

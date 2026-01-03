@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, ActivityIndicator, StyleSheet, Text, Platform } from 'react-native';
 import { Image, ImageProps as ExpoImageProps, ImageContentFit } from 'expo-image';
-import { directus, DIRECTUS_URL } from '../api/directus';
+import { directus, DIRECTUS_URL } from '../api/frappe';
 import { imageDebugger } from '../services/imageDebugger';
 
 // DEBUG FLAG - set to true to see debug info on screen
