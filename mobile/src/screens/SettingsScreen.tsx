@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as LocalAuthentication from 'expo-local-authentication';
-import { useAuth } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import { useSession } from '../hooks';
 import { clearAllReadStatus } from '../services/readStatusService';
 import { isBiometricEnabled, setBiometricEnabled } from '../api/frappe';

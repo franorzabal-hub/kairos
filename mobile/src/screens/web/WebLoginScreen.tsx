@@ -20,7 +20,7 @@ import {
   NativeSyntheticEvent,
   TextInputKeyPressEventData,
 } from 'react-native';
-import { useAuth } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY } from '../../theme';
 
 // Web-specific pressable state type

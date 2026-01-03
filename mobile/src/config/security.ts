@@ -43,16 +43,6 @@ export const API_CONFIG = {
    * HTTPS only - no HTTP fallback
    */
   ALLOWED_SCHEMES: ['https'] as const,
-
-  /**
-   * @deprecated Use FRAPPE_HOST instead
-   */
-  DIRECTUS_HOST: 'kairos-directus-684614817316.us-central1.run.app',
-
-  /**
-   * @deprecated Use FRAPPE_URL instead
-   */
-  DIRECTUS_URL: 'https://kairos-directus-684614817316.us-central1.run.app',
 } as const;
 
 /**
@@ -72,7 +62,7 @@ export const API_CONFIG = {
  * openssl dgst -sha256 -binary | base64
  * ```
  *
- * Certificate Chain for kairos-directus-684614817316.us-central1.run.app:
+ * Certificate Chain for control.kairos.app:
  * 1. Leaf: *.a.run.app (rotates frequently - NOT pinned)
  * 2. Intermediate: Google Trust Services WE2 (pinned - primary)
  * 3. Root: GTS Root R4 (pinned - backup)
@@ -109,7 +99,7 @@ export const CERTIFICATE_PINS = {
  * Note: Custom headers are only added on native platforms.
  * On web, custom headers trigger CORS preflight requests, and if the server
  * doesn't explicitly allow them via Access-Control-Allow-Headers, the browser
- * blocks the entire request. Since our Directus CORS config only allows
+ * blocks the entire request. Since our Frappe CORS config only allows
  * Content-Type and Authorization, we skip custom headers on web.
  */
 export const SECURITY_HEADERS: Record<string, string> =
@@ -167,8 +157,7 @@ export function isAllowedApiUrl(url: string): boolean {
     const parsed = new URL(url);
     return (
       parsed.protocol === 'https:' &&
-      (parsed.hostname === API_CONFIG.FRAPPE_HOST ||
-        parsed.hostname === API_CONFIG.DIRECTUS_HOST) // Legacy support
+      parsed.hostname === API_CONFIG.FRAPPE_HOST
     );
   } catch {
     return false;
@@ -189,9 +178,8 @@ export function sanitizeApiUrl(url: string): string | null {
       parsed.protocol = 'https:';
     }
 
-    // Only allow our API hosts (Frappe or legacy Directus)
-    const allowedHosts = [API_CONFIG.FRAPPE_HOST, API_CONFIG.DIRECTUS_HOST];
-    if (!allowedHosts.includes(parsed.hostname)) {
+    // Only allow our API host
+    if (parsed.hostname !== API_CONFIG.FRAPPE_HOST) {
       console.warn(
         `[Security] Blocked request to unauthorized host: ${parsed.hostname}`
       );
@@ -306,10 +294,10 @@ export async function checkSslPinningStatus(): Promise<{
  *    - Pins are injected at build time into native code
  *    - iOS: URLSession delegate validates certificates
  *    - Android: OkHttp CertificatePinner validates certificates
- *    - All network requests (including Directus SDK) are protected
+ *    - All network requests (including Frappe SDK) are protected
  *
  * 2. HTTPS ENFORCEMENT
- *    - The Directus URL is hardcoded to use HTTPS
+ *    - The Frappe URL is hardcoded to use HTTPS
  *    - The isSecureUrl() function validates URLs before use
  *    - No HTTP fallback is allowed
  *

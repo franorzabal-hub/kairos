@@ -1,7 +1,7 @@
 /**
  * Permission Context - Provides permission checks throughout the app
  *
- * This context syncs with Directus on login and provides hooks
+ * This context syncs with Frappe on login and provides hooks
  * for checking permissions in components.
  *
  * @example
@@ -26,7 +26,7 @@ import React, {
 } from 'react';
 import { permissionService } from '../services/permissionService';
 import { permissionDebugger } from '../services/permissionDebugger';
-import { useAuth } from './AppContext';
+import { useAuth } from './AuthContext';
 
 // Action types for permission checks
 type PermissionAction = 'create' | 'read' | 'update' | 'delete';

@@ -15,7 +15,7 @@ import {
 const MAX_LOGIN_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 30000; // 30 seconds
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAuth } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import { COLORS, SPACING, BORDERS, FONT_SIZES } from '../theme';
 
 export default function LoginScreen() {

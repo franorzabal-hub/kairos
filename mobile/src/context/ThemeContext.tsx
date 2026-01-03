@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useMemo, ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getDoc, Institution } from '../api/frappe';
-import { useAuth } from './AppContext';
+import { useAuth } from './AuthContext';
 import { COLORS as DEFAULT_COLORS } from '../theme';
 
 interface ThemeColors {

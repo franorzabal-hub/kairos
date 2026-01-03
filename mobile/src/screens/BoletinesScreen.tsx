@@ -8,7 +8,7 @@ import ScreenHeader from '../components/ScreenHeader';
 import FilterBar from '../components/FilterBar';
 import { useFilters, useUnreadCounts } from '../context/AppContext';
 import { useReports, useChildren, useContentReadStatus } from '../api/hooks';
-import { Report, DIRECTUS_URL } from '../api/frappe';
+import { Report, FRAPPE_URL } from '../api/frappe';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY, UNREAD_STYLES, BADGE_STYLES, SHADOWS, FONT_SIZES, SIZES } from '../theme';
 
 type ReportListItem =
@@ -78,7 +78,7 @@ export default function BoletinesScreen() {
 
     if (report.file) {
       try {
-        const fileUrl = `${DIRECTUS_URL}/assets/${report.file}`;
+        const fileUrl = `${FRAPPE_URL}/assets/${report.file}`;
         await Linking.openURL(fileUrl);
       } catch (error) {
         console.error('Error opening file:', error);
