@@ -116,9 +116,13 @@ export async function safeRequest<T>(
   } catch (err: unknown) {
     const { status, message } = extractFrappeErrorDetails(err);
 
+    // Check for exc_type in Frappe errors
+    const excType = isFrappeError(err) ? err.exc_type : undefined;
+
     // Handle 403 Forbidden / PermissionError
     if (
       status === 403 ||
+      excType === 'PermissionError' ||
       message?.includes('PermissionError') ||
       message?.includes('Not permitted') ||
       message?.includes('insufficient_permission')
@@ -137,6 +141,7 @@ export async function safeRequest<T>(
     // Handle 404 Not Found / DoesNotExistError
     if (
       status === 404 ||
+      excType === 'DoesNotExistError' ||
       message?.includes('DoesNotExistError') ||
       message?.includes('does not exist') ||
       message?.includes('Not Found')

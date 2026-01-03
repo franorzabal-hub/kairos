@@ -80,7 +80,7 @@ describe('safeFrappeRequest', () => {
 
       expect(result.data).toBeNull();
       expect(result.errorType).toBe('NETWORK');
-      expect(result.errorMessage).toBe('Error de conexión');
+      expect(result.errorMessage).toBe('Error de conexion');
     });
 
     it('should handle fetch errors', async () => {

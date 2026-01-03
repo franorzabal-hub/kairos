@@ -202,7 +202,7 @@ describe('useSession logic', () => {
       const children = mockChildren;
       const getChildById = (id: string) => children.find(c => c.id === id);
 
-      const child = getChildById('student-1');
+      const child = getChildById('STU-0001');
       expect(child).toEqual(mockChildren[0]);
     });
 
@@ -275,7 +275,7 @@ describe('useSelectedChild logic', () => {
   });
 
   it('should return the selected child when one is selected', () => {
-    const selectedChildId = 'student-1';
+    const selectedChildId = 'STU-0001';
     const children = mockChildren;
     const getChildById = (id: string | null) =>
       id ? children.find(c => c.id === id) : undefined;

@@ -50,23 +50,6 @@ jest.mock('@tanstack/react-query', () => ({
   QueryClientProvider: ({ children }) => children,
 }));
 
-// Mock @directus/sdk
-jest.mock('@directus/sdk', () => ({
-  createDirectus: jest.fn(() => ({
-    with: jest.fn().mockReturnThis(),
-    request: jest.fn(),
-    login: jest.fn(),
-    setToken: jest.fn(),
-  })),
-  rest: jest.fn(),
-  authentication: jest.fn(),
-  readItems: jest.fn(),
-  readItem: jest.fn(),
-  createItem: jest.fn(),
-  updateItem: jest.fn(),
-  readMe: jest.fn(),
-}));
-
 // Mock storage utilities
 jest.mock('./src/utils/storage', () => ({
   setItemAsync: jest.fn().mockResolvedValue(undefined),
@@ -74,19 +57,60 @@ jest.mock('./src/utils/storage', () => ({
   deleteItemAsync: jest.fn().mockResolvedValue(undefined),
 }));
 
-// Mock the directus client
-jest.mock('./src/api/directus', () => ({
-  directus: {
-    request: jest.fn(),
-    login: jest.fn(),
-    setToken: jest.fn(),
+// Mock the frappe client
+jest.mock('./src/api/frappe', () => ({
+  frappe: {
+    db: jest.fn(),
+    auth: jest.fn(),
+    getDocList: jest.fn(),
+    getDoc: jest.fn(),
+    createDoc: jest.fn(),
+    updateDoc: jest.fn(),
+    deleteDoc: jest.fn(),
+    getCount: jest.fn(),
   },
-  DIRECTUS_URL: 'https://test.directus.app',
+  // Convenience functions
+  db: jest.fn(),
+  auth: jest.fn(() => ({
+    getLoggedInUser: jest.fn().mockResolvedValue('test@example.com'),
+    login: jest.fn(),
+    logout: jest.fn(),
+  })),
+  getDocList: jest.fn(),
+  getDoc: jest.fn(),
+  createDoc: jest.fn(),
+  updateDoc: jest.fn(),
+  deleteDoc: jest.fn(),
+  getCount: jest.fn(),
+  getAssetUrl: jest.fn((path) => path ? `https://test.frappe.app${path}` : null),
+  // URL exports
+  FRAPPE_URL: 'https://test.frappe.app',
+  DIRECTUS_URL: 'https://test.frappe.app', // Backward compatibility alias
+  // Token functions
+  saveToken: jest.fn().mockResolvedValue(undefined),
+  getToken: jest.fn().mockResolvedValue(null),
+  clearToken: jest.fn().mockResolvedValue(undefined),
+  // Backward compatibility aliases
   saveTokens: jest.fn().mockResolvedValue(undefined),
   getTokens: jest.fn().mockResolvedValue({ accessToken: null, refreshToken: null }),
   clearTokens: jest.fn().mockResolvedValue(undefined),
+  // Biometric functions
   isBiometricEnabled: jest.fn().mockResolvedValue(false),
   setBiometricEnabled: jest.fn().mockResolvedValue(undefined),
+  clearBiometricSetting: jest.fn().mockResolvedValue(undefined),
+  // Client helpers
+  getFrappeApp: jest.fn(),
+  resetFrappeClient: jest.fn(),
+  // Backward compatibility - directus export
+  directus: {
+    db: jest.fn(),
+    auth: jest.fn(),
+    getDocList: jest.fn(),
+    getDoc: jest.fn(),
+    createDoc: jest.fn(),
+    updateDoc: jest.fn(),
+    deleteDoc: jest.fn(),
+  },
 }));
 
 // Mock logger
