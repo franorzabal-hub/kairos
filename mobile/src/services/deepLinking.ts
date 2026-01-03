@@ -8,7 +8,7 @@ const PENDING_DEEP_LINK_KEY = 'pending_deep_link';
 /**
  * Whitelist of allowed deep link routes to prevent path traversal attacks
  */
-const ALLOWED_ROUTES = ['novedades', 'agenda', 'mensajes', 'mishijos', 'settings', 'eventos'] as const;
+const ALLOWED_ROUTES = ['novedades', 'agenda', 'mensajes', 'mishijos', 'settings', 'eventos', 'invitation'] as const;
 type AllowedRoute = typeof ALLOWED_ROUTES[number];
 
 /**
@@ -194,6 +194,29 @@ export function navigateFromDeepLink(url: string): boolean {
     if (sanitizedPath.startsWith('/settings')) {
       router.push('/settings');
       return true;
+    }
+
+    if (sanitizedPath.startsWith('/invitation')) {
+      // Extract token from path or query params
+      // Supports: /invitation?token=xxx or /invitation/xxx
+      const segments = sanitizedPath.split('/').filter(Boolean);
+      const queryMatch = sanitizedPath.match(/[?&]token=([^&]+)/);
+
+      let token: string | null = null;
+
+      if (queryMatch) {
+        token = decodeURIComponent(queryMatch[1]);
+      } else if (segments.length > 1 && segments[1] !== 'success') {
+        token = segments[1];
+      }
+
+      if (token) {
+        router.push({ pathname: '/invitation', params: { token } });
+        return true;
+      } else {
+        logger.warn('Deep link: invitation without token', { sanitizedPath });
+        return false;
+      }
     }
 
     // Route is in whitelist but not explicitly handled above

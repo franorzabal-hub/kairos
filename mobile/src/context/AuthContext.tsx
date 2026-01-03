@@ -22,7 +22,10 @@ import {
   setBiometricEnabled,
   resetFrappeClient,
   guardianToAppUser,
+  loginWithGoogleToken,
+  GoogleAuthResponse,
 } from '../api/frappe';
+import { signInWithGoogle, GoogleSignInResult } from '../services/googleAuth';
 import { logger } from '../utils/logger';
 
 // Error classification helper
@@ -51,10 +54,18 @@ function classifyError(error: unknown): ErrorType {
 const MAX_BIOMETRIC_ATTEMPTS = 3;
 const LOCKOUT_DURATION_MS = 30000; // 30 seconds
 
+// Google login result type
+export interface GoogleLoginResult {
+  success: boolean;
+  isNewUser?: boolean;
+  error?: string;
+}
+
 // Base type with common fields
 interface AuthContextBase {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  loginWithGoogle: () => Promise<GoogleLoginResult>;
   logout: () => Promise<void>;
   biometricLockout: {
     isLocked: boolean;
@@ -303,6 +314,95 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const loginWithGoogleCallback = useCallback(async (): Promise<GoogleLoginResult> => {
+    try {
+      logger.debug('AuthContext', 'Starting Google sign-in flow');
+
+      // Step 1: Get Google token via OAuth
+      const googleResult = await signInWithGoogle();
+
+      if (!googleResult.success) {
+        logger.warn('AuthContext', 'Google sign-in failed', {
+          error: googleResult.error,
+          errorCode: googleResult.errorCode,
+        });
+        return {
+          success: false,
+          error: googleResult.error,
+        };
+      }
+
+      logger.debug('AuthContext', 'Google OAuth successful, authenticating with Frappe', {
+        email: googleResult.user.email,
+      });
+
+      // Step 2: Authenticate with Frappe backend using the Google token
+      const frappeResult = await loginWithGoogleToken(
+        googleResult.idToken,
+        googleResult.accessToken
+      );
+
+      if (!frappeResult.success) {
+        logger.error('AuthContext', 'Frappe Google authentication failed', {
+          error: frappeResult.message,
+        });
+        return {
+          success: false,
+          error: frappeResult.message || 'Error de autenticacion con el servidor',
+        };
+      }
+
+      // Step 3: Get the authenticated user and save session
+      const currentUser = frappeResult.user || googleResult.user.email;
+      await saveToken('session_active');
+
+      // Step 4: Fetch Guardian profile
+      const appUser = await fetchGuardian(currentUser);
+
+      if (appUser) {
+        setUser(appUser);
+        logger.info('AuthContext', 'Google login successful with Guardian profile', {
+          email: currentUser,
+          guardianId: appUser.id,
+        });
+      } else {
+        // Fallback: Create minimal user from Google profile
+        logger.debug('AuthContext', 'No Guardian found, using Google profile');
+        setUser({
+          id: currentUser,
+          organization_id: '',
+          role: 'parent',
+          first_name: googleResult.user.given_name || '',
+          last_name: googleResult.user.family_name || '',
+          email: googleResult.user.email,
+          avatar: googleResult.user.picture,
+          status: 'active',
+        });
+      }
+
+      // Reset biometric attempts on successful login
+      setBiometricAttempts(0);
+      setLockoutEndTime(null);
+
+      return {
+        success: true,
+        isNewUser: frappeResult.is_new_user,
+      };
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Error de autenticacion con Google';
+      const errorType = classifyError(error);
+      logger.error('AuthContext', 'Google login failed unexpectedly', {
+        errorType,
+        error: errorMessage,
+      });
+
+      return {
+        success: false,
+        error: errorMessage,
+      };
+    }
+  }, []);
+
   const logout = useCallback(async () => {
     try {
       // Logout from Frappe
@@ -325,6 +425,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const base = {
       isLoading,
       login,
+      loginWithGoogle: loginWithGoogleCallback,
       logout,
       biometricLockout: {
         isLocked,
@@ -337,7 +438,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { ...base, user, isAuthenticated: true as const };
     }
     return { ...base, user: null, isAuthenticated: false as const };
-  }, [user, isLoading, login, logout, isLocked, remainingLockoutTime]);
+  }, [user, isLoading, login, loginWithGoogleCallback, logout, isLocked, remainingLockoutTime]);
 
   return (
     <AuthContext.Provider value={contextValue}>

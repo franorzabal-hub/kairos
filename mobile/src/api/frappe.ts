@@ -536,6 +536,129 @@ export async function exists(doctype: string, name: string): Promise<boolean> {
 }
 
 // =============================================================================
+// GOOGLE OAUTH AUTHENTICATION
+// =============================================================================
+
+/**
+ * Response from Frappe Google OAuth endpoint
+ */
+export interface GoogleAuthResponse {
+  success: boolean;
+  message?: string;
+  user?: string;
+  full_name?: string;
+  is_new_user?: boolean;
+}
+
+/**
+ * Login with Google OAuth token
+ *
+ * This function sends the Google ID token to Frappe backend for verification
+ * and authentication. The backend will:
+ * 1. Verify the token with Google
+ * 2. Check if the user exists (by email)
+ * 3. Create a new user if needed
+ * 4. Return a session token
+ *
+ * @param idToken - The Google ID token (or access token)
+ * @param accessToken - Optional access token if ID token is not available
+ * @returns Authentication result
+ *
+ * @example
+ * ```ts
+ * const result = await loginWithGoogleToken(googleIdToken);
+ * if (result.success) {
+ *   // User is authenticated
+ *   await saveToken('session_active');
+ * }
+ * ```
+ */
+export async function loginWithGoogleToken(
+  idToken: string,
+  accessToken?: string
+): Promise<GoogleAuthResponse> {
+  try {
+    const response = await fetch(`${FRAPPE_URL}/api/method/kairos.api.auth.google_login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...createSecureHeaders(),
+      },
+      credentials: 'include', // Important for session cookies
+      body: JSON.stringify({
+        id_token: idToken,
+        access_token: accessToken,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.message || errorData.exc || `HTTP error ${response.status}`
+      );
+    }
+
+    const data = await response.json();
+
+    // Frappe wraps responses in a message object
+    if (data.message) {
+      return {
+        success: true,
+        user: data.message.user || data.message.email,
+        full_name: data.message.full_name,
+        is_new_user: data.message.is_new_user || false,
+      };
+    }
+
+    return {
+      success: true,
+      user: data.user || data.email,
+      full_name: data.full_name,
+      is_new_user: data.is_new_user || false,
+    };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('[Frappe] Google login failed:', errorMessage);
+
+    return {
+      success: false,
+      message: errorMessage,
+    };
+  }
+}
+
+/**
+ * Alternative Google login using Frappe's built-in Social Login
+ *
+ * This uses Frappe's social login infrastructure which handles
+ * the OAuth flow server-side. Use this if your Frappe site has
+ * Social Login Keys configured for Google.
+ *
+ * @param provider - The social login provider (default: 'google')
+ * @returns The OAuth redirect URL
+ */
+export function getSocialLoginUrl(provider: string = 'google'): string {
+  return `${FRAPPE_URL}/api/method/frappe.integrations.oauth2_logins.login_via_${provider}`;
+}
+
+/**
+ * Verify if the current session is valid after social login
+ *
+ * Call this after returning from social login OAuth flow to check
+ * if the authentication was successful.
+ *
+ * @returns The logged in user email or null
+ */
+export async function verifySocialLogin(): Promise<string | null> {
+  try {
+    const currentUser = await auth().getLoggedInUser();
+    return currentUser || null;
+  } catch {
+    return null;
+  }
+}
+
+// =============================================================================
 // ASSET URL HELPER
 // =============================================================================
 

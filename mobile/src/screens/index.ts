@@ -8,3 +8,5 @@ export { default as CambiosScreen } from './CambiosScreen';
 export { default as BoletinesScreen } from './BoletinesScreen';
 export { default as LoginScreen } from './LoginScreen';
 export { default as SettingsScreen } from './SettingsScreen';
+export { default as InvitationScreen } from './InvitationScreen';
+export { default as InvitationSuccessScreen } from './InvitationSuccessScreen';

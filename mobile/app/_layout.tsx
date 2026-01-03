@@ -176,6 +176,14 @@ function RootContent() {
             name="settings"
             options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
           />
+          <Stack.Screen
+            name="invitation"
+            options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+          />
+          <Stack.Screen
+            name="invitation-success"
+            options={{ animation: 'slide_from_right' }}
+          />
         </Stack>
         {/* Dev-only floating panel for permission debugging - Mobile only (Web has it in footer) */}
         {Platform.OS !== 'web' && <PermissionDebugPanel />}

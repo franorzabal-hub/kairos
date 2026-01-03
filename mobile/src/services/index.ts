@@ -4,3 +4,4 @@ export * from './permissionService';
 export * from './permissionDebugger';
 export * from './safeFrappeRequest';
 export * from './logger';
+export * from './googleAuth';
