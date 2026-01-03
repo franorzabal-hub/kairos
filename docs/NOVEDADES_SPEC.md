@@ -55,7 +55,7 @@ interface Announcement {
   id: string;
   title: string;
   content: string;           // HTML content
-  image: string | null;      // Directus file ID
+  image: string | null;      // Frappe file URL
   priority: 'normal' | 'important' | 'urgent';
   target_type: 'all' | 'grade' | 'section';
   target_grades?: string[];
@@ -98,16 +98,16 @@ interface Announcement {
                               │
 ┌─────────────────────────────────────────────────────────────┐
 │                    Data Layer                                │
-│  directus.ts               readStatusService.ts             │
-│  - Directus SDK client     - content_reads CRUD             │
+│  frappe.ts                 readStatusService.ts             │
+│  - Frappe API client       - content_reads CRUD             │
 │  - Type definitions        - Read status persistence        │
 └─────────────────────────────────────────────────────────────┘
                               │
 ┌─────────────────────────────────────────────────────────────┐
-│                    Backend (Directus)                        │
-│  Collections:                                                │
-│  - announcements           - content_reads                  │
-│  - directus_files          - directus_users                 │
+│                    Backend (Frappe)                          │
+│  DocTypes:                                                   │
+│  - Announcement            - Content Read                   │
+│  - File                    - User                           │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -121,14 +121,14 @@ src/
 ├── navigation/
 │   └── NovedadesStack.tsx       # Stack navigator
 ├── api/
-│   ├── directus.ts              # API client & types
+│   ├── frappe.ts                # API client & types
 │   └── hooks.ts                 # React Query hooks
 ├── services/
 │   └── readStatusService.ts     # Read status persistence
 ├── components/
 │   ├── ScreenHeader.tsx         # Reusable header
 │   ├── FilterBar.tsx            # Unread filter component
-│   ├── DirectusImage.tsx        # Image loader with fallback
+│   ├── FrappeImage.tsx          # Image loader with fallback
 │   └── Toast.tsx                # Toast notifications
 ├── context/
 │   └── AppContext.tsx           # Global state (filters, auth)
@@ -145,14 +145,16 @@ export function useAnnouncements() {
   return useQuery({
     queryKey: ['announcements'],
     queryFn: async () => {
-      const result = await directus.request(
-        readItems('announcements', {
-          filter: { status: { _eq: 'published' } },
-          sort: ['-published_at'],
+      const result = await frappe.call({
+        method: 'frappe.client.get_list',
+        args: {
+          doctype: 'Announcement',
+          filters: { status: 'published' },
+          order_by: 'published_at desc',
           fields: ['*'],
-        })
-      );
-      return result as Announcement[];
+        }
+      });
+      return result.message as Announcement[];
     },
   });
 }
@@ -160,8 +162,8 @@ export function useAnnouncements() {
 
 #### 2. Read Status Tracking
 ```typescript
-// Uses content_reads collection in Directus
-// Maps content types: 'announcements' → 'announcement'
+// Uses Content Read DocType in Frappe
+// Maps content types: 'Announcement' → 'announcement'
 // Optimistic updates for instant UI feedback
 // Shared cache via React Query for cross-screen sync
 ```
@@ -201,7 +203,7 @@ const filteredAnnouncements = useMemo(() => {
 ### Dependencies
 
 - `@tanstack/react-query` - Data fetching & caching
-- `@directus/sdk` - Backend communication
+- `frappe-js-sdk` or custom Frappe API client - Backend communication
 - `react-native-render-html` - HTML content rendering
 - `@react-navigation/native-stack` - Screen navigation
 - `@expo/vector-icons` - Ionicons, MaterialCommunityIcons

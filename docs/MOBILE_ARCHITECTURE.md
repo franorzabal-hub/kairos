@@ -17,14 +17,14 @@ function SomeScreen() {
   const { data: children } = useChildren();
   const canViewReports = children.length > 0;
 
-  // Bug risk: user.id might be wrong (Directus ID vs app_user ID)
+  // Bug risk: user.id might be wrong (Frappe User vs Guardian ID)
   // Bug risk: children might not be loaded yet
   // Bug risk: permission logic duplicated across screens
 }
 ```
 
 This led to bugs where:
-- The wrong `user.id` was used (Directus ID vs app_user ID)
+- The wrong `user.id` was used (Frappe User vs Guardian ID)
 - Children weren't loaded when needed
 - Permission logic was duplicated and inconsistent
 
@@ -46,7 +46,7 @@ function SomeScreen() {
   } = useSession();
 
   if (isLoading) return <Loading />;
-  // user.id is guaranteed to be app_user.id (correct for relations)
+  // user.id is guaranteed to be guardian.name (correct for relations)
   // children are loaded automatically
   // permissions are derived and consistent
 }
@@ -93,7 +93,7 @@ function SomeScreen() {
 ```typescript
 interface SessionState {
   // Core state
-  user: AppUser | null;
+  user: Guardian | null;
   children: Student[];
   isAuthenticated: boolean;
 
@@ -178,52 +178,52 @@ function ChildDetailScreen() {
 
 ### The Two IDs Problem
 
-Directus creates two different user records:
+Frappe Framework creates two different user records:
 
-1. **Directus User ID** (`directus_users.id`)
+1. **Frappe User** (`User` doctype, identified by `name` which is the email)
    - Used for authentication
-   - Created automatically by Directus
-   - Example: `16119d5c-c115-45a0-9946-1f8e8a446c14`
+   - Created automatically by Frappe
+   - Example: `parent@example.com`
 
-2. **App User ID** (`app_users.id`)
+2. **Guardian ID** (`Guardian` doctype, identified by `name`)
    - Used for business logic and relations
    - Created by our application
-   - References `directus_users.id` in `directus_user_id` field
-   - Example: `9f05f59b-c3d4-48bc-aa7b-e36296a82650`
+   - Links to `User` via `user` field
+   - Example: `GRD-00001`
 
 ### Why This Matters
 
-The `student_guardians` junction table references `app_users.id`:
+The `Student Guardian` link table references `Guardian.name`:
 
 ```sql
-student_guardians.user_id → app_users.id  (NOT directus_users.id)
+student_guardian.guardian → Guardian.name  (NOT User.name)
 ```
 
 If you use the wrong ID, queries return empty results:
 
 ```typescript
-// WRONG - uses Directus user ID
-const guardians = await getGuardians(directusUserId); // Returns []
+// WRONG - uses Frappe User email
+const guardians = await getGuardians(frappeUserEmail); // Returns []
 
-// CORRECT - uses app_user ID
-const guardians = await getGuardians(appUserId); // Returns [{...}, {...}]
+// CORRECT - uses Guardian name/ID
+const guardians = await getGuardians(guardianId); // Returns [{...}, {...}]
 ```
 
 ### How useSession Solves This
 
-The `fetchAppUser` function in `AppContext` automatically fetches the correct `app_users` record after login:
+The `fetchGuardian` function in `AppContext` automatically fetches the correct `Guardian` record after login:
 
 ```typescript
 // In AppContext.tsx
 const login = async (email, password) => {
-  await directus.login({ email, password });
-  const directusUser = await directus.request(readMe());
+  await frappeClient.login({ email, password });
+  const frappeUser = await frappeClient.getLoggedInUser();
 
-  // Fetch the app_user record - this gives us the correct ID
-  const appUser = await fetchAppUser(directusUser.email);
+  // Fetch the Guardian record - this gives us the correct ID
+  const guardian = await fetchGuardian(frappeUser);
 
-  if (appUser) {
-    setUser(appUser); // user.id is now app_users.id
+  if (guardian) {
+    setUser(guardian); // user.id is now Guardian.name
   }
 };
 ```
@@ -235,17 +235,17 @@ The `useSession` hook exposes this correct `user.id` to all screens.
 ```
 mobile/src/
 ├── api/
-│   ├── directus.ts      # Directus client, types, token management
-│   └── hooks.ts         # API hooks (useEvents, useAnnouncements, etc.)
+│   ├── frappe.ts       # Frappe API client, types, token management
+│   └── hooks.ts        # API hooks (useEvents, useAnnouncements, etc.)
 ├── context/
-│   └── AppContext.tsx   # Core auth context, fetchAppUser logic
+│   └── AppContext.tsx  # Core auth context, fetchGuardian logic
 ├── hooks/
-│   ├── index.ts         # Re-exports all hooks
-│   ├── useSession.ts    # Centralized session management ← KEY FILE
+│   ├── index.ts        # Re-exports all hooks
+│   ├── useSession.ts   # Centralized session management <- KEY FILE
 │   ├── useReadStatus.ts # Read/unread tracking
 │   └── ...
-├── screens/             # Screen components
-└── components/          # Reusable UI components
+├── screens/            # Screen components
+└── components/         # Reusable UI components
 ```
 
 ## Best Practices
@@ -262,7 +262,7 @@ mobile/src/
 - Don't call `useAuth()` and `useChildren()` separately in screens
 - Don't assume `user.id` is the correct ID without using `useSession`
 - Don't duplicate permission checks across screens
-- Don't access `user.directus_user_id` for business logic queries
+- Don't access `user.frappe_user` for business logic queries
 
 ## Troubleshooting
 
@@ -270,16 +270,16 @@ mobile/src/
 
 1. Check `isLoading` - might still be fetching
 2. Check `childrenError` - API might have failed
-3. Verify `user.id` is an app_user ID (check `fetchAppUser` logs)
+3. Verify `user.id` is a Guardian ID (check `fetchGuardian` logs)
 
 ### Wrong user ID being used?
 
-1. Check console for `[fetchAppUser]` logs
-2. Verify `app_users` permission allows reading for Parent role
-3. Ensure `directus_user_id` field exists and is populated in `app_users`
+1. Check console for `[fetchGuardian]` logs
+2. Verify `Guardian` doctype permissions allow reading for Parent role
+3. Ensure `user` field exists and is populated in `Guardian` doctype
 
 ### Permissions not working?
 
-1. Check Directus Access Control → Parent role → policies
-2. Verify field-level permissions (e.g., `grade_id` on students)
+1. Check Frappe Role Permissions Manager -> Parent role -> permissions
+2. Verify field-level permissions (e.g., `grade` field on Student doctype)
 3. Test API directly with curl to isolate app vs backend issues

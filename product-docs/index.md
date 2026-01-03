@@ -29,7 +29,7 @@ Fuente única de verdad para la documentación funcional de Kairos, la plataform
 | Recurso | URL |
 |---------|-----|
 | **GitHub** | [franorzabal-hub/kairos](https://github.com/franorzabal-hub/kairos) |
-| **Directus (Prod)** | [kairos-directus](https://kairos-directus-684614817316.us-central1.run.app) |
+| **Frappe (Prod)** | [kairos-frappe](https://kairos-frappe.example.com) |
 | **GCP Project** | `kairos-escuela-app` (us-central1) |
 
 ---
@@ -38,10 +38,10 @@ Fuente única de verdad para la documentación funcional de Kairos, la plataform
 
 | Capa | Tecnología | Uso |
 |------|------------|-----|
-| **Panel Colegios** | Directus Admin (Web) | Docentes y admins gestionan contenido |
+| **Panel Colegios** | Frappe Desk (Web) | Docentes y admins gestionan contenido |
 | **App Padres** | React Native + Expo | iOS, Android y Web para familias |
-| **Backend** | Directus v11 | API REST/GraphQL + Headless CMS |
-| **Database** | PostgreSQL 16 | Cloud SQL en GCP |
+| **Backend** | Frappe Framework v15 | REST API + Full-stack framework |
+| **Database** | MariaDB | Cloud SQL (MariaDB) en GCP |
 | **Cloud** | Google Cloud Platform | Cloud Run + Cloud SQL + GCS |
 
 ---

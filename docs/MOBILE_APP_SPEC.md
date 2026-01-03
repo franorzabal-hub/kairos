@@ -177,17 +177,17 @@ Every screen includes a filter section at the top:
 - radio button
 - group/people
 
-## Data Requirements (maps to Directus schema)
+## Data Requirements (maps to Frappe DocTypes)
 
-| Screen | Collections Used |
-|--------|-----------------|
-| Home/News | announcements, events |
-| Events | events, event_responses |
-| Messages | messages, message_reads |
+| Screen | DocTypes Used |
+|--------|---------------|
+| Home/News | News, School Event |
+| Events | School Event, Event RSVP |
+| Messages | Message, Message Recipient |
 | Pickup Changes | pickup_requests |
 | Reports | reports |
-| Child Selector | students, student_guardians |
-| User Profile | app_users |
+| Child Selector | Student, Student Guardian |
+| User Profile | Guardian, User |
 
 ## Technical Recommendations
 
@@ -200,7 +200,7 @@ Every screen includes a filter section at the top:
 - Zustand or Context for local state
 
 ### Authentication
-- Directus Auth SDK
+- Frappe authentication (cookie-based sessions or token auth)
 - Secure token storage (expo-secure-store / flutter_secure_storage)
 - Biometric login option
 

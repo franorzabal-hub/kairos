@@ -5,9 +5,9 @@
 Kairos is a school-parent communication app. Multi-tenant architecture with extensible schema (Salesforce-style).
 
 **Stack:**
-- Backend/CMS: Directus v11
-- Database: PostgreSQL 16
-- Hosting: Google Cloud Run + Cloud SQL
+- Backend/CMS: Frappe Framework v15
+- Database: MariaDB (via Frappe)
+- Hosting: Google Kubernetes Engine (GKE)
 - Mobile: React Native with Expo
 
 ## Task Management: Beads
@@ -68,121 +68,107 @@ gh pr merge <n>
 **Project:** `kairos-escuela-app`
 **Region:** `us-central1`
 
-### Directus (Cloud Run)
+### Frappe (GKE)
 ```bash
 # URL
-https://kairos-directus-684614817316.us-central1.run.app
-
-# Deploy new version
-gcloud run deploy kairos-directus \
-  --source ./directus \
-  --region us-central1 \
-  --allow-unauthenticated
+https://kairos.example.com  # Update with actual Frappe URL
 
 # View logs
-gcloud run services logs read kairos-directus --region us-central1
+kubectl logs -l app=frappe -n kairos
+
+# Access Frappe bench
+kubectl exec -it <frappe-pod> -n kairos -- bench --help
 ```
 
-### Database (Cloud SQL)
+### Database (MariaDB via Frappe)
 ```bash
-# Instance: kairos-postgres
-gcloud sql connect kairos-postgres --user=postgres
+# Access via Frappe bench
+kubectl exec -it <frappe-pod> -n kairos -- bench mariadb
 
-# Backups
-gcloud sql backups list --instance=kairos-postgres
+# Or via Frappe console
+kubectl exec -it <frappe-pod> -n kairos -- bench console
 ```
 
 ### Storage (Cloud Storage)
 ```bash
 # Bucket for file uploads
-gs://kairos-directus-uploads
+gs://kairos-frappe-uploads
 ```
 
 ## MCP Servers
 
 ### Context7 - Documentation Lookup
 
-Use for looking up Directus, React Native, Expo, or any library documentation:
+Use for looking up Frappe Framework, React Native, Expo, or any library documentation:
 
 ```
 # First resolve the library ID
 mcp__plugin_context7_context7__resolve-library-id
-  libraryName: "directus"
-  query: "How to create flows programmatically"
+  libraryName: "frappe"
+  query: "How to create DocTypes programmatically"
 
 # Then query the docs
 mcp__plugin_context7_context7__query-docs
-  libraryId: "/directus/docs"  # or whatever was resolved
-  query: "Creating automated workflows with Flows API"
+  libraryId: "/frappe/frappe"  # or whatever was resolved
+  query: "Creating REST API endpoints with Frappe"
 ```
 
 Common lookups:
-- Directus v11: flows, permissions, policies, collections, fields
+- Frappe Framework v15: DocTypes, REST API, permissions, hooks, controllers
 - React Native: navigation, state, hooks
 - Expo: push notifications, build, updates
 - TanStack Query: mutations, caching, optimistic updates
 
-### Directus Configuration
+### Frappe API Configuration
 
-Directus is the CMS backend. All configuration is automated via scripts.
+Frappe Framework provides the REST API backend. All data is managed via DocTypes.
 
-**Configuration Scripts (run in order):**
+**Frappe REST API Patterns:**
+
 ```bash
-# 1. Get auth token first
-curl -X POST "$DIRECTUS_URL/auth/login" \
+# Authentication - Get token
+curl -X POST "$FRAPPE_URL/api/method/frappe.auth.get_logged_user" \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@kairos.app","password":"YOUR_PASSWORD"}' \
-  | jq -r '.data.access_token' > /tmp/directus_token.txt
+  -d '{"usr":"admin@kairos.app","pwd":"YOUR_PASSWORD"}'
 
-# 2. Schema setup (collections, fields)
-./scripts/setup-schema.sh
-./scripts/setup-relations.sh
-./scripts/setup-roles.sh
-
-# 3. UI configuration (icons, colors, groups, templates)
-./scripts/configure-directus-ui.sh
-
-# 4. Advanced config (validations, audit fields, O2M relations)
-./scripts/configure-directus-phase2.sh
-
-# 5. Flows/Automations (notifications)
-./scripts/configure-directus-flows.sh
-
-# 6. Access Policies (multi-tenant permissions)
-./scripts/configure-directus-policies.sh
-
-# 7. Seed data (optional, for testing)
-./scripts/seed-data.sh
-./scripts/seed-conversations.sh
+# Or use API key authentication
+curl -H "Authorization: token api_key:api_secret" \
+  "$FRAPPE_URL/api/resource/DocType"
 ```
 
-**What each script configures:**
-| Script | Purpose |
-|--------|---------|
-| `configure-directus-ui.sh` | Icons, colors, groups, display templates, archive fields |
-| `configure-directus-phase2.sh` | Field validations (email, phone, DNI), audit fields, O2M relations |
-| `configure-directus-flows.sh` | Notification automations (announcements, messages, pickup) |
-| `configure-directus-policies.sh` | Role-based access control (Parent, Teacher, Staff, Admin) |
+**Common API Operations:**
 
-**Directus Admin UI:**
-- Flows: Settings → Flows
-- Access Control: Settings → Access Control
-- Dashboards: Insights section
-
-**API Authentication:**
 ```bash
-# Get admin token
-curl -X POST "$DIRECTUS_URL/auth/login" \
+# List records (with filters)
+curl "$FRAPPE_URL/api/resource/Student?filters=[[\"status\",\"=\",\"Active\"]]"
+
+# Get single record
+curl "$FRAPPE_URL/api/resource/Student/STU-2024-00001"
+
+# Create record
+curl -X POST "$FRAPPE_URL/api/resource/Message" \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@kairos.app","password":"admin123"}'
+  -d '{"subject":"Test","content":"Hello"}'
 
-# Save token
-echo "TOKEN" > /tmp/directus_token.txt
+# Update record
+curl -X PUT "$FRAPPE_URL/api/resource/Message/MSG-2024-00001" \
+  -H "Content-Type: application/json" \
+  -d '{"status":"Sent"}'
 
-# Use in API calls
-curl -H "Authorization: Bearer $(cat /tmp/directus_token.txt)" \
-  "$DIRECTUS_URL/flows"
+# Delete record
+curl -X DELETE "$FRAPPE_URL/api/resource/Message/MSG-2024-00001"
+
+# Call server method
+curl -X POST "$FRAPPE_URL/api/method/kairos.api.send_message" \
+  -H "Content-Type: application/json" \
+  -d '{"message_id":"MSG-2024-00001"}'
 ```
+
+**Frappe Admin UI:**
+- DocTypes: Setup → DocType
+- Users & Permissions: Users → User
+- Roles: Users → Role
+- System Settings: Settings → System Settings
 
 ## Project Structure
 
@@ -190,7 +176,7 @@ curl -H "Authorization: Bearer $(cat /tmp/directus_token.txt)" \
 kairos/
 ├── mobile/                    # React Native app (Expo)
 │   ├── src/
-│   │   ├── api/              # Directus client, hooks
+│   │   ├── api/              # Frappe API client, hooks
 │   │   ├── screens/          # App screens
 │   │   ├── components/       # Reusable UI
 │   │   ├── navigation/       # React Navigation
@@ -198,14 +184,15 @@ kairos/
 │   │   ├── hooks/            # Custom hooks (useSession, etc.)
 │   │   └── services/         # Business logic
 │   └── app.json
-├── directus/                  # Directus config (optional)
+├── backend/                   # Frappe app (kairos module)
+├── infra/                     # Infrastructure & docs
+│   └── docs/
+│       └── DATA_MODEL.md     # Canonical data model
 ├── scripts/                   # Setup and config scripts
 ├── docs/                      # Documentation
-│   ├── DATA_MODEL.md         # Database schema
 │   ├── DEPLOYMENT.md         # Deploy guide
 │   ├── MOBILE_APP_SPEC.md    # Mobile app specification
-│   ├── MOBILE_ARCHITECTURE.md # Mobile app patterns
-│   └── DIRECTUS_MANUAL_CONFIG.md  # Manual config guide
+│   └── MOBILE_ARCHITECTURE.md # Mobile app patterns
 └── docker/                    # Local development
 ```
 
@@ -219,39 +206,40 @@ import { useSession } from '../hooks';
 
 function MyScreen() {
   const { user, children, canViewReports, isLoading } = useSession();
-  // user.id is guaranteed to be app_user.id (correct for relations)
+  // user.name is the Frappe User ID (email)
 }
 
 // DON'T DO THIS - scattered state prone to bugs
 function MyScreen() {
-  const { user } = useAuth();           // user.id might be wrong!
+  const { user } = useAuth();           // user might be incomplete
   const { data: children } = useChildren();
   const canViewReports = children.length > 0;  // duplicated logic
 }
 ```
 
-**Key insight**: Directus has TWO user IDs:
-- `directus_users.id` - for authentication
-- `app_users.id` - for business relations (student_guardians, etc.)
+**Key insight**: Frappe uses:
+- `User` DocType - for authentication (email-based)
+- `Guardian` DocType - for parent/guardian business data
 
-`useSession()` ensures you always use the correct `app_users.id`.
+`useSession()` ensures you have the correct user context with linked Guardian data.
 
-## Key Collections (Directus)
+## Key DocTypes (Frappe)
 
-| Collection | Purpose |
-|------------|---------|
-| organizations | Tenants (schools) |
-| app_users | Users (parents, teachers, staff) |
-| students | Student records |
-| student_guardians | Parent-student relations |
-| grades | Grade levels (1st, 2nd, etc.) |
-| sections | Class divisions (A, B, C) |
-| announcements | School news/updates |
-| events | Events with RSVP |
-| conversations | WhatsApp-style messaging |
-| conversation_messages | Chat messages |
-| pickup_requests | Early dismissal requests |
-| reports | Report cards/documents |
+| DocType | Purpose |
+|---------|---------|
+| Institution | Tenants (schools) |
+| Campus | School campuses/locations |
+| Grade | Grade levels (1st, 2nd, etc.) |
+| Section | Class divisions (A, B, C) |
+| Student | Student records |
+| Guardian | Parents/guardians |
+| Student Guardian | Parent-student relations |
+| Message | Direct communications |
+| News | School news/announcements |
+| School Event | Events with RSVP |
+| Event RSVP | Event responses |
+
+See `/infra/docs/DATA_MODEL.md` for the complete data model.
 
 ## Common Tasks
 
@@ -262,10 +250,11 @@ function MyScreen() {
 4. Test locally with Expo Go
 5. Commit and close: `bd close <id>`
 
-### Debugging Directus
-1. Check Cloud Run logs: `gcloud run services logs read kairos-directus`
-2. Test API: `curl -H "Authorization: Bearer $TOKEN" "$URL/items/collection"`
-3. Check permissions in Directus Admin → Access Control
+### Debugging Frappe API
+1. Check GKE logs: `kubectl logs -l app=frappe -n kairos`
+2. Test API: `curl -H "Authorization: token $API_KEY:$API_SECRET" "$URL/api/resource/DocType"`
+3. Check permissions in Frappe Admin: Users → Role Permissions Manager
+4. Use Frappe console: `bench console` for debugging
 
 ### Mobile Development
 ```bash
@@ -278,12 +267,12 @@ npx expo start --android  # Android emulator
 
 ## Environment Variables
 
-**Directus (Cloud Run):**
-- `KEY`, `SECRET` - Security keys
-- `DB_*` - PostgreSQL connection
-- `STORAGE_*` - GCS configuration
-- `PUBLIC_URL` - Directus URL
+**Frappe (GKE):**
+- `DB_HOST`, `DB_PORT` - MariaDB connection
+- `REDIS_CACHE`, `REDIS_QUEUE` - Redis configuration
+- `FRAPPE_SITE_NAME` - Site name
+- `ADMIN_PASSWORD` - Admin password
 
 **Mobile (.env):**
-- `EXPO_PUBLIC_DIRECTUS_URL` - API endpoint
+- `EXPO_PUBLIC_FRAPPE_URL` - API endpoint
 - `EXPO_PUBLIC_*` - Other public configs
