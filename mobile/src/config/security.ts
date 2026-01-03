@@ -29,16 +29,14 @@ export const API_CONFIG = {
   /**
    * The production Frappe API URL
    * This is the only allowed endpoint for API calls
-   * TODO: Update with actual Frappe Cloud Run URL after deployment
    */
-  FRAPPE_HOST: 'kairos-frappe.example.com',
+  FRAPPE_HOST: 'control.kairos.app',
 
   /**
    * Full HTTPS URL for the Frappe API
    * Used by the Frappe SDK client
-   * TODO: Update with actual Frappe Cloud Run URL after deployment
    */
-  FRAPPE_URL: 'https://kairos-frappe.example.com',
+  FRAPPE_URL: 'https://control.kairos.app',
 
   /**
    * Allowed URL schemes
