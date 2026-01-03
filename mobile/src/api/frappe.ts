@@ -12,7 +12,7 @@ import { Platform } from 'react-native';
 import * as Storage from '../utils/storage';
 import {
   API_CONFIG,
-  isSecureUrl,
+  isValidApiUrl,
   createSecureHeaders,
   logSecurityEvent,
 } from '../config/security';
@@ -26,10 +26,10 @@ if (!FRAPPE_URL) {
   throw new Error('EXPO_PUBLIC_FRAPPE_URL environment variable is required');
 }
 
-// Security: Enforce HTTPS - reject any HTTP URLs
-if (!isSecureUrl(FRAPPE_URL)) {
-  logSecurityEvent('invalid_url', { url: FRAPPE_URL, reason: 'HTTP not allowed' });
-  throw new Error('FRAPPE_URL must use HTTPS for security');
+// Security: Enforce HTTPS in production, allow HTTP for localhost in dev
+if (!isValidApiUrl(FRAPPE_URL)) {
+  logSecurityEvent('invalid_url', { url: FRAPPE_URL, reason: 'Invalid URL for environment' });
+  throw new Error('FRAPPE_URL must use HTTPS (or HTTP localhost in development)');
 }
 
 export { FRAPPE_URL };

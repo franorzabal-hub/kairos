@@ -134,6 +134,25 @@ export const SECURITY_HEADERS: Record<string, string> =
 // =============================================================================
 
 /**
+ * Checks if a URL is a localhost domain (for local development)
+ * @param url - The URL to check
+ * @returns true if localhost or .localhost domain
+ */
+export function isLocalDevUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    const hostname = parsed.hostname;
+    return (
+      hostname === 'localhost' ||
+      hostname === '127.0.0.1' ||
+      hostname.endsWith('.localhost')
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Validates that a URL uses HTTPS
  * @param url - The URL to validate
  * @returns true if the URL uses HTTPS, false otherwise
@@ -145,6 +164,27 @@ export function isSecureUrl(url: string): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * Validates that a URL is acceptable for the current environment
+ * - Production: requires HTTPS
+ * - Development: allows HTTP for localhost domains
+ * @param url - The URL to validate
+ * @returns true if the URL is acceptable, false otherwise
+ */
+export function isValidApiUrl(url: string): boolean {
+  // HTTPS is always valid
+  if (isSecureUrl(url)) {
+    return true;
+  }
+
+  // In development, allow HTTP for localhost domains
+  if (__DEV__ && isLocalDevUrl(url)) {
+    return true;
+  }
+
+  return false;
 }
 
 /**
@@ -329,7 +369,9 @@ export default {
   API_CONFIG,
   CERTIFICATE_PINS,
   SECURITY_HEADERS,
+  isLocalDevUrl,
   isSecureUrl,
+  isValidApiUrl,
   isAllowedApiUrl,
   sanitizeApiUrl,
   createSecureHeaders,
