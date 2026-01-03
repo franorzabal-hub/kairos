@@ -47,7 +47,7 @@ export function useChildren() {
         ],
       });
 
-      // Map students to include id as alias for name (backward compatibility with Directus migration)
+      // Map students to include id as alias for name (for convenience)
       const studentsWithId: Student[] = students.map(s => ({ ...s, id: s.name }));
 
       setChildren(studentsWithId);

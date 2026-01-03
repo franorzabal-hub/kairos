@@ -78,7 +78,7 @@ const mockMessage: ConversationMessage = {
 const mockAuthUser = {
   id: 'guardian-123',
   organization_id: 'institution-123',
-  directus_user_id: 'john@example.com', // Frappe User
+  frappe_user_id: 'john@example.com', // Frappe User
   role: 'parent' as const,
   first_name: 'John',
   last_name: 'Doe',
@@ -131,18 +131,18 @@ describe('useConversations hooks', () => {
 
   describe('useConversations', () => {
     it('should use Frappe user ID for queries', () => {
-      // The hook uses user?.directus_user_id (which maps to Frappe User email)
-      expect(mockAuthUser.directus_user_id).toBe('john@example.com');
+      // The hook uses user?.frappe_user_id (which maps to Frappe User email)
+      expect(mockAuthUser.frappe_user_id).toBe('john@example.com');
     });
 
     it('should be enabled when frappeUserId exists', () => {
-      const frappeUserId = mockAuthUser.directus_user_id;
+      const frappeUserId = mockAuthUser.frappe_user_id;
       expect(!!frappeUserId).toBe(true);
     });
 
     it('should be disabled when frappeUserId is undefined', () => {
       mockUseAuth.mockReturnValue({
-        user: { ...mockAuthUser, directus_user_id: undefined },
+        user: { ...mockAuthUser, frappe_user_id: undefined },
         isAuthenticated: true,
         isLoading: false,
         login: jest.fn(),
@@ -155,7 +155,7 @@ describe('useConversations hooks', () => {
     });
 
     it('should generate user-scoped query key', () => {
-      const frappeUserId = mockAuthUser.directus_user_id!;
+      const frappeUserId = mockAuthUser.frappe_user_id!;
       const queryKey = queryKeys.conversations.user(frappeUserId);
       expect(queryKey).toEqual(['conversations', 'john@example.com']);
     });
@@ -163,9 +163,9 @@ describe('useConversations hooks', () => {
 
   describe('useConversation', () => {
     it('should be enabled when both userId and conversationId exist', () => {
-      const directusUserId = mockAuthUser.directus_user_id;
+      const frappeUserId = mockAuthUser.frappe_user_id;
       const conversationId = 'conv-1';
-      expect(!!directusUserId && !!conversationId).toBe(true);
+      expect(!!frappeUserId && !!conversationId).toBe(true);
     });
 
     it('should be disabled when conversationId is empty', () => {
@@ -174,9 +174,9 @@ describe('useConversations hooks', () => {
     });
 
     it('should be disabled when user is not authenticated', () => {
-      const directusUserId = undefined;
+      const frappeUserId = undefined;
       const conversationId = 'conv-1';
-      expect(!!directusUserId && !!conversationId).toBe(false);
+      expect(!!frappeUserId && !!conversationId).toBe(false);
     });
   });
 
@@ -206,7 +206,7 @@ describe('useConversations hooks', () => {
 
   describe('useSendMessage', () => {
     it('should require authentication', () => {
-      const frappeUserId = mockAuthUser.directus_user_id;
+      const frappeUserId = mockAuthUser.frappe_user_id;
       expect(frappeUserId).toBeDefined();
     });
 

@@ -25,7 +25,7 @@ export function useMessages() {
   const { filterMode } = useUI();
 
   // In Frappe, we use the user's name (email) as the user identifier
-  const frappeUserId = user?.directus_user_id ?? '';
+  const frappeUserId = user?.frappe_user_id ?? '';
 
   return useQuery({
     queryKey: queryKeys.messageRecipients.filtered(frappeUserId, selectedChildId ?? undefined, filterMode),
@@ -82,7 +82,7 @@ export function useMessages() {
 export function useMarkMessageRead() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const frappeUserId = user?.directus_user_id;
+  const frappeUserId = user?.frappe_user_id;
 
   return useMutation({
     mutationFn: async (recipientId: string) => {

@@ -25,7 +25,7 @@ import {
   useArchiveConversation,
   useToggleParticipantBlocked,
 } from '../api/hooks';
-import { ConversationMessage, DirectusUser } from '../api/frappe';
+import { ConversationMessage, FrappeUser } from '../api/frappe';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY, SIZES } from '../theme';
 import { ChatBubble, FirstMessageCard, MessageInput, DateSeparator } from '../components/chat';
 
@@ -36,7 +36,7 @@ export default function ConversationChatScreen() {
   const conversationId = typeof id === 'string' ? id : '';
 
   const { user } = useSession();
-  const directusUserId = user?.directus_user_id;
+  const frappeUserId = user?.frappe_user_id;
 
   const { data: conversation } = useConversation(conversationId);
   const { data: messages = [], isLoading, refetch } = useConversationMessages(conversationId);
@@ -59,7 +59,7 @@ export default function ConversationChatScreen() {
     const participantUserId = typeof participant.user_id === 'string'
       ? participant.user_id
       : participant.user_id?.id;
-    return participantUserId === directusUserId;
+    return participantUserId === frappeUserId;
   });
 
   // Get other participants (teachers/staff)
@@ -67,12 +67,12 @@ export default function ConversationChatScreen() {
     const participantUserId = typeof participant.user_id === 'string'
       ? participant.user_id
       : participant.user_id?.id;
-    return participantUserId !== directusUserId;
+    return participantUserId !== frappeUserId;
   });
 
   // Get primary other participant for header display
   const primaryParticipant = otherParticipants[0];
-  const primaryParticipantUser = primaryParticipant?.user_id as DirectusUser | undefined;
+  const primaryParticipantUser = primaryParticipant?.user_id as FrappeUser | undefined;
   const participantName = primaryParticipantUser
     ? [primaryParticipantUser.first_name, primaryParticipantUser.last_name?.charAt(0)].filter(Boolean).join(' ')
     : 'Participante';
@@ -299,7 +299,7 @@ export default function ConversationChatScreen() {
   // Memoized renderItem to prevent unnecessary re-renders
   const renderMessage = useCallback(({ item, index }: { item: ConversationMessage; index: number }) => {
     const senderId = typeof item.sender_id === 'string' ? item.sender_id : item.sender_id?.id;
-    const isMyMessage = senderId === directusUserId;
+    const isMyMessage = senderId === frappeUserId;
     const showDate = shouldShowDateSeparator(index, messages);
     const isFirstMessage = index === 0;
 
@@ -313,7 +313,7 @@ export default function ConversationChatScreen() {
         )}
       </View>
     );
-  }, [directusUserId, messages, shouldShowDateSeparator, formatDate]);
+  }, [frappeUserId, messages, shouldShowDateSeparator, formatDate]);
 
   if (!conversationId) {
     return (

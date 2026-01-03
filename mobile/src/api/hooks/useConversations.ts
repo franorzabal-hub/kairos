@@ -28,7 +28,7 @@ export interface ConversationWithMeta extends Conversation {
 // OPTIMIZED: Replaced N+1 query pattern with batch queries
 export function useConversations() {
   const { user } = useAuth();
-  const frappeUserId = user?.directus_user_id;
+  const frappeUserId = user?.frappe_user_id;
 
   const isEnabled = !!frappeUserId;
   const queryKey = queryKeys.conversations.user(frappeUserId ?? '');
@@ -191,7 +191,7 @@ export function useConversations() {
 // Fetch single conversation with messages
 export function useConversation(conversationId: string) {
   const { user } = useAuth();
-  const frappeUserId = user?.directus_user_id;
+  const frappeUserId = user?.frappe_user_id;
 
   return useQuery({
     queryKey: queryKeys.conversation(conversationId),
@@ -241,7 +241,7 @@ export function useConversation(conversationId: string) {
 // Fetch messages for a conversation
 export function useConversationMessages(conversationId: string) {
   const { user } = useAuth();
-  const frappeUserId = user?.directus_user_id;
+  const frappeUserId = user?.frappe_user_id;
 
   return useQuery({
     queryKey: queryKeys.conversationMessages(conversationId),
@@ -286,7 +286,7 @@ export function useConversationMessages(conversationId: string) {
 export function useSendMessage() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const frappeUserId = user?.directus_user_id;
+  const frappeUserId = user?.frappe_user_id;
 
   return useMutation({
     mutationFn: async ({
@@ -326,7 +326,7 @@ export function useSendMessage() {
 export function useMarkConversationRead() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const frappeUserId = user?.directus_user_id;
+  const frappeUserId = user?.frappe_user_id;
 
   return useMutation({
     mutationFn: async (participantId: string) => {
@@ -358,7 +358,7 @@ export function useMarkConversationRead() {
 export function useCloseConversation() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const frappeUserId = user?.directus_user_id;
+  const frappeUserId = user?.frappe_user_id;
 
   return useMutation({
     mutationFn: async ({
@@ -394,7 +394,7 @@ export function useCloseConversation() {
 export function useReopenConversation() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const frappeUserId = user?.directus_user_id;
+  const frappeUserId = user?.frappe_user_id;
 
   return useMutation({
     mutationFn: async (conversationId: string) => {
@@ -422,7 +422,7 @@ export function useReopenConversation() {
 export function useToggleParticipantReply() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const frappeUserId = user?.directus_user_id;
+  const frappeUserId = user?.frappe_user_id;
 
   return useMutation({
     mutationFn: async ({
@@ -456,7 +456,7 @@ export function useToggleParticipantReply() {
 export function useToggleParticipantBlocked() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const frappeUserId = user?.directus_user_id;
+  const frappeUserId = user?.frappe_user_id;
 
   return useMutation({
     mutationFn: async ({
@@ -490,7 +490,7 @@ export function useToggleParticipantBlocked() {
 export function useMuteConversation() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const frappeUserId = user?.directus_user_id;
+  const frappeUserId = user?.frappe_user_id;
 
   return useMutation({
     mutationFn: async ({
@@ -524,7 +524,7 @@ export function useMuteConversation() {
 export function useArchiveConversation() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const frappeUserId = user?.directus_user_id;
+  const frappeUserId = user?.frappe_user_id;
 
   return useMutation({
     mutationFn: async (conversationId: string) => {
@@ -549,7 +549,7 @@ export function useArchiveConversation() {
 export function useUnarchiveConversation() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const frappeUserId = user?.directus_user_id;
+  const frappeUserId = user?.frappe_user_id;
 
   return useMutation({
     mutationFn: async (conversationId: string) => {
@@ -585,7 +585,7 @@ export interface CreateConversationParams {
 export function useCreateConversation() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const frappeUserId = user?.directus_user_id;
+  const frappeUserId = user?.frappe_user_id;
 
   return useMutation({
     mutationFn: async ({

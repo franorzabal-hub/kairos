@@ -24,7 +24,7 @@ import {
   useCreateConversation,
 } from '../../api/hooks';
 import { useSession } from '../../hooks';
-import { Conversation, ConversationMessage, DirectusUser } from '../../api/frappe';
+import { Conversation, ConversationMessage, FrappeUser } from '../../api/frappe';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY, SHADOWS } from '../../theme';
 
 // Web-specific pressable state type
@@ -50,7 +50,7 @@ const CONTACT_CHANNELS: ContactChannel[] = [
 
 export default function WebMensajesScreen() {
   const { user, children } = useSession();
-  const directusUserId = user?.directus_user_id;
+  const frappeUserId = user?.frappe_user_id;
 
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [messageFilter, setMessageFilter] = useState<MessageFilter>('all');
@@ -93,15 +93,15 @@ export default function WebMensajesScreen() {
     const participants = selectedConversation.participants ?? [];
     const current = participants.find(p => {
       const userId = typeof p.user_id === 'string' ? p.user_id : p.user_id?.id;
-      return userId === directusUserId;
+      return userId === frappeUserId;
     });
     const others = participants.filter(p => {
       const userId = typeof p.user_id === 'string' ? p.user_id : p.user_id?.id;
-      return userId !== directusUserId;
+      return userId !== frappeUserId;
     });
 
     const primary = others[0];
-    const primaryUser = primary?.user_id as DirectusUser | undefined;
+    const primaryUser = primary?.user_id as FrappeUser | undefined;
     const name = primaryUser
       ? [primaryUser.first_name, primaryUser.last_name?.charAt(0)].filter(Boolean).join(' ')
       : 'Participante';
@@ -115,7 +115,7 @@ export default function WebMensajesScreen() {
       otherParticipants: others,
       currentParticipant: current,
     };
-  }, [selectedConversation, directusUserId]);
+  }, [selectedConversation, frappeUserId]);
 
   const canReply = currentParticipant?.can_reply ?? true;
   const isClosed = selectedConversation?.status === 'closed';
@@ -478,7 +478,7 @@ export default function WebMensajesScreen() {
               ) : (
                 messages.map((message, index) => {
                   const senderId = typeof message.sender_id === 'string' ? message.sender_id : message.sender_id?.id;
-                  const isMyMessage = senderId === directusUserId;
+                  const isMyMessage = senderId === frappeUserId;
                   const showDate = shouldShowDateSeparator(index, messages);
                   const isFirstMessage = index === 0;
 

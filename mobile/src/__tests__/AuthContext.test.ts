@@ -27,7 +27,7 @@ const mockFrappeUser = {
 const mockAppUser: AppUser = {
   id: 'guardian-456',
   organization_id: 'institution-789',
-  directus_user_id: 'john@example.com', // In Frappe, this maps to the user field
+  frappe_user_id: 'john@example.com', // In Frappe, this maps to the user field
   role: 'parent',
   first_name: 'John',
   last_name: 'Doe',

@@ -2,7 +2,7 @@
  * Permission Debugger - Tracks missing permissions during development
  *
  * This service collects all 403 errors and missing permissions to help
- * developers understand what needs to be configured in Directus.
+ * developers understand what needs to be configured in Frappe.
  *
  * Only active in __DEV__ mode.
  */
@@ -84,10 +84,10 @@ class PermissionDebugger {
   }
 
   /**
-   * Export in a format suitable for Directus configuration.
-   * Copy this output to configure roles in Directus.
+   * Export in a format suitable for Frappe configuration.
+   * Copy this output to configure roles in Frappe.
    */
-  exportForDirectus(): Array<{ collection: string; action: string; fields: string[] }> {
+  exportForFrappe(): Array<{ collection: string; action: string; fields: string[] }> {
     // Group by collection and action
     const grouped = new Map<string, Set<string>>();
 
@@ -124,8 +124,8 @@ class PermissionDebugger {
       lines.push(`• ${m.action} → ${m.collection}${m.field ? ` (field: ${m.field})` : ''}`);
     }
     lines.push('');
-    lines.push('Directus Config:');
-    lines.push(JSON.stringify(this.exportForDirectus(), null, 2));
+    lines.push('Frappe Config:');
+    lines.push(JSON.stringify(this.exportForFrappe(), null, 2));
 
     return lines.join('\n');
   }

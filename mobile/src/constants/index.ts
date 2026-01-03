@@ -15,8 +15,8 @@ export const CONTENT_TYPES = {
 } as const;
 
 /**
- * Directus collection names for API queries.
- * Matches the collection names in the Directus schema.
+ * Frappe DocType names for API queries.
+ * Matches the collection names in the Frappe schema.
  */
 export const COLLECTIONS = {
   ANNOUNCEMENTS: 'announcements',

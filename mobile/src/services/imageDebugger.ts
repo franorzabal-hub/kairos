@@ -2,7 +2,7 @@
  * Image Debugger - Tracks image loading issues during development
  *
  * This service collects all image loading failures to help
- * developers debug Directus asset access issues.
+ * developers debug Frappe asset access issues.
  *
  * Only active in __DEV__ mode.
  */

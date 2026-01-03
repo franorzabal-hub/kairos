@@ -51,6 +51,3 @@ export function buildFrappeAssetUrl(fileId: string, accessToken: string | null):
   return `${FRAPPE_URL}/assets/${fileId}`;
 }
 
-// Backward compatibility aliases
-export const getDirectusAssetUrl = getFrappeAssetUrl;
-export const buildDirectusAssetUrl = buildFrappeAssetUrl;

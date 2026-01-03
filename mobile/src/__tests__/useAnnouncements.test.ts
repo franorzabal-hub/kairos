@@ -56,7 +56,7 @@ const mockAttachments: NewsAttachment[] = [
 const mockAuthUser = {
   id: 'guardian-123',
   organization_id: 'institution-123',
-  directus_user_id: 'john@example.com', // Frappe User
+  frappe_user_id: 'john@example.com', // Frappe User
   role: 'parent' as const,
   first_name: 'John',
   last_name: 'Doe',

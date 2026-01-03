@@ -50,7 +50,7 @@ export interface SessionState extends SessionPermissions {
  * Centralized session hook that provides user, children, and derived permissions.
  *
  * This hook solves the problem of scattered user/children state across components
- * and ensures consistent access to the correct user ID (app_user.id, not directus_user.id).
+ * and ensures consistent access to the correct user ID (app_user.id, not frappe_user.id).
  *
  * @example
  * ```tsx
@@ -73,7 +73,7 @@ export interface SessionState extends SessionPermissions {
  * 4. Handle loading states separately
  *
  * This led to bugs where:
- * - The wrong user.id was used (Directus ID vs app_user ID)
+ * - The wrong user.id was used (Frappe User ID vs app_user ID)
  * - Children weren't loaded when needed
  * - Permission logic was duplicated across screens
  *

@@ -34,7 +34,7 @@ import LockedFeature from './LockedFeature';
 type PermissionAction = 'create' | 'read' | 'update' | 'delete';
 
 interface PermissionGuardProps {
-  /** Directus collection name */
+  /** Frappe DocType name */
   collection: string;
 
   /** Permission action to check (default: 'read') */
@@ -98,7 +98,7 @@ export default function PermissionGuard({
  * ```
  */
 interface FieldGuardProps {
-  /** Directus collection name */
+  /** Frappe DocType name */
   collection: string;
 
   /** Field name to check */

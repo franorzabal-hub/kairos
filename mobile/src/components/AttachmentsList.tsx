@@ -13,15 +13,15 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { WebView } from 'react-native-webview';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AnnouncementAttachment } from '../api/frappe';
-import { useFrappeAsset, getDirectusAssetUrl } from '../hooks/useFrappeAsset';
+import { useFrappeAsset, getFrappeAssetUrl } from '../hooks/useFrappeAsset';
 import { COLORS, SPACING, BORDERS, TYPOGRAPHY, SIZES, FONT_SIZES } from '../theme';
 
 interface AttachmentsListProps {
   attachments: AnnouncementAttachment[];
 }
 
-// File metadata type from directus_files
-interface DirectusFile {
+// File metadata type from frappe_files
+interface FrappeFile {
   id: string;
   filename_download: string;
   title?: string;
@@ -62,8 +62,8 @@ function AttachmentItem({ attachment }: { attachment: AnnouncementAttachment }) 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isLoadingUrl, setIsLoadingUrl] = useState(false);
 
-  // The file field should contain the populated directus_files data
-  const fileData = attachment.file as unknown as DirectusFile | string;
+  // The file field should contain the populated frappe_files data
+  const fileData = attachment.file as unknown as FrappeFile | string;
   const fileId = typeof fileData === 'string' ? fileData : fileData?.id;
   const fileName = typeof fileData === 'object' ? (fileData.filename_download || fileData.title || 'Archivo') : 'Archivo';
   const mimeType = typeof fileData === 'object' ? fileData.type : 'application/octet-stream';
@@ -79,7 +79,7 @@ function AttachmentItem({ attachment }: { attachment: AnnouncementAttachment }) 
 
     setIsLoadingUrl(true);
     try {
-      const url = await getDirectusAssetUrl(fileId);
+      const url = await getFrappeAssetUrl(fileId);
 
       if (isPdf) {
         // Open PDF in preview modal
@@ -103,7 +103,7 @@ function AttachmentItem({ attachment }: { attachment: AnnouncementAttachment }) 
     if (!fileId) return;
 
     try {
-      const url = await getDirectusAssetUrl(fileId);
+      const url = await getFrappeAssetUrl(fileId);
       await Linking.openURL(url);
     } catch (error) {
       Alert.alert('Error', 'No se pudo descargar el archivo');

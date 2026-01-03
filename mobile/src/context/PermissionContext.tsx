@@ -44,7 +44,7 @@ interface PermissionContextType {
   /** Check if user can read a specific field */
   canField: (collection: string, field: string) => boolean;
 
-  /** Reload permissions from Directus */
+  /** Reload permissions from Frappe */
   reload: () => Promise<void>;
 
   /** Get list of collections user has access to */

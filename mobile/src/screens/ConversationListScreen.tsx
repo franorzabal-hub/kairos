@@ -25,7 +25,7 @@ import { useSession } from '../hooks';
 import { COLORS, CHILD_COLORS, SPACING, SIZES, SHADOWS } from '../theme';
 
 // Available contact channels - defined by the school
-// TODO: Later this could come from Directus configuration
+// TODO: Later this could come from Frappe configuration
 const CONTACT_CHANNELS: ContactChannel[] = [
   {
     id: 'secretaria',

@@ -99,7 +99,7 @@ export interface Section {
 
 export interface Student {
   name: string;
-  /** Alias for name - provided for backward compatibility with Directus migration */
+  /** Alias for name - provided for backward compatibility */
   id: string;
   institution: string;
   student_name: string;
@@ -571,7 +571,7 @@ export function getAssetUrl(filePath: string | null | undefined): string | null 
 export interface AppUser {
   id: string;
   organization_id: string;
-  directus_user_id?: string;
+  frappe_user_id?: string;
   role: 'admin' | 'teacher' | 'parent' | 'staff';
   first_name: string;
   last_name: string;
@@ -589,7 +589,7 @@ export function guardianToAppUser(guardian: Guardian): AppUser {
   return {
     id: guardian.name,
     organization_id: guardian.institution || '',
-    directus_user_id: guardian.user,
+    frappe_user_id: guardian.user,
     role: 'parent',
     first_name: guardian.first_name,
     last_name: guardian.last_name,
@@ -600,25 +600,17 @@ export function guardianToAppUser(guardian: Guardian): AppUser {
 }
 
 // =============================================================================
-// BACKWARD COMPATIBILITY ALIASES
+// TYPE ALIASES (for naming consistency)
 // =============================================================================
 
-/**
- * Type aliases for backward compatibility with code using Directus naming
- * These will be removed once all code is migrated to Frappe naming
- */
-
-// Announcement → News
+// Announcement → News (app uses "Announcement" terminology)
 export type Announcement = News;
 export type AnnouncementAttachment = NewsAttachment;
 
-// Event → SchoolEvent
+// Event → SchoolEvent (app uses "Event" terminology)
 export type Event = SchoolEvent;
 
-// DirectusUser → FrappeUser
-export type DirectusUser = FrappeUser;
-
-// Organization → Institution
+// Organization → Institution (app uses "Organization" terminology)
 export type Organization = Institution;
 
 // Location type (referenced by events)
@@ -631,10 +623,7 @@ export interface Location {
   custom_fields?: Record<string, unknown>;
 }
 
-// DIRECTUS_URL alias for backward compatibility
-export const DIRECTUS_URL = FRAPPE_URL;
-
-// Token function aliases (Directus used dual tokens, Frappe uses single)
+// Token helpers (wrapper for compatibility)
 export async function getTokens(): Promise<{ accessToken: string | null; refreshToken: string | null }> {
   const token = await getToken();
   return { accessToken: token, refreshToken: null };
@@ -665,9 +654,7 @@ export const frappe = {
   getCount,
   exists,
   getAssetUrl,
+  getToken,
 };
-
-// directus client alias - returns frappe object for compatibility
-export const directus = frappe;
 
 export default frappe;

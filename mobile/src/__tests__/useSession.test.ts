@@ -17,7 +17,7 @@ import { Student, AppUser } from '../api/frappe';
 const mockAuthUser: AppUser = {
   id: 'guardian-123',
   organization_id: 'institution-456',
-  directus_user_id: 'john@example.com', // In Frappe, this is the User (email)
+  frappe_user_id: 'john@example.com', // In Frappe, this is the User (email)
   role: 'parent',
   first_name: 'John',
   last_name: 'Doe',
@@ -342,8 +342,8 @@ describe('User ID distinction', () => {
     // - User (email) - for authentication
     // - Guardian.name - for business relations (Student Guardian, etc.)
     expect(mockAuthUser.id).toBe('guardian-123');
-    expect(mockAuthUser.directus_user_id).toBe('john@example.com');
-    expect(mockAuthUser.id).not.toBe(mockAuthUser.directus_user_id);
+    expect(mockAuthUser.frappe_user_id).toBe('john@example.com');
+    expect(mockAuthUser.id).not.toBe(mockAuthUser.frappe_user_id);
   });
 
   it('should use Guardian.name for business relations', () => {
@@ -354,7 +354,7 @@ describe('User ID distinction', () => {
 
   it('should use Frappe User for auth operations', () => {
     // When dealing with Frappe authentication, use the User (email)
-    const frappeUserId = mockAuthUser.directus_user_id;
+    const frappeUserId = mockAuthUser.frappe_user_id;
     expect(frappeUserId).toBe('john@example.com');
   });
 });
@@ -380,12 +380,12 @@ describe('AppUser data type', () => {
     expect(validStatuses).toContain(mockAuthUser.status);
   });
 
-  it('should support optional directus_user_id', () => {
-    const userWithDirectusId: AppUser = {
+  it('should support optional frappe_user_id', () => {
+    const userWithFrappeId: AppUser = {
       ...mockAuthUser,
-      directus_user_id: 'directus-user-789',
+      frappe_user_id: 'frappe-user-789',
     };
-    expect(userWithDirectusId.directus_user_id).toBe('directus-user-789');
+    expect(userWithFrappeId.frappe_user_id).toBe('frappe-user-789');
   });
 });
 
