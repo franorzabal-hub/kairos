@@ -30,3 +30,15 @@ npm-debug.log*
 # Build
 dist/
 build/
+
+# Test coverage
+coverage/
+
+# Obsidian
+.obsidian/
+
+# Playwright
+.playwright-mcp/
+
+# Expo logs
+expo_log.txt
