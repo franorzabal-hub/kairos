@@ -1,0 +1,80 @@
+# Frontend Web Cloud Run Deployment Pipeline
+# Triggered by: push to main branch (kairos frontend repo)
+# Deploys Expo web build to Cloud Run
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: E2_HIGHCPU_8
+
+substitutions:
+  _SERVICE_NAME: kairos-frontend-web
+  _REGION: us-central1
+  _REPOSITORY: kairos
+  _FRAPPE_URL: https://control.kairos.app
+
+steps:
+  # Install dependencies
+  - name: 'node:20'
+    id: 'npm-install'
+    entrypoint: 'npm'
+    args: ['ci']
+    dir: 'mobile'
+
+  # Build Expo web
+  - name: 'node:20'
+    id: 'npm-build'
+    entrypoint: 'npm'
+    args: ['run', 'build:web']
+    dir: 'mobile'
+    env:
+      - 'EXPO_PUBLIC_FRAPPE_URL=${_FRAPPE_URL}'
+    waitFor: ['npm-install']
+
+  # Build Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'docker-build'
+    args:
+      - 'build'
+      - '-t'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/frontend-web:$SHORT_SHA'
+      - '-t'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/frontend-web:latest'
+      - '-f'
+      - 'Dockerfile.web'
+      - '.'
+    dir: 'mobile'
+    waitFor: ['npm-build']
+
+  # Push Docker image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'docker-push'
+    args:
+      - 'push'
+      - '--all-tags'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/frontend-web'
+    waitFor: ['docker-build']
+
+  # Deploy to Cloud Run
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'deploy'
+    args:
+      - 'run'
+      - 'deploy'
+      - '${_SERVICE_NAME}'
+      - '--image'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/frontend-web:$SHORT_SHA'
+      - '--region'
+      - '${_REGION}'
+      - '--port'
+      - '8080'
+      - '--allow-unauthenticated'
+      - '--platform'
+      - 'managed'
+    waitFor: ['docker-push']
+
+images:
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/frontend-web:$SHORT_SHA'
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/frontend-web:latest'
+
+timeout: '1200s'
+tags: ['frontend', 'web', 'cloud-run']
