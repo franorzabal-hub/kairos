@@ -17,7 +17,7 @@ steps:
   - name: 'node:20'
     id: 'npm-install'
     entrypoint: 'npm'
-    args: ['ci']
+    args: ['ci', '--legacy-peer-deps']
     dir: 'mobile'
 
   # Build Expo web
