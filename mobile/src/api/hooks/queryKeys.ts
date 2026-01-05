@@ -83,6 +83,19 @@ export const queryKeys = {
   /** Single event by ID */
   event: (id: string) => ['event', id] as const,
 
+  /** Field trips requiring authorization */
+  fieldTrips: {
+    all: ['fieldTrips'] as const,
+    pending: (userId: string) => ['fieldTrips', 'pending', userId] as const,
+  },
+  /** Single field trip by ID */
+  fieldTrip: (id: string) => ['fieldTrip', id] as const,
+  /** Field trip student record by ID */
+  fieldTripStudent: (id: string) => ['fieldTripStudent', id] as const,
+  /** Field trip students for a guardian's children */
+  fieldTripStudents: (userId: string, childId?: string) =>
+    ['fieldTripStudents', userId, childId] as const,
+
   // ═══════════════════════════════════════════════════════════════════════════
   // USER-SCOPED DATA (include userId for cache isolation)
   // ═══════════════════════════════════════════════════════════════════════════

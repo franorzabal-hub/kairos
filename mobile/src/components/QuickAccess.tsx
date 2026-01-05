@@ -48,6 +48,13 @@ function QuickAccess({
       onPress: onPickupChange || (() => router.push('/mishijos')),
     },
     {
+      id: 'field-trips',
+      label: 'Salidas Educativas',
+      icon: 'bus-outline',
+      color: COLORS.primary,
+      onPress: () => router.push('/salidas'),
+    },
+    {
       id: 'contact',
       label: 'Contactar Colegio',
       icon: 'call-outline',

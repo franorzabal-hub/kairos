@@ -29,6 +29,16 @@ export {
 // Events
 export { useEvents, useEvent } from './useEvents';
 
+// Field Trips
+export {
+  useFieldTripsPendingAuthorization,
+  useFieldTripStudent,
+  useFieldTrip,
+  useAuthorizeFieldTrip,
+  useUploadAuthorizationDocument,
+  type AuthorizeFieldTripData,
+} from './useFieldTrips';
+
 // Messages
 export {
   useMessages,

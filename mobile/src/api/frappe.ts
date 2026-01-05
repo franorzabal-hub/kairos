@@ -329,6 +329,81 @@ export interface NewsAcknowledgment {
 }
 
 // =============================================================================
+// FIELD TRIP TYPES
+// =============================================================================
+
+export interface FieldTrip {
+  name: string;
+  institution: string;
+  trip_name: string;
+  trip_type: 'Educational' | 'Recreational' | 'Sports' | 'Cultural' | 'Community Service' | 'Other';
+  description?: string;
+  academic_year: string;
+  school_unit: string;
+  departure_date: string;
+  departure_time?: string;
+  return_date: string;
+  return_time?: string;
+  destination: string;
+  destination_address?: string;
+  meeting_point?: string;
+  meeting_time?: string;
+  transportation_type?: 'School Bus' | 'Chartered Bus' | 'Public Transport' | 'Walking' | 'Parent Transport' | 'Other';
+  transportation_details?: string;
+  cost_per_student?: number;
+  payment_deadline?: string;
+  what_to_bring?: string;
+  what_to_wear?: string;
+  food_arrangements?: string;
+  authorization_deadline: string;
+  emergency_contact_name?: string;
+  emergency_contact_phone?: string;
+  max_students?: number;
+  min_students?: number;
+  requires_medical_info: boolean;
+  requires_emergency_contact: boolean;
+  additional_forms?: string;
+  insurance_included: boolean;
+  insurance_details?: string;
+  status: 'Draft' | 'Pending Approval' | 'Approved' | 'In Progress' | 'Completed' | 'Cancelled';
+  image?: string;
+  owner?: string;
+  creation?: string;
+  modified?: string;
+}
+
+export interface FieldTripStudent {
+  name: string;
+  field_trip: string;
+  student: string;
+  section: string;
+  authorization_status: 'Pending' | 'Authorized' | 'Declined' | 'Expired';
+  authorized_by?: string;
+  authorization_date?: string;
+  authorization_method?: 'App' | 'Paper Form' | 'Email';
+  authorization_document?: string;
+  emergency_contact_name?: string;
+  emergency_contact_phone?: string;
+  emergency_contact_relationship?: string;
+  medical_conditions?: string;
+  allergies?: string;
+  medications?: string;
+  special_needs?: string;
+  payment_status?: 'Not Required' | 'Pending' | 'Paid' | 'Refunded';
+  payment_amount?: number;
+  payment_date?: string;
+  payment_reference?: string;
+  attendance_status?: 'Pending' | 'Present' | 'Absent' | 'Late';
+  notes?: string;
+  owner?: string;
+  creation?: string;
+  modified?: string;
+  // Virtual/joined fields
+  student_details?: Student;
+  field_trip_details?: FieldTrip;
+}
+
+// =============================================================================
 // FRAPPE CLIENT TYPES
 // =============================================================================
 

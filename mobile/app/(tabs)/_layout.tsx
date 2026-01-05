@@ -33,6 +33,8 @@ export default function TabsLayout() {
       <Tabs.Screen name="eventos/[id]" options={{ href: null }} />
       <Tabs.Screen name="cambios/index" options={{ href: null }} />
       <Tabs.Screen name="boletines/index" options={{ href: null }} />
+      <Tabs.Screen name="salidas/index" options={{ href: null }} />
+      <Tabs.Screen name="salidas/[id]" options={{ href: null }} />
     </Tabs>
   );
 }
